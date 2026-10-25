@@ -57,7 +57,7 @@ let targetPitch = pitch;
 const ambientLight = new THREE.AmbientLight(0xe2e8f0, 0.95);
 scene.add(ambientLight);
 
-const sunLight = new THREE.DirectionalLight(0xfffbeb, 1.3);
+const sunLight = new THREE.DirectionalLight(0xfffbeb, 1.35);
 sunLight.position.set(12, 26, 14);
 sunLight.castShadow = true;
 sunLight.shadow.mapSize.width = 2048;
@@ -72,7 +72,6 @@ sunLight.shadow.camera.bottom = -d;
 sunLight.shadow.bias = -0.0005;
 scene.add(sunLight);
 
-// Luz LED azul intensa dentro del gabinete Rack (como en la foto de referencia)
 const rackBlueLight = new THREE.PointLight(0x3b82f6, 2.2, 6);
 rackBlueLight.position.set(-6.1, 1.6, 0.2);
 scene.add(rackBlueLight);
@@ -82,7 +81,7 @@ officeLight.position.set(2.5, 2.95, 0);
 scene.add(officeLight);
 
 // ============================================================================
-// 4. TEXTURAS PROCEDURALES
+// 4. TEXTURAS PROCEDURALES (INCLUYE VIDRIO REFLECTIVO AZUL, UPS LCD Y CRAC)
 // ============================================================================
 function createRaisedFloorTexture() {
   const c = document.createElement('canvas');
@@ -166,6 +165,97 @@ function createAcousticCeilingTexture() {
   return tex;
 }
 
+// Textura de muro cortina de vidrio reflectivo azul con cielo/nubes (Referencia Imagen 4)
+function createReflectiveCurtainGlassTexture() {
+  const c = document.createElement('canvas');
+  c.width = 512;
+  c.height = 512;
+  const ctx = c.getContext('2d');
+
+  const grad = ctx.createLinearGradient(0, 0, 512, 512);
+  grad.addColorStop(0, '#0284c7');
+  grad.addColorStop(0.35, '#38bdf8');
+  grad.addColorStop(0.55, '#bae6fd');
+  grad.addColorStop(0.75, '#0369a1');
+  grad.addColorStop(1, '#0c4a6e');
+  ctx.fillStyle = grad;
+  ctx.fillRect(0, 0, 512, 512);
+
+  // Reflejos diagonales suaves tipo nubes/brillo de vidrio arquitectónico UNAB
+  ctx.fillStyle = 'rgba(255, 255, 255, 0.25)';
+  ctx.beginPath();
+  ctx.ellipse(160, 140, 140, 50, -0.3, 0, Math.PI * 2);
+  ctx.fill();
+
+  ctx.beginPath();
+  ctx.ellipse(360, 320, 160, 65, -0.35, 0, Math.PI * 2);
+  ctx.fill();
+
+  const tex = new THREE.CanvasTexture(c);
+  return tex;
+}
+
+// Pantalla LCD Azul "220V" del UPS Kenga Tech (Referencia Imagen 1)
+function createUpsLcdTexture() {
+  const c = document.createElement('canvas');
+  c.width = 256;
+  c.height = 180;
+  const ctx = c.getContext('2d');
+
+  ctx.fillStyle = '#0284c7';
+  ctx.fillRect(0, 0, 256, 180);
+
+  ctx.strokeStyle = '#7dd3fc';
+  ctx.lineWidth = 4;
+  ctx.strokeRect(6, 6, 244, 168);
+
+  ctx.fillStyle = '#e0f2fe';
+  ctx.font = 'bold 58px monospace';
+  ctx.fillText('220', 48, 78);
+  ctx.font = 'bold 22px sans-serif';
+  ctx.fillText('V', 165, 55);
+  ctx.fillText('Hz', 165, 80);
+
+  // Iconos inferiores de batería y onda senoidal
+  ctx.strokeStyle = '#e0f2fe';
+  ctx.lineWidth = 3;
+  ctx.strokeRect(32, 110, 48, 28);
+  ctx.strokeRect(104, 110, 48, 28);
+  ctx.strokeRect(176, 110, 48, 28);
+  ctx.font = 'bold 14px monospace';
+  ctx.fillText('AC', 44, 130);
+  ctx.fillText('BAT', 114, 130);
+  ctx.fillText('OK', 190, 130);
+
+  return new THREE.CanvasTexture(c);
+}
+
+// Malla perforada negra + Logo EDApower para el Climatizador de Precisión (Referencia Imagen 2)
+function createCracMeshTexture(withLogo = false) {
+  const c = document.createElement('canvas');
+  c.width = 256;
+  c.height = 256;
+  const ctx = c.getContext('2d');
+
+  ctx.fillStyle = '#18181b';
+  ctx.fillRect(0, 0, 256, 256);
+
+  ctx.fillStyle = '#09090b';
+  for (let x = 8; x < 248; x += 8) {
+    for (let y = 8; y < 248; y += 8) {
+      ctx.fillRect(x, y, 4, 4);
+    }
+  }
+
+  if (withLogo) {
+    ctx.fillStyle = '#e2e8f0';
+    ctx.font = 'bold 26px sans-serif';
+    ctx.fillText('EDApower', 62, 135);
+  }
+
+  return new THREE.CanvasTexture(c);
+}
+
 function createBusMapScreenTexture(variant = 1) {
   const c = document.createElement('canvas');
   c.width = 512;
@@ -235,7 +325,6 @@ function createBusMapScreenTexture(variant = 1) {
   return new THREE.CanvasTexture(c);
 }
 
-// Textura de hoja impresa colorida para la impresora Epson EcoTank
 function createPrintedChartTexture() {
   const c = document.createElement('canvas');
   c.width = 256;
@@ -255,7 +344,6 @@ function createPrintedChartTexture() {
   ctx.fillStyle = '#f59e0b';
   ctx.fillRect(48, 85, 160, 10);
 
-  // Gráficos circulares / barras coloridas como en la referencia Epson
   const colors = ['#ec4899', '#8b5cf6', '#06b6d4', '#eab308', '#22c55e'];
   colors.forEach((col, i) => {
     ctx.fillStyle = col;
@@ -309,7 +397,7 @@ function addFloatingLabel(text, position, color = '#38bdf8') {
 }
 
 // ============================================================================
-// 6. ARQUITECTURA + FALSO CIELO RASO RETICULAR CON LUMINARIAS EMPOTRADAS
+// 6. ARQUITECTURA: MUROS CON TRAMOS DE VIDRIO REFLECTIVO, DINTELES SOBRE PUERTAS Y MARCOS SIN PARPADEO
 // ============================================================================
 function buildEnvironmentAndArchitecture() {
   const grassGeo = new THREE.PlaneGeometry(48, 38);
@@ -377,13 +465,21 @@ function buildEnvironmentAndArchitecture() {
   officeFloor.receiveShadow = true;
   scene.add(officeFloor);
 
-  // Muros Blancos Altos (3.6m)
   const wallHeight = 3.6;
   const wallThickness = 0.24;
   const wallMat = new THREE.MeshStandardMaterial({ color: 0xf8fafc, roughness: 0.5 });
   const wallTopMat = new THREE.MeshStandardMaterial({ color: 0x111827, roughness: 0.4 });
+  const reflectiveGlassTex = createReflectiveCurtainGlassTexture();
+  const curtainGlassMat = new THREE.MeshStandardMaterial({
+    map: reflectiveGlassTex,
+    color: 0x93c5fd,
+    metalness: 0.65,
+    roughness: 0.08,
+    transparent: true,
+    opacity: 0.72
+  });
 
-  function addWallSegment(x, z, width, depth) {
+  function addSolidWallSegment(x, z, width, depth) {
     const group = new THREE.Group();
     const body = new THREE.Mesh(new THREE.BoxGeometry(width, wallHeight, depth), wallMat);
     body.position.y = wallHeight / 2;
@@ -404,55 +500,159 @@ function buildEnvironmentAndArchitecture() {
     wallMeshes.push(group);
   }
 
-  addWallSegment(0, -5.5, 16.24, wallThickness);
-  addWallSegment(0, 5.5, 16.24, wallThickness);
-  addWallSegment(-8.0, 0, wallThickness, 11.0);
-  addWallSegment(8.0, -3.45, wallThickness, 4.1);
-  addWallSegment(8.0, 3.45, wallThickness, 4.1);
+  // Función para crear tramos de Muro Cortina de Vidrio Reflectivo Azul con retícula de aluminio negro (Referencia Imagen 4)
+  function addCurtainGlassWallSegment(x, z, length, alongAxis = 'z') {
+    const group = new THREE.Group();
+    const isZ = alongAxis === 'z';
+    const w = isZ ? wallThickness : length;
+    const d = isZ ? length : wallThickness;
 
-  // Muro Divisor Interno (X = -3.2) con abertura para puerta en Z de -4.65 a -3.20
-  addWallSegment(-3.2, -5.075, wallThickness, 0.85);
-  addWallSegment(-3.2, 1.15, wallThickness, 8.7);
+    // Zócalo inferior blanco/negro y viga superior hasta Y = 3.6m
+    const lowWall = new THREE.Mesh(new THREE.BoxGeometry(w, 0.42, d), wallMat);
+    lowWall.position.y = 0.21;
+    group.add(lowWall);
 
-  // Puertas Blancas con Negro
-  const doorHeight = 2.85;
+    const topHeader = new THREE.Mesh(new THREE.BoxGeometry(w, 0.42, d), wallMat);
+    topHeader.position.y = 3.39;
+    group.add(topHeader);
+
+    const cap = new THREE.Mesh(new THREE.BoxGeometry(w + 0.02, 0.08, d + 0.02), wallTopMat);
+    cap.position.y = wallHeight + 0.04;
+    group.add(cap);
+
+    // Panel central de vidrio reflectivo azul (desde Y = 0.42 hasta Y = 3.18)
+    const gW = isZ ? 0.06 : length - 0.08;
+    const gD = isZ ? length - 0.08 : 0.06;
+    const glassPane = new THREE.Mesh(new THREE.BoxGeometry(gW, 2.76, gD), curtainGlassMat);
+    glassPane.position.y = 1.8;
+    group.add(glassPane);
+
+    // Perfiles horizontales y verticales de aluminio oscuro (Mullions) formando los cuadros de la fachada UNAB
+    const numCols = Math.max(2, Math.floor(length / 0.85));
+    for (let c = 0; c <= numCols; c++) {
+      const offset = -length / 2 + (c / numCols) * length;
+      const vBar = new THREE.Mesh(
+        new THREE.BoxGeometry(isZ ? 0.12 : 0.05, 2.78, isZ ? 0.05 : 0.12),
+        wallTopMat
+      );
+      vBar.position.set(isZ ? 0 : offset, 1.8, isZ ? offset : 0);
+      group.add(vBar);
+    }
+
+    [0.42, 1.34, 2.26, 3.18].forEach((hy) => {
+      const hBar = new THREE.Mesh(
+        new THREE.BoxGeometry(isZ ? 0.12 : length, 0.05, isZ ? length : 0.12),
+        wallTopMat
+      );
+      hBar.position.y = hy;
+      group.add(hBar);
+    });
+
+    group.position.set(x, 0, z);
+    scene.add(group);
+    wallMeshes.push(group);
+  }
+
+  // Función para cerrar el espacio vacío encima de las puertas (Dintel / Transom desde Y = 2.85 hasta Y = 3.60m)
+  function addDoorwayHeaderWall(x, z, width, depth) {
+    const headerH = 3.6 - 2.85; // 0.75m
+    const group = new THREE.Group();
+
+    const lintel = new THREE.Mesh(new THREE.BoxGeometry(width, headerH, depth), wallMat);
+    lintel.position.y = 2.85 + headerH / 2;
+    lintel.castShadow = true;
+    lintel.receiveShadow = true;
+    group.add(lintel);
+
+    // Marco negro inferior del dintel donde cierra la puerta
+    const bottomFrame = new THREE.Mesh(new THREE.BoxGeometry(width + 0.02, 0.06, depth + 0.02), wallTopMat);
+    bottomFrame.position.y = 2.87;
+    group.add(bottomFrame);
+
+    const cap = new THREE.Mesh(new THREE.BoxGeometry(width + 0.02, 0.08, depth + 0.02), wallTopMat);
+    cap.position.y = wallHeight + 0.04;
+    group.add(cap);
+
+    group.position.set(x, 0, z);
+    scene.add(group);
+    wallMeshes.push(group);
+  }
+
+  // 1. Muro Norte (Z = -5.5): Sólido para alojar las canaletas de las PCs
+  addSolidWallSegment(0, -5.5, 16.24, wallThickness);
+
+  // 2. Muro Oeste (X = -8.0): Sólido detrás del Rack y Data Center
+  addSolidWallSegment(-8.0, 0, wallThickness, 11.0);
+
+  // 3. Muro Sur (Z = +5.5): Combinación de Muro Sólido + Ventanal de Vidrio Reflectivo Azul UNAB en la oficina
+  addSolidWallSegment(-4.6, 5.5, 6.8, wallThickness);
+  addCurtainGlassWallSegment(0.2, 5.5, 2.8, 'x');
+  addSolidWallSegment(4.8, 5.5, 6.4, wallThickness);
+
+  // 4. Fachada Principal Este (X = +8.0): Con Muros de Vidrio Reflectivo Azul a ambos lados de la puerta doble y Dintel arriba de la puerta (¡Cero hueco vacío arriba!)
+  addSolidWallSegment(8.0, -4.9, wallThickness, 1.2);
+  addCurtainGlassWallSegment(8.0, -2.85, 2.9, 'z');
+  addDoorwayHeaderWall(8.0, 0, wallThickness, 2.8); // Cierra el hueco sobre la puerta doble (Z de -1.4 a +1.4)
+  addCurtainGlassWallSegment(8.0, 2.85, 2.9, 'z');
+  addSolidWallSegment(8.0, 4.9, wallThickness, 1.2);
+
+  // 5. Muro Divisor Interno (X = -3.2): Con Dintel sobre la puerta del servidor + Ventanal de Vidrio Reflectivo para ver el Data Center desde la oficina
+  addSolidWallSegment(-3.2, -5.075, wallThickness, 0.85);
+  addDoorwayHeaderWall(-3.2, -3.925, wallThickness, 1.45); // Cierra el hueco sobre la puerta del Data Center
+  addSolidWallSegment(-3.2, -1.75, wallThickness, 2.9);
+  addCurtainGlassWallSegment(-3.2, 1.1, 2.8, 'z'); // Ventanal de vidrio reflectivo entre oficina y cuarto de servidores
+  addSolidWallSegment(-3.2, 4.0, wallThickness, 3.0);
+
+  // 6. PUERTAS BLANCAS CON MARCO NEGRO GEOMÉTRICAMENTE SEPARADO (CERO PARPADEO / Z-FIGHTING)
+  // El parpadeo ocurría porque el panel blanco y los bordes negros compartían el mismo largo/alto.
+  // Ahora el marco exterior es una estructura y el panel blanco va encajado adentro sin superponerse jamás.
+  const doorHeight = 2.84;
   const doorWhiteMat = new THREE.MeshStandardMaterial({ color: 0xffffff, roughness: 0.35 });
   const doorBlackMat = new THREE.MeshStandardMaterial({ color: 0x111827, roughness: 0.3, metalness: 0.4 });
-  const glassMat = new THREE.MeshStandardMaterial({ color: 0x38bdf8, transparent: true, opacity: 0.35, roughness: 0.1 });
+  const glassMat = new THREE.MeshStandardMaterial({ color: 0x38bdf8, transparent: true, opacity: 0.4, roughness: 0.1 });
 
   function createWhiteBlackDoorLeaf(widthZ, zOffsetSign = 1) {
     const leafGroup = new THREE.Group();
     const zCenter = (widthZ / 2) * zOffsetSign;
+    const frameW = 0.09;
 
-    const panel = new THREE.Mesh(new THREE.BoxGeometry(0.08, doorHeight, widthZ), doorWhiteMat);
+    // 1. Panel interior blanco recortado para que NO toque los bordes negros
+    const innerH = doorHeight - frameW * 2;
+    const innerZ = widthZ - frameW * 2;
+    const panel = new THREE.Mesh(new THREE.BoxGeometry(0.075, innerH, innerZ), doorWhiteMat);
     panel.position.set(0, doorHeight / 2, zCenter);
     panel.castShadow = true;
     leafGroup.add(panel);
 
-    const topTrim = new THREE.Mesh(new THREE.BoxGeometry(0.11, 0.1, widthZ + 0.02), doorBlackMat);
-    topTrim.position.set(0, doorHeight - 0.05, zCenter);
-    leafGroup.add(topTrim);
+    // 2. Marco negro superior e inferior (ocupan todo el ancho sin chocar con el panel blanco)
+    const topRail = new THREE.Mesh(new THREE.BoxGeometry(0.09, frameW, widthZ), doorBlackMat);
+    topRail.position.set(0, doorHeight - frameW / 2, zCenter);
+    leafGroup.add(topRail);
 
-    const botTrim = new THREE.Mesh(new THREE.BoxGeometry(0.11, 0.12, widthZ + 0.02), doorBlackMat);
-    botTrim.position.set(0, 0.06, zCenter);
-    leafGroup.add(botTrim);
+    const botRail = new THREE.Mesh(new THREE.BoxGeometry(0.09, frameW, widthZ), doorBlackMat);
+    botRail.position.set(0, frameW / 2, zCenter);
+    leafGroup.add(botRail);
 
-    const sideTrim1 = new THREE.Mesh(new THREE.BoxGeometry(0.11, doorHeight, 0.08), doorBlackMat);
-    sideTrim1.position.set(0, doorHeight / 2, 0.04 * zOffsetSign);
-    leafGroup.add(sideTrim1);
+    // 3. Marcos negros verticales izquierdo y derecho (entre el riel superior e inferior, sin superponerse en las esquinas)
+    const stileH = doorHeight - frameW * 2;
+    const stile1 = new THREE.Mesh(new THREE.BoxGeometry(0.09, stileH, frameW), doorBlackMat);
+    stile1.position.set(0, doorHeight / 2, (frameW / 2) * zOffsetSign);
+    leafGroup.add(stile1);
 
-    const sideTrim2 = new THREE.Mesh(new THREE.BoxGeometry(0.11, doorHeight, 0.08), doorBlackMat);
-    sideTrim2.position.set(0, doorHeight / 2, (widthZ - 0.04) * zOffsetSign);
-    leafGroup.add(sideTrim2);
+    const stile2 = new THREE.Mesh(new THREE.BoxGeometry(0.09, stileH, frameW), doorBlackMat);
+    stile2.position.set(0, doorHeight / 2, (widthZ - frameW / 2) * zOffsetSign);
+    leafGroup.add(stile2);
 
-    const visorFrame = new THREE.Mesh(new THREE.BoxGeometry(0.1, 1.15, 0.24), doorBlackMat);
+    // 4. Mirilla central con marco negro que sobresale limpiamente en X (0.11m vs 0.075m)
+    const visorFrame = new THREE.Mesh(new THREE.BoxGeometry(0.105, 1.15, 0.24), doorBlackMat);
     visorFrame.position.set(0, doorHeight * 0.58, zCenter);
     leafGroup.add(visorFrame);
 
-    const visorGlass = new THREE.Mesh(new THREE.BoxGeometry(0.11, 1.05, 0.16), glassMat);
+    const visorGlass = new THREE.Mesh(new THREE.BoxGeometry(0.118, 1.03, 0.15), glassMat);
     visorGlass.position.set(0, doorHeight * 0.58, zCenter);
     leafGroup.add(visorGlass);
 
+    // 5. Manija negra
     const handle = new THREE.Mesh(new THREE.BoxGeometry(0.2, 0.05, 0.22), doorBlackMat);
     handle.position.set(0, 1.12, (widthZ - 0.22) * zOffsetSign);
     leafGroup.add(handle);
@@ -484,7 +684,7 @@ function buildEnvironmentAndArchitecture() {
   doorPivots.push({ pivot: mainDoorBotPivot, openRot: -Math.PI * 0.42, closedRot: 0 });
   wallMeshes.push(mainDoorBotPivot);
 
-  // Falso Cielo Raso Acústico (Y = 3.16m)
+  // 7. FALSO CIELO RASO ACÚSTICO CUBRIENDO EL 100% DEL ÁREA HASTA LOS DINTELES DE LAS PUERTAS (16.0m x 11.0m)
   const ceilingTex = createAcousticCeilingTexture();
   const ceilingMat = new THREE.MeshStandardMaterial({
     map: ceilingTex,
@@ -492,18 +692,18 @@ function buildEnvironmentAndArchitecture() {
     side: THREE.DoubleSide
   });
 
-  const ceilingSlab = new THREE.Mesh(new THREE.BoxGeometry(15.8, 0.04, 10.8), ceilingMat);
+  const ceilingSlab = new THREE.Mesh(new THREE.BoxGeometry(16.0, 0.04, 11.0), ceilingMat);
   ceilingSlab.position.set(0, 3.16, 0);
   ceilingGroup.add(ceilingSlab);
 
   const gridRailMat = new THREE.MeshStandardMaterial({ color: 0xcbd5e1, metalness: 0.4, roughness: 0.3 });
   for (let gx = -7.0; gx <= 7.0; gx += 2.0) {
-    const beam = new THREE.Mesh(new THREE.BoxGeometry(0.05, 0.025, 10.8), gridRailMat);
+    const beam = new THREE.Mesh(new THREE.BoxGeometry(0.05, 0.025, 10.9), gridRailMat);
     beam.position.set(gx, 3.125, 0);
     ceilingGroup.add(beam);
   }
   for (let gz = -4.5; gz <= 4.5; gz += 1.5) {
-    const crossBeam = new THREE.Mesh(new THREE.BoxGeometry(15.8, 0.022, 0.05), gridRailMat);
+    const crossBeam = new THREE.Mesh(new THREE.BoxGeometry(15.9, 0.022, 0.05), gridRailMat);
     crossBeam.position.set(0, 3.122, gz);
     ceilingGroup.add(crossBeam);
   }
@@ -534,15 +734,12 @@ function buildEnvironmentAndArchitecture() {
 }
 
 // ============================================================================
-// 7. MODELOS 3D REALISTAS BASADOS EN TUS 5 IMÁGENES DE REFERENCIA
+// 7. MODELOS 3D REALISTAS DE OBJETOS
 // ============================================================================
-
-// 7.1 Planta decorativa alta en maceta trapezoidal gris plata (Referencia Imagen 4)
 function createIndoorPlanter(x, z) {
   const planterGroup = new THREE.Group();
   planterGroup.position.set(x, 0.12, z);
 
-  // Maceta alta trapezoidal gris metálico suave
   const potMat = new THREE.MeshStandardMaterial({ color: 0xcbd5e1, roughness: 0.35, metalness: 0.2 });
   const potGeo = new THREE.CylinderGeometry(0.32, 0.21, 0.92, 4);
   potGeo.rotateY(Math.PI / 4);
@@ -552,7 +749,6 @@ function createIndoorPlanter(x, z) {
   pot.receiveShadow = true;
   planterGroup.add(pot);
 
-  // Tierra oscura en el borde superior
   const soil = new THREE.Mesh(
     new THREE.BoxGeometry(0.42, 0.04, 0.42),
     new THREE.MeshStandardMaterial({ color: 0x271c15, roughness: 0.9 })
@@ -560,7 +756,6 @@ function createIndoorPlanter(x, z) {
   soil.position.y = 0.91;
   planterGroup.add(soil);
 
-  // Tallos leñosos y hojas alargadas tipo Dracaena (como la foto)
   const stemMat = new THREE.MeshStandardMaterial({ color: 0x5c4033, roughness: 0.8 });
   const leafMat1 = new THREE.MeshStandardMaterial({ color: 0x15803d, roughness: 0.5, side: THREE.DoubleSide });
   const leafMat2 = new THREE.MeshStandardMaterial({ color: 0x166534, roughness: 0.5, side: THREE.DoubleSide });
@@ -572,7 +767,6 @@ function createIndoorPlanter(x, z) {
     stem.position.set(sx, 1.18, sz);
     planterGroup.add(stem);
 
-    // Penacho de hojas largas arqueadas
     for (let l = 0; l < 14; l++) {
       const angle = (l / 14) * Math.PI * 2 + s * 0.5;
       const tier = l % 3;
@@ -594,7 +788,6 @@ function createIndoorPlanter(x, z) {
   scene.add(planterGroup);
 }
 
-// 7.2 Estante Librero Blanco de 5 Niveles con archivadores, libros y jarrones (Referencia Imagen 5)
 function createWhiteFiveTierBookcase(x, z, rotY = 0) {
   const group = new THREE.Group();
   group.position.set(x, 0.12, z);
@@ -606,7 +799,6 @@ function createWhiteFiveTierBookcase(x, z, rotY = 0) {
   const depth = 0.42;
   const thick = 0.035;
 
-  // Panel trasero y paneles laterales
   const back = new THREE.Mesh(new THREE.BoxGeometry(width, height, 0.02), whiteWood);
   back.position.set(0, height / 2, -depth / 2 + 0.01);
   back.castShadow = true;
@@ -619,7 +811,6 @@ function createWhiteFiveTierBookcase(x, z, rotY = 0) {
   sideR.position.set(width / 2 - thick / 2, height / 2, 0);
   group.add(sideL, sideR);
 
-  // 6 repisas horizontales (formando los 5 compartimentos de tu imagen)
   const binderGray = new THREE.MeshStandardMaterial({ color: 0x64748b, roughness: 0.5 });
   const spineLabelMat = new THREE.MeshBasicMaterial({ color: 0xffffff });
   const bookColors = [0x7c2d12, 0x9a3412, 0x1e3a8a, 0x14532d, 0xb45309, 0x334155];
@@ -634,7 +825,6 @@ function createWhiteFiveTierBookcase(x, z, rotY = 0) {
     group.add(shelf);
 
     if (i < 5) {
-      // Archivador de palanca en el extremo (alternando izquierda y derecha como en la foto)
       const binderOnLeft = i % 2 === 0;
       const bx = binderOnLeft ? -width / 2 + 0.11 : width / 2 - 0.11;
       const binder = new THREE.Mesh(new THREE.BoxGeometry(0.11, 0.36, 0.32), binderGray);
@@ -645,7 +835,6 @@ function createWhiteFiveTierBookcase(x, z, rotY = 0) {
       label.position.set(bx, sy + 0.21, 0.185);
       group.add(label);
 
-      // Fila de libros de tonos tierra/verdes junto al archivador
       const numBooks = 5 + (i % 3);
       for (let b = 0; b < numBooks; b++) {
         const bHeight = 0.26 + ((b + i) % 3) * 0.03;
@@ -658,7 +847,6 @@ function createWhiteFiveTierBookcase(x, z, rotY = 0) {
         group.add(book);
       }
 
-      // Pequeño jarrón cerámico blanco decorativo en el lado opuesto
       const vx = binderOnLeft ? 0.28 : -0.05;
       const vase = new THREE.Mesh(new THREE.CylinderGeometry(0.045, 0.065, 0.18, 12), vaseMat);
       vase.position.set(vx, sy + 0.11, 0.04);
@@ -669,17 +857,12 @@ function createWhiteFiveTierBookcase(x, z, rotY = 0) {
   scene.add(group);
 }
 
-// 7.3 RACK DE TELECOMUNICACIONES 42U TODO-EN-UNO (Referencia Imagen 1)
-// Aloja adentro de arriba a abajo:
-// 1. Etiqueta amarilla superior + 2 Patch Panels Cat6A con peines de cables azules
-// 2. 2 Switches Administrables Gigabit con luces y patch cords azules conectados
-// 3. Bandeja con el Router / Gateway blanco con 2 antenas
-// 4. Servidor Rack 1U / Firewall negro
-// 5. Servidor NAS / Base de Datos con 4 bahías verticales + PDU con switch rojo e iluminación LED azul interna
+// ============================================================================
+// 7.3 CUARTO DE SERVIDORES: CLIMATIZADOR CRAC EDAPOWER (IMAGEN 2), RACK TODO-EN-UNO Y UPS KENGA TECH (IMAGEN 1)
+// ============================================================================
 function buildDataCenterRoom() {
-  const whiteMetalMat = new THREE.MeshStandardMaterial({ color: 0xe2e8f0, roughness: 0.35, metalness: 0.25 });
   const darkMetalMat = new THREE.MeshStandardMaterial({ color: 0x1e293b, roughness: 0.35, metalness: 0.7 });
-  const blackCabinetMat = new THREE.MeshStandardMaterial({ color: 0x111827, roughness: 0.4, metalness: 0.6 });
+  const blackCabinetMat = new THREE.MeshStandardMaterial({ color: 0x18181b, roughness: 0.4, metalness: 0.55 });
   const silverRailMat = new THREE.MeshStandardMaterial({ color: 0x94a3b8, roughness: 0.25, metalness: 0.85 });
   const glassDoorMat = new THREE.MeshStandardMaterial({
     color: 0x60a5fa,
@@ -689,46 +872,73 @@ function buildDataCenterRoom() {
     metalness: 0.4
   });
 
-  // Climatización CRAC (Esquina superior izquierda)
+  // 1. CLIMATIZADOR DE PRECISIÓN CRAC "EDApower" NEGRO MATE CON MALLA PERFORADA Y PANTALLA TÁCTIL (Referencia Imagen 2)
   const acGroup = new THREE.Group();
-  const acCabinet = new THREE.Mesh(new THREE.BoxGeometry(0.95, 2.35, 1.75), whiteMetalMat);
-  acCabinet.position.set(-7.35, 1.25, -4.2);
-  acCabinet.castShadow = true;
-  acGroup.add(acCabinet);
+  acGroup.position.set(-7.25, 0.16, -4.1);
 
-  const acVent = new THREE.Mesh(new THREE.BoxGeometry(0.06, 0.75, 1.45), darkMetalMat);
-  acVent.position.set(-6.86, 1.9, -4.2);
-  acGroup.add(acVent);
+  // Gabinete alto negro mate
+  const cracBody = new THREE.Mesh(new THREE.BoxGeometry(0.92, 2.38, 1.15), blackCabinetMat);
+  cracBody.position.y = 1.22;
+  cracBody.castShadow = true;
+  acGroup.add(cracBody);
 
-  const acDisplay = new THREE.Mesh(
-    new THREE.BoxGeometry(0.06, 0.18, 0.35),
-    new THREE.MeshBasicMaterial({ color: 0x38bdf8 })
+  // Patas niveladoras inferiores (como en la foto EDApower)
+  [
+    [-0.4, -0.5],
+    [0.4, -0.5],
+    [-0.4, 0.5],
+    [0.4, 0.5]
+  ].forEach(([fx, fz]) => {
+    const foot = new THREE.Mesh(new THREE.CylinderGeometry(0.025, 0.04, 0.06, 10), silverRailMat);
+    foot.position.set(fx, 0.03, fz);
+    acGroup.add(foot);
+  });
+
+  // Panel superior de malla perforada con logo "EDApower"
+  const topMeshPanel = new THREE.Mesh(
+    new THREE.PlaneGeometry(0.95, 0.55),
+    new THREE.MeshBasicMaterial({ map: createCracMeshTexture(true) })
   );
-  acDisplay.position.set(-6.86, 1.32, -4.2);
-  acGroup.add(acDisplay);
+  topMeshPanel.rotation.y = Math.PI / 2;
+  topMeshPanel.position.set(0.465, 2.05, 0);
+  acGroup.add(topMeshPanel);
 
-  const wallSplit = new THREE.Mesh(new THREE.BoxGeometry(0.42, 0.38, 1.85), whiteMetalMat);
-  wallSplit.position.set(-7.65, 2.65, -2.0);
-  wallSplit.castShadow = true;
-  acGroup.add(wallSplit);
+  // Pantalla táctil HMI con bisel plateado y fondo blanco en el centro (igual a la foto)
+  const hmiBezel = new THREE.Mesh(new THREE.BoxGeometry(0.03, 0.24, 0.34), silverRailMat);
+  hmiBezel.position.set(0.465, 1.58, 0);
+  const hmiScreen = new THREE.Mesh(
+    new THREE.BoxGeometry(0.035, 0.19, 0.28),
+    new THREE.MeshBasicMaterial({ color: 0xf8fafc })
+  );
+  hmiScreen.position.set(0.468, 1.58, 0);
+  acGroup.add(hmiBezel, hmiScreen);
+
+  // Panel inferior largo de malla perforada negra + manija abatible negra con cerradura
+  const botMeshPanel = new THREE.Mesh(
+    new THREE.PlaneGeometry(0.95, 1.25),
+    new THREE.MeshBasicMaterial({ map: createCracMeshTexture(false) })
+  );
+  botMeshPanel.rotation.y = Math.PI / 2;
+  botMeshPanel.position.set(0.465, 0.76, 0);
+  acGroup.add(botMeshPanel);
+
+  const swingHandle = new THREE.Mesh(new THREE.BoxGeometry(0.04, 0.24, 0.06), darkMetalMat);
+  swingHandle.position.set(0.47, 0.92, 0.42);
+  acGroup.add(swingHandle);
 
   scene.add(acGroup);
   registerInteractable(acGroup, 'ac_unit');
-  addFloatingLabel('Climatizacion Data Center', new THREE.Vector3(-7.35, 2.75, -4.2), '#38bdf8');
+  addFloatingLabel('Climatizador de Precision CRAC (EDApower)', new THREE.Vector3(-7.25, 2.75, -4.1), '#38bdf8');
 
   // Estante blanco en el cuarto de servidores
-  createWhiteFiveTierBookcase(-5.5, -5.02, 0);
+  createWhiteFiveTierBookcase(-5.45, -5.02, 0);
 
-  // =========================================================================
-  // GABINETE RACK PRINCIPAL NEGRO CON RUEDAS, TIRA LED AZUL Y PUERTA ABIERTA (Referencia Imagen 1)
-  // Ubicado en X = -6.75, Z = 0.45 mirando hacia la derecha (+X)
-  // =========================================================================
+  // 2. GABINETE RACK PRINCIPAL NEGRO CON RUEDAS, TIRA LED AZUL Y PUERTA ABIERTA
   const rackX = -6.75;
   const rackZ = 0.45;
   const rackGroup = new THREE.Group();
   rackGroup.position.set(rackX, 0.16, rackZ);
 
-  // 4 Ruedas inferiores (Casters) y patas niveladoras
   [
     [-0.55, -0.68],
     [0.55, -0.68],
@@ -741,7 +951,6 @@ function buildDataCenterRoom() {
     rackGroup.add(wheel);
   });
 
-  // Base, Techo con ranuras de ventilación, Panel Trasero y Paneles Laterales con llave
   const rackBase = new THREE.Mesh(new THREE.BoxGeometry(1.35, 0.1, 1.55), blackCabinetMat);
   rackBase.position.y = 0.14;
   rackGroup.add(rackBase);
@@ -756,7 +965,6 @@ function buildDataCenterRoom() {
   backWall.castShadow = true;
   rackGroup.add(backWall);
 
-  // Paneles laterales negros con bisagras y cerradura (como en la foto)
   const sideNorth = new THREE.Mesh(new THREE.BoxGeometry(1.32, 2.25, 0.05), blackCabinetMat);
   sideNorth.position.set(0, 1.28, -0.75);
   sideNorth.castShadow = true;
@@ -764,7 +972,6 @@ function buildDataCenterRoom() {
   sideSouth.position.set(0, 1.28, 0.75);
   rackGroup.add(sideNorth, sideSouth);
 
-  // Rieles verticales interiores 19" plateados y Tiras de Luz LED Azul verticales
   const ledStripMat = new THREE.MeshBasicMaterial({ color: 0x38bdf8 });
   [-0.64, 0.64].forEach((rz) => {
     const rail = new THREE.Mesh(new THREE.BoxGeometry(0.06, 2.2, 0.06), silverRailMat);
@@ -776,7 +983,6 @@ function buildDataCenterRoom() {
     rackGroup.add(blueStrip);
   });
 
-  // Etiqueta amarilla superior en el marco del Rack (igual a la foto)
   const yellowLabel = new THREE.Mesh(
     new THREE.BoxGeometry(0.02, 0.09, 0.58),
     new THREE.MeshBasicMaterial({ color: 0xfacc15 })
@@ -784,7 +990,6 @@ function buildDataCenterRoom() {
   yellowLabel.position.set(0.56, 2.33, 0);
   rackGroup.add(yellowLabel);
 
-  // Puerta frontal de vidrio templado con bordes perforados abierta hacia un lado (como en la foto)
   const rackDoorPivot = new THREE.Group();
   rackDoorPivot.position.set(0.65, 1.28, 0.75);
   const doorFrameR = new THREE.Mesh(new THREE.BoxGeometry(0.04, 2.22, 0.14), blackCabinetMat);
@@ -794,16 +999,14 @@ function buildDataCenterRoom() {
   const doorEdgeGlow = new THREE.Mesh(new THREE.BoxGeometry(0.03, 2.18, 0.02), ledStripMat);
   doorEdgeGlow.position.set(0, 0, -1.42);
   rackDoorPivot.add(doorFrameR, doorGlass, doorEdgeGlow);
-  rackDoorPivot.rotation.y = Math.PI * 0.36; // Abierta mostrando todos los equipos internos
+  rackDoorPivot.rotation.y = Math.PI * 0.36;
   rackGroup.add(rackDoorPivot);
 
   scene.add(rackGroup);
   registerInteractable(rackGroup, 'rack_main');
   addFloatingLabel('Rack Principal de Telecomunicaciones (42U)', new THREE.Vector3(rackX, 2.8, rackZ), '#38bdf8');
 
-  // =========================================================================
-  // EQUIPOS INTERNOS MONTADOS DENTRO DEL RACK (DE ARRIBA A ABAJO TAL CUAL LA IMAGEN 1)
-  // =========================================================================
+  // EQUIPOS INTERNOS DEL RACK
   const patchCordBlueMat = new THREE.MeshStandardMaterial({
     color: 0x0284c7,
     emissive: 0x0369a1,
@@ -813,7 +1016,6 @@ function buildDataCenterRoom() {
   const bootYellowMat = new THREE.MeshBasicMaterial({ color: 0xfacc15 });
   const labelStripYellow = new THREE.MeshBasicMaterial({ color: 0xfef08a });
 
-  // 1. DOS PATCH PANELS CAT6A + ORGANIZADORES HORIZONTALES EN LA PARTE SUPERIOR (Y = 2.15 y Y = 1.92)
   const patchPanelGroup = new THREE.Group();
   patchPanelGroup.position.set(rackX, 0.16, rackZ);
 
@@ -822,12 +1024,10 @@ function buildDataCenterRoom() {
     ppChassis.position.set(0.38, py, 0);
     patchPanelGroup.add(ppChassis);
 
-    // Tira de etiquetas amarillas sobre los puertos RJ45
     const yStrip = new THREE.Mesh(new THREE.BoxGeometry(0.02, 0.022, 1.15), labelStripYellow);
     yStrip.position.set(0.56, py + 0.035, 0);
     patchPanelGroup.add(yStrip);
 
-    // Peine de 16 cables azules con capuchón amarillo entrando ordenadamente (como en la foto)
     const count = idx === 0 ? 16 : 9;
     for (let c = 0; c < count; c++) {
       const cz = -0.54 + c * 0.07;
@@ -848,7 +1048,6 @@ function buildDataCenterRoom() {
   scene.add(patchPanelGroup);
   registerInteractable(patchPanelGroup, 'patch_panel');
 
-  // 2. DOS SWITCHES ADMINISTRABLES GIGABIT DENTRO DEL RACK (Y = 1.66 y Y = 1.44)
   const switchGroup = new THREE.Group();
   switchGroup.position.set(rackX, 0.16, rackZ);
 
@@ -860,7 +1059,6 @@ function buildDataCenterRoom() {
     swChassis.position.set(0.28, sy, 0);
     switchGroup.add(swChassis);
 
-    // LEDs de actividad a la izquierda y latiguillos azules a la derecha (idéntico a la foto)
     for (let l = 0; l < 8; l++) {
       const led = new THREE.Mesh(
         new THREE.BoxGeometry(0.02, 0.02, 0.02),
@@ -890,7 +1088,6 @@ function buildDataCenterRoom() {
   scene.add(switchGroup);
   registerInteractable(switchGroup, 'switch_core');
 
-  // 3. ROUTER / GATEWAY BLANCO CON ANTENAS SOBRE BANDEJA DENTRO DEL RACK (Y = 1.08, tal cual la foto)
   const routerGroup = new THREE.Group();
   routerGroup.position.set(rackX, 0.16, rackZ);
 
@@ -904,7 +1101,6 @@ function buildDataCenterRoom() {
   routerBody.castShadow = true;
   routerGroup.add(routerBody);
 
-  // 2 Antenas blancas inclinadas detrás del Router dentro del Rack
   [-0.38, 0.08].forEach((az) => {
     const ant = new THREE.Mesh(new THREE.BoxGeometry(0.025, 0.28, 0.04), whiteRouterMat);
     ant.position.set(-0.04, 1.25, az);
@@ -915,11 +1111,9 @@ function buildDataCenterRoom() {
   scene.add(routerGroup);
   registerInteractable(routerGroup, 'router_gateway');
 
-  // 4. SERVIDOR RACK 1U + SERVIDOR NAS / BD DE 4 BAHÍAS EN LA PARTE INFERIOR DEL RACK (Y = 0.72 y Y = 0.32)
   const serversGroup = new THREE.Group();
   serversGroup.position.set(rackX, 0.16, rackZ);
 
-  // Bandeja y Servidor 1U intermedio (Y = 0.72)
   const srvShelf = new THREE.Mesh(new THREE.BoxGeometry(0.95, 0.03, 1.32), blackCabinetMat);
   srvShelf.position.set(0.08, 0.72, 0);
   serversGroup.add(srvShelf);
@@ -929,7 +1123,6 @@ function buildDataCenterRoom() {
   srv1U.castShadow = true;
   serversGroup.add(srv1U);
 
-  // Servidor NAS / Base de Datos cúbico con 4 bahías verticales en la base del Rack (Y = 0.32, igual a la foto)
   const nasShelf = new THREE.Mesh(new THREE.BoxGeometry(0.95, 0.03, 1.32), blackCabinetMat);
   nasShelf.position.set(0.08, 0.28, 0);
   serversGroup.add(nasShelf);
@@ -945,7 +1138,6 @@ function buildDataCenterRoom() {
     serversGroup.add(bay);
   }
 
-  // Regleta PDU en la base con interruptor rojo iluminado (como en la foto)
   const pduBar = new THREE.Mesh(new THREE.BoxGeometry(0.12, 0.08, 1.25), blackCabinetMat);
   pduBar.position.set(0.5, 0.21, 0);
   const redSwitch = new THREE.Mesh(
@@ -958,33 +1150,81 @@ function buildDataCenterRoom() {
   scene.add(serversGroup);
   registerInteractable(serversGroup, 'server_gps');
 
-  // 7.4 UPS ONLINE TORRE DOBLE CONVERSIÓN (Abajo en el Data Center: X = -4.65, Z = 4.45)
+  // 3. SISTEMA DE UPS ONLINE DOBLE CONVERSIÓN (3 MÓDULOS ESCALONADOS CON RANURAS VERTICALES, RUEDAS Y PANTALLA AZUL "220V" - Referencia Imagen 1)
   const upsGroup = new THREE.Group();
-  upsGroup.position.set(-4.65, 0.16, 4.45);
+  upsGroup.position.set(-5.25, 0.16, 4.35);
 
-  const upsBody = new THREE.Mesh(new THREE.BoxGeometry(1.35, 0.85, 0.68), blackCabinetMat);
-  upsBody.position.y = 0.425;
-  upsBody.castShadow = true;
-  upsGroup.add(upsBody);
+  const upsLcdTex = createUpsLcdTexture();
+  const upsConfigs = [
+    { xOffset: -0.52, h: 1.05, w: 0.42, d: 0.78, hasWheels: true },
+    { xOffset: 0.0, h: 0.78, w: 0.38, d: 0.68, hasWheels: false },
+    { xOffset: 0.46, h: 0.58, w: 0.34, d: 0.58, hasWheels: false }
+  ];
 
-  const upsBezel = new THREE.Mesh(new THREE.BoxGeometry(0.08, 0.75, 0.58), darkMetalMat);
-  upsBezel.position.set(0.66, 0.425, 0);
-  upsGroup.add(upsBezel);
+  upsConfigs.forEach((cfg) => {
+    const unit = new THREE.Group();
+    unit.position.set(cfg.xOffset, 0, 0);
+    const yBase = cfg.hasWheels ? 0.08 : 0.0;
 
-  const upsScreen = new THREE.Mesh(
-    new THREE.BoxGeometry(0.1, 0.22, 0.35),
-    new THREE.MeshBasicMaterial({ color: 0x38bdf8 })
-  );
-  upsScreen.position.set(0.67, 0.62, 0);
-  upsGroup.add(upsScreen);
+    if (cfg.hasWheels) {
+      [
+        [-cfg.w * 0.32, -cfg.d * 0.35],
+        [cfg.w * 0.32, -cfg.d * 0.35],
+        [-cfg.w * 0.32, cfg.d * 0.35],
+        [cfg.w * 0.32, cfg.d * 0.35]
+      ].forEach(([wx, wz]) => {
+        const wheel = new THREE.Mesh(new THREE.CylinderGeometry(0.04, 0.04, 0.04, 10), blackCabinetMat);
+        wheel.rotation.z = Math.PI / 2;
+        wheel.position.set(wx, 0.04, wz);
+        unit.add(wheel);
+      });
+    }
+
+    // Chasis negro mate de la torre UPS (mirando hacia el norte -Z)
+    const body = new THREE.Mesh(new THREE.BoxGeometry(cfg.w, cfg.h, cfg.d), blackCabinetMat);
+    body.position.set(0, yBase + cfg.h / 2, 0);
+    body.castShadow = true;
+    unit.add(body);
+
+    // Bisel frontal con ranuras verticales de ventilación
+    const numSlats = 9;
+    for (let s = 0; s < numSlats; s++) {
+      const sx = -cfg.w * 0.38 + (s / (numSlats - 1)) * (cfg.w * 0.76);
+      const slat = new THREE.Mesh(new THREE.BoxGeometry(0.015, cfg.h * 0.86, 0.02), darkMetalMat);
+      slat.position.set(sx, yBase + cfg.h * 0.5, -cfg.d / 2 - 0.008);
+      unit.add(slat);
+    }
+
+    // Panel superior del bisel donde va la pantalla LCD azul "220V" y los 3 botones grises
+    const lcdFrame = new THREE.Mesh(new THREE.BoxGeometry(cfg.w * 0.56, 0.22, 0.028), blackCabinetMat);
+    lcdFrame.position.set(0, yBase + cfg.h - 0.16, -cfg.d / 2 - 0.01);
+    unit.add(lcdFrame);
+
+    const lcdScreen = new THREE.Mesh(
+      new THREE.PlaneGeometry(cfg.w * 0.42, 0.13),
+      new THREE.MeshBasicMaterial({ map: upsLcdTex })
+    );
+    lcdScreen.rotation.y = Math.PI;
+    lcdScreen.position.set(0, yBase + cfg.h - 0.14, -cfg.d / 2 - 0.026);
+    unit.add(lcdScreen);
+
+    // 3 Botones rectangulares grises debajo del LCD
+    [-0.045, 0, 0.045].forEach((bx) => {
+      const btn = new THREE.Mesh(new THREE.BoxGeometry(0.028, 0.016, 0.01), silverRailMat);
+      btn.position.set(bx, yBase + cfg.h - 0.23, -cfg.d / 2 - 0.026);
+      unit.add(btn);
+    });
+
+    upsGroup.add(unit);
+  });
 
   scene.add(upsGroup);
   registerInteractable(upsGroup, 'ups_power');
-  addFloatingLabel('UPS Respaldo 3000VA', new THREE.Vector3(-4.65, 1.38, 4.45), '#4ade80');
+  addFloatingLabel('Banco de UPS Online 220V (3000VA)', new THREE.Vector3(-5.25, 1.48, 4.35), '#38bdf8');
 }
 
 // ============================================================================
-// 8. SALA DE MONITOREO: ESCRITORIOS SIN LIBROS, PC EN EL PISO, IMPRESORA EPSON ECOTANK, MACETAS Y LIBRERO
+// 8. SALA DE MONITOREO
 // ============================================================================
 function createWorkstationDesk({ x, z, rotationY = 0, screenVariant = 1, dataKey }) {
   const group = new THREE.Group();
@@ -996,14 +1236,12 @@ function createWorkstationDesk({ x, z, rotationY = 0, screenVariant = 1, dataKey
   const darkPlastic = new THREE.MeshStandardMaterial({ color: 0x111827, roughness: 0.35 });
   const chromeMat = new THREE.MeshStandardMaterial({ color: 0x94a3b8, metalness: 0.8, roughness: 0.2 });
 
-  // Tablero limpio del escritorio (SIN esos cuadrados de libros de colores)
   const top = new THREE.Mesh(new THREE.BoxGeometry(2.75, 0.08, 1.25), woodDeskMat);
   top.position.y = 0.78;
   top.castShadow = true;
   top.receiveShadow = true;
   group.add(top);
 
-  // Cajonera izquierda con 3 gavetas
   const drawerBox = new THREE.Mesh(new THREE.BoxGeometry(0.75, 0.72, 1.15), woodDeskMat);
   drawerBox.position.set(-0.95, 0.38, 0);
   drawerBox.castShadow = true;
@@ -1015,7 +1253,6 @@ function createWorkstationDesk({ x, z, rotationY = 0, screenVariant = 1, dataKey
     group.add(handle);
   }
 
-  // Patas derechas
   const leg1 = new THREE.Mesh(new THREE.BoxGeometry(0.07, 0.74, 0.07), legMat);
   leg1.position.set(1.28, 0.38, -0.52);
   const leg2 = leg1.clone();
@@ -1024,7 +1261,6 @@ function createWorkstationDesk({ x, z, rotationY = 0, screenVariant = 1, dataKey
   legBar.position.set(1.28, 0.06, 0);
   group.add(leg1, leg2, legBar);
 
-  // Monitor sobre la mesa
   const monitorBase = new THREE.Mesh(new THREE.BoxGeometry(0.42, 0.03, 0.28), darkPlastic);
   monitorBase.position.set(0, 0.83, -0.32);
   group.add(monitorBase);
@@ -1044,7 +1280,6 @@ function createWorkstationDesk({ x, z, rotationY = 0, screenVariant = 1, dataKey
   screenMesh.position.set(0, 1.38, -0.265);
   group.add(screenMesh);
 
-  // Teclado y Mouse sobre la mesa
   const keyboard = new THREE.Mesh(new THREE.BoxGeometry(0.68, 0.03, 0.24), darkPlastic);
   keyboard.position.set(-0.05, 0.84, 0.18);
   group.add(keyboard);
@@ -1060,7 +1295,7 @@ function createWorkstationDesk({ x, z, rotationY = 0, screenVariant = 1, dataKey
   mouse.position.set(0.48, 0.84, 0.18);
   group.add(mouse);
 
-  // CASE / TORRE PC EN EL PISO (Debajo del escritorio a la derecha, tal como pediste)
+  // Torre PC en el piso
   const tower = new THREE.Mesh(new THREE.BoxGeometry(0.32, 0.62, 0.68), darkPlastic);
   tower.position.set(0.95, 0.32, -0.08);
   tower.castShadow = true;
@@ -1073,7 +1308,6 @@ function createWorkstationDesk({ x, z, rotationY = 0, screenVariant = 1, dataKey
   pwrLed.position.set(0.95, 0.55, 0.265);
   group.add(pwrLed);
 
-  // Silla ergonómica
   const chairGroup = new THREE.Group();
   chairGroup.position.set(0, 0, 0.96);
   const chairMat = new THREE.MeshStandardMaterial({ color: 0x1e3a8a, roughness: 0.55 });
@@ -1114,7 +1348,6 @@ function createWorkstationDesk({ x, z, rotationY = 0, screenVariant = 1, dataKey
   registerInteractable(group, dataKey);
 }
 
-// 8.2 IMPRESORA EPSON ECOTANK NEGRA REALISTA (Referencia Imagen 3)
 function buildEpsonEcoTankPrinter(x, z) {
   const printerGroup = new THREE.Group();
   printerGroup.position.set(x, 0.12, z);
@@ -1123,26 +1356,22 @@ function buildEpsonEcoTankPrinter(x, z) {
   const blackMatte = new THREE.MeshStandardMaterial({ color: 0x18181b, roughness: 0.45, metalness: 0.2 });
   const darkGloss = new THREE.MeshStandardMaterial({ color: 0x09090b, roughness: 0.2, metalness: 0.4 });
 
-  // Mesa soporte de la impresora
   const pTable = new THREE.Mesh(new THREE.BoxGeometry(1.3, 0.76, 1.1), tableMat);
   pTable.position.y = 0.38;
   pTable.castShadow = true;
   pTable.receiveShadow = true;
   printerGroup.add(pTable);
 
-  // Cuerpo principal negro de la Epson EcoTank
   const mainBody = new THREE.Mesh(new THREE.BoxGeometry(0.82, 0.34, 0.68), blackMatte);
   mainBody.position.set(-0.08, 0.93, 0);
   mainBody.castShadow = true;
   printerGroup.add(mainBody);
 
-  // Módulo lateral derecho sobresaliente de tanques de tinta (EcoTank BK, Y, M, C)
   const tankModule = new THREE.Mesh(new THREE.BoxGeometry(0.26, 0.36, 0.74), blackMatte);
   tankModule.position.set(0.38, 0.94, 0.04);
   tankModule.castShadow = true;
   printerGroup.add(tankModule);
 
-  // Logo/Etiqueta EcoTank sobre el tanque derecho + 4 ventanillas translúcidas de tinta (Negro, Amarillo, Magenta, Cian)
   const ecoBadge = new THREE.Mesh(
     new THREE.BoxGeometry(0.12, 0.045, 0.01),
     new THREE.MeshBasicMaterial({ color: 0xe2e8f0 })
@@ -1160,13 +1389,11 @@ function buildEpsonEcoTankPrinter(x, z) {
     printerGroup.add(vial);
   });
 
-  // Tapa superior del escáner ligeramente entreabierta con hoja adentro (como en tu foto)
   const scannerLid = new THREE.Mesh(new THREE.BoxGeometry(1.06, 0.03, 0.7), darkGloss);
   scannerLid.position.set(0.04, 1.15, -0.02);
   scannerLid.rotation.x = -0.08;
   printerGroup.add(scannerLid);
 
-  // Botón de encendido LED verde/amarillo en la esquina superior izquierda
   const powerBtn = new THREE.Mesh(
     new THREE.CylinderGeometry(0.02, 0.02, 0.01, 12),
     new THREE.MeshBasicMaterial({ color: 0x84cc16 })
@@ -1175,7 +1402,6 @@ function buildEpsonEcoTankPrinter(x, z) {
   powerBtn.position.set(-0.4, 1.07, 0.345);
   printerGroup.add(powerBtn);
 
-  // Bandeja frontal negra y hoja impresa con gráficos saliendo hacia adelante
   const outTray = new THREE.Mesh(new THREE.BoxGeometry(0.56, 0.02, 0.38), darkGloss);
   outTray.position.set(-0.08, 0.79, 0.36);
   printerGroup.add(outTray);
@@ -1194,7 +1420,6 @@ function buildEpsonEcoTankPrinter(x, z) {
 }
 
 function buildMonitoringOffice() {
-  // 1. PC Monitoreo 1 (Con Case en el piso y sin libros en la mesa)
   createWorkstationDesk({
     x: 0.85,
     z: -3.85,
@@ -1204,7 +1429,6 @@ function buildMonitoringOffice() {
   });
   addFloatingLabel('PC Monitoreo #1 (Mapa GPS)', new THREE.Vector3(0.85, 2.25, -4.1), '#38bdf8');
 
-  // 2. PC Monitoreo 2 (Con Case en el piso y sin libros en la mesa)
   createWorkstationDesk({
     x: 5.4,
     z: -3.85,
@@ -1214,7 +1438,6 @@ function buildMonitoringOffice() {
   });
   addFloatingLabel('PC Monitoreo #2 (Salidas/Llegadas)', new THREE.Vector3(5.4, 2.25, -4.1), '#38bdf8');
 
-  // 3. PC Administración de Red (Abajo Derecha, con Case en el piso)
   createWorkstationDesk({
     x: 4.1,
     z: 4.15,
@@ -1224,19 +1447,16 @@ function buildMonitoringOffice() {
   });
   addFloatingLabel('PC Administracion de Red', new THREE.Vector3(4.1, 2.25, 4.35), '#4ade80');
 
-  // 4. Impresora Epson EcoTank realista sobre su mesa
   buildEpsonEcoTankPrinter(-1.75, 0.65);
 
-  // 5. Estante Librero Blanco de 5 niveles (Referencia Imagen 5, reemplazando el bloque blanco anterior)
   createWhiteFiveTierBookcase(-2.72, 3.55, Math.PI / 2);
 
-  // 6. Macetas altas con plantas Dracaena (Referencia Imagen 4, reemplazando los cubos marrones anteriores)
   createIndoorPlanter(-2.6, -1.15);
   createIndoorPlanter(6.65, 4.35);
 }
 
 // ============================================================================
-// 9. CABLEADO CONTINUO 100% CONECTADO: SUBE POR LA PARED DETRÁS DEL RACK -> BANDEJAS DE TECHO -> BAJANTES DE OFICINA -> PC EN PISO
+// 9. CABLEADO CONTINUO 100% CONECTADO
 // ============================================================================
 const dataPackets = [];
 let packetsEnabled = true;
@@ -1247,7 +1467,6 @@ function buildStructuredCabling() {
   const trayMat = new THREE.MeshStandardMaterial({ color: 0xcbd5e1, roughness: 0.35, metalness: 0.15 });
   const faceplateMat = new THREE.MeshStandardMaterial({ color: 0xffffff, roughness: 0.3 });
 
-  // 9.1 BANDEJAS PORTACABLES AÉREAS TOTALMENTE CONECTADAS EN EL TECHO (Y = 3.32m)
   function createPlenumLadderZ(x, y, zStart, zEnd, width = 0.38) {
     const length = Math.abs(zEnd - zStart);
     const zMid = (zStart + zEnd) / 2;
@@ -1284,14 +1503,12 @@ function buildStructuredCabling() {
     }
   }
 
-  // Red continua de bandejas en el techo (todas unidas en las esquinas):
   createPlenumLadderZ(-7.65, 3.32, -5.15, 4.55, 0.38);
   createPlenumLadderX(-5.15, 3.32, -7.65, 6.55, 0.38);
-  createPlenumLadderX(0.45, 3.32, -7.65, -3.02, 0.38);
+  createPlenumLadderX(-0.9, 3.32, -7.65, -3.02, 0.38);
   createPlenumLadderZ(-3.02, 3.32, -5.15, 5.15, 0.36);
   createPlenumLadderX(5.15, 3.32, -3.02, 4.25, 0.36);
 
-  // 9.2 CANALETAS EN LA PARED DETRÁS DEL RACK (Muro Oeste X = -7.83)
   function addWallTrunking(x, y, z, w, h, d) {
     const trunk = new THREE.Mesh(new THREE.BoxGeometry(w, h, d), trayMat);
     trunk.position.set(x, y, z);
@@ -1300,13 +1517,10 @@ function buildStructuredCabling() {
     cablingGroup.add(trunk);
   }
 
-  // Canaleta vertical gruesa en la pared izquierda detrás del Rack Todo-en-Uno (sube hasta la bandeja del techo en Z = 0.45)
   addWallTrunking(-7.83, 1.85, 0.45, 0.08, 2.95, 0.26);
-  // Canaleta perimetral baja desde el UPS hasta la parte posterior del Rack
   addWallTrunking(-6.25, 0.35, 5.34, 3.2, 0.1, 0.08);
   addWallTrunking(-7.83, 0.35, 2.9, 0.08, 0.1, 4.9);
 
-  // 9.3 BAJANTES DE CANALETA EN LAS PAREDES DE LA OFICINA HASTA CADA EQUIPO
   function addOfficeWallDrop(x, z, rotY = 0) {
     const drop = new THREE.Mesh(new THREE.BoxGeometry(0.1, 2.9, 0.06), trayMat);
     drop.position.set(x, 1.88, z);
@@ -1319,17 +1533,15 @@ function buildStructuredCabling() {
     cablingGroup.add(fp);
   }
 
-  addOfficeWallDrop(1.8, -5.34, 0); // Bajante pared hacia Torre PC 1 (en el piso)
-  addOfficeWallDrop(6.35, -5.34, 0); // Bajante pared hacia Torre PC 2 (en el piso)
-  addOfficeWallDrop(-3.04, 0.65, Math.PI / 2); // Bajante pared hacia Impresora Epson
-  addOfficeWallDrop(3.15, 5.34, Math.PI); // Bajante pared hacia Torre PC Admin (en el piso)
+  addOfficeWallDrop(1.8, -5.34, 0);
+  addOfficeWallDrop(6.35, -5.34, 0);
+  addOfficeWallDrop(-3.04, -0.8, Math.PI / 2); // En el tramo sólido del muro divisor junto a la impresora
+  addOfficeWallDrop(3.15, 5.34, Math.PI);
 
-  // Canaleta corta horizontal en pared para llevar el cable desde la toma RJ45 hasta la mesa de la impresora
-  addWallTrunking(-2.4, 0.45, 0.65, 1.25, 0.07, 0.07);
+  addWallTrunking(-2.4, 0.45, -0.05, 0.07, 0.07, 1.55);
 
-  // 9.4 RUTAS DE CABLES UTP CAT6A (DESDE EL RACK TODO-EN-UNO -> PARED OESTE -> BANDEJAS DE TECHO -> BAJANTES -> TORRES PC EN PISO E IMPRESORA)
   const cableRoutes = [
-    // Ruta 1 (Rack Patch Panel/Switch -> Pared detrás del Rack -> Bandeja Techo Norte -> Bajante Pared -> Torre PC Monitoreo 1 en el piso)
+    // Ruta 1 (Rack -> Pared detrás del Rack -> Bandeja Techo Norte -> Bajante Pared -> Torre PC 1)
     [
       new THREE.Vector3(-7.35, 1.8, 0.38),
       new THREE.Vector3(-7.8, 1.8, 0.38),
@@ -1340,7 +1552,7 @@ function buildStructuredCabling() {
       new THREE.Vector3(1.8, 0.45, -5.32),
       new THREE.Vector3(1.8, 0.45, -3.95)
     ],
-    // Ruta 2 (Rack Patch Panel/Switch -> Pared detrás del Rack -> Bandeja Techo Norte -> Bajante Pared -> Torre PC Monitoreo 2 en el piso)
+    // Ruta 2 (Rack -> Pared detrás del Rack -> Bandeja Techo Norte -> Bajante Pared -> Torre PC 2)
     [
       new THREE.Vector3(-7.35, 1.8, 0.42),
       new THREE.Vector3(-7.8, 1.8, 0.42),
@@ -1351,33 +1563,35 @@ function buildStructuredCabling() {
       new THREE.Vector3(6.35, 0.45, -5.32),
       new THREE.Vector3(6.35, 0.45, -3.95)
     ],
-    // Ruta 3 (Rack Patch Panel/Switch -> Pared detrás del Rack -> Puente Techo Z=0.45 -> Bandeja Muro Divisor -> Bajante Pared -> Impresora Epson)
+    // Ruta 3 (Rack -> Pared detrás del Rack -> Puente Techo Z=-0.9 -> Bajante Muro Sólido -> Impresora Epson)
     [
       new THREE.Vector3(-7.35, 1.65, 0.45),
       new THREE.Vector3(-7.8, 1.65, 0.45),
       new THREE.Vector3(-7.8, 3.35, 0.45),
-      new THREE.Vector3(-3.02, 3.35, 0.45),
-      new THREE.Vector3(-3.02, 3.35, 0.65),
-      new THREE.Vector3(-3.02, 0.45, 0.65),
+      new THREE.Vector3(-7.8, 3.35, -0.9),
+      new THREE.Vector3(-3.02, 3.35, -0.9),
+      new THREE.Vector3(-3.02, 0.45, -0.8),
+      new THREE.Vector3(-2.4, 0.45, 0.65),
       new THREE.Vector3(-1.75, 0.45, 0.65),
       new THREE.Vector3(-1.75, 0.9, 0.65)
     ],
-    // Ruta 4 (Rack Patch Panel/Switch -> Pared detrás del Rack -> Puente Techo -> Bandeja Muro Divisor -> Bandeja Sur -> Bajante Pared -> Torre PC Admin en el piso)
+    // Ruta 4 (Rack -> Pared detrás del Rack -> Puente Techo -> Bandeja Muro Divisor -> Bandeja Sur -> Bajante Pared -> Torre PC Admin)
     [
       new THREE.Vector3(-7.35, 1.65, 0.5),
       new THREE.Vector3(-7.8, 1.65, 0.5),
       new THREE.Vector3(-7.8, 3.35, 0.5),
-      new THREE.Vector3(-3.0, 3.35, 0.5),
+      new THREE.Vector3(-7.8, 3.35, -0.9),
+      new THREE.Vector3(-3.0, 3.35, -0.9),
       new THREE.Vector3(-3.0, 3.35, 5.15),
       new THREE.Vector3(3.15, 3.35, 5.15),
       new THREE.Vector3(3.15, 3.35, 5.32),
       new THREE.Vector3(3.15, 0.45, 5.32),
       new THREE.Vector3(3.15, 0.45, 4.25)
     ],
-    // Ruta 5 (Respaldo Eléctrico UPS por Canaleta de Pared Sur/Oeste hasta la PDU del Rack Principal):
+    // Ruta 5 (Respaldo Eléctrico Banco UPS 220V -> Canaleta Pared Sur/Oeste -> PDU del Rack Principal):
     [
-      new THREE.Vector3(-4.65, 0.35, 4.75),
-      new THREE.Vector3(-4.65, 0.35, 5.32),
+      new THREE.Vector3(-5.25, 0.35, 4.75),
+      new THREE.Vector3(-5.25, 0.35, 5.32),
       new THREE.Vector3(-7.8, 0.35, 5.32),
       new THREE.Vector3(-7.8, 0.35, 0.45),
       new THREE.Vector3(-7.2, 0.35, 0.45)
