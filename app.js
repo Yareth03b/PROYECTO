@@ -9,7 +9,7 @@ import { EQUIPMENT_DATA } from './data.js';
 const container = document.getElementById('canvas-container');
 const scene = new THREE.Scene();
 scene.background = new THREE.Color(0x0f172a);
-scene.fog = new THREE.FogExp2(0x0f172a, 0.013);
+scene.fog = new THREE.FogExp2(0x0f172a, 0.012);
 
 const camera = new THREE.PerspectiveCamera(50, window.innerWidth / window.innerHeight, 0.1, 200);
 
@@ -40,12 +40,11 @@ orbitControls.maxDistance = 42;
 orbitControls.target.set(0, 1.2, 0);
 orbitControls.enabled = false;
 
-let currentMode = 'fps'; // Inicia directamente en Modo Caminata
+let currentMode = 'fps';
 let isPointerLocked = false;
 const moveState = { forward: false, backward: false, left: false, right: false, up: false, down: false };
 const fpsVelocity = new THREE.Vector3();
 
-// Posición inicial en 1ra persona dentro del Área de Transporte mirando hacia el Cuarto de Servidores
 camera.position.set(2.2, 1.7, 0.4);
 let yaw = Math.PI / 2;
 let pitch = 0;
@@ -55,10 +54,10 @@ let targetPitch = pitch;
 // ============================================================================
 // 3. ILUMINACIÓN
 // ============================================================================
-const ambientLight = new THREE.AmbientLight(0xe2e8f0, 0.9);
+const ambientLight = new THREE.AmbientLight(0xe2e8f0, 0.95);
 scene.add(ambientLight);
 
-const sunLight = new THREE.DirectionalLight(0xfffbeb, 1.35);
+const sunLight = new THREE.DirectionalLight(0xfffbeb, 1.3);
 sunLight.position.set(12, 26, 14);
 sunLight.castShadow = true;
 sunLight.shadow.mapSize.width = 2048;
@@ -74,15 +73,15 @@ sunLight.shadow.bias = -0.0005;
 scene.add(sunLight);
 
 const dcLight = new THREE.PointLight(0x38bdf8, 1.1, 12);
-dcLight.position.set(-5.8, 3.2, 0.5);
+dcLight.position.set(-5.8, 2.9, 0.5);
 scene.add(dcLight);
 
-const officeLight = new THREE.PointLight(0xfef3c7, 0.95, 16);
-officeLight.position.set(2.5, 3.4, 0);
+const officeLight = new THREE.PointLight(0xf8fafc, 1.1, 18);
+officeLight.position.set(2.5, 2.95, 0);
 scene.add(officeLight);
 
 // ============================================================================
-// 4. TEXTURAS PROCEDURALES
+// 4. TEXTURAS PROCEDURALES (INCLUYE FALSO CIELO RASO ACÚSTICO DE BALDOSAS)
 // ============================================================================
 function createRaisedFloorTexture() {
   const c = document.createElement('canvas');
@@ -132,6 +131,41 @@ function createOfficeTileTexture() {
   tex.wrapS = THREE.RepeatWrapping;
   tex.wrapT = THREE.RepeatWrapping;
   tex.repeat.set(9, 10);
+  return tex;
+}
+
+// Textura idéntica a la imagen subida: Falso cielo raso blanco granulado con perfiles metálicos en T
+function createAcousticCeilingTexture() {
+  const c = document.createElement('canvas');
+  c.width = 256;
+  c.height = 256;
+  const ctx = c.getContext('2d');
+
+  // Fondo blanco de baldosa acústica de fibra mineral
+  ctx.fillStyle = '#f8fafc';
+  ctx.fillRect(0, 0, 256, 256);
+
+  // Pequeño granulado acústico característico
+  ctx.fillStyle = '#e2e8f0';
+  for (let i = 0; i < 420; i++) {
+    const rx = (i * 73) % 250;
+    const ry = (i * 137) % 250;
+    ctx.fillRect(rx, ry, 2, 2);
+  }
+
+  // Perfiles metálicos blancos/grises claros de suspensión (retícula de 60x60cm)
+  ctx.strokeStyle = '#cbd5e1';
+  ctx.lineWidth = 10;
+  ctx.strokeRect(0, 0, 256, 256);
+
+  ctx.strokeStyle = '#94a3b8';
+  ctx.lineWidth = 2;
+  ctx.strokeRect(5, 5, 246, 246);
+
+  const tex = new THREE.CanvasTexture(c);
+  tex.wrapS = THREE.RepeatWrapping;
+  tex.wrapT = THREE.RepeatWrapping;
+  tex.repeat.set(16, 11);
   return tex;
 }
 
@@ -213,6 +247,9 @@ const floatingLabels = [];
 const wallMeshes = [];
 const doorPivots = [];
 let doorsOpen = true;
+const ceilingGroup = new THREE.Group();
+scene.add(ceilingGroup);
+let ceilingVisible = true;
 
 function registerInteractable(meshOrGroup, dataKey) {
   meshOrGroup.traverse((child) => {
@@ -243,8 +280,11 @@ function addFloatingLabel(text, position, color = '#38bdf8') {
 }
 
 // ============================================================================
-// 6. ARQUITECTURA (MUROS BLANCOS Y PUERTAS BLANCO/NEGRO SINCRONIZADAS)
+// 6. ARQUITECTURA + FALSO CIELO RASO RETICULAR CON LUMINARIAS EMPOTRADAS
 // ============================================================================
+// Altura total de muros: 3.60m
+// Altura del Falso Cielo Raso (Techo de baldosas): Y = 3.15m
+// Altura de las Bandejas Portacables sobre el falso techo (Plénum técnico): Y = 3.34m
 function buildEnvironmentAndArchitecture() {
   const grassGeo = new THREE.PlaneGeometry(48, 38);
   const grassMat = new THREE.MeshStandardMaterial({ color: 0x65a30d, roughness: 0.95 });
@@ -417,6 +457,51 @@ function buildEnvironmentAndArchitecture() {
   scene.add(mainDoorBotPivot);
   doorPivots.push({ pivot: mainDoorBotPivot, openRot: -Math.PI * 0.42, closedRot: 0 });
   wallMeshes.push(mainDoorBotPivot);
+
+  // 6. FALSO CIELO RASO MODULAR (COMO LA IMAGEN SUBIDA) EN Y = 3.15m
+  // Tiene una textura acústica blanca con retícula de aluminio y luminarias LED empotradas
+  const ceilingTex = createAcousticCeilingTexture();
+  const ceilingMat = new THREE.MeshStandardMaterial({
+    map: ceilingTex,
+    roughness: 0.75,
+    side: THREE.DoubleSide
+  });
+
+  const ceilingSlab = new THREE.Mesh(new THREE.BoxGeometry(15.8, 0.05, 10.8), ceilingMat);
+  ceilingSlab.position.set(0, 3.15, 0);
+  ceilingGroup.add(ceilingSlab);
+
+  // Perfiles principales de aluminio bajo el falso techo para darle relieve 3D real
+  const gridRailMat = new THREE.MeshStandardMaterial({ color: 0xcbd5e1, metalness: 0.4, roughness: 0.3 });
+  for (let gx = -7.0; gx <= 7.0; gx += 2.0) {
+    const beam = new THREE.Mesh(new THREE.BoxGeometry(0.05, 0.06, 10.8), gridRailMat);
+    beam.position.set(gx, 3.14, 0);
+    ceilingGroup.add(beam);
+  }
+  for (let gz = -4.5; gz <= 4.5; gz += 1.5) {
+    const crossBeam = new THREE.Mesh(new THREE.BoxGeometry(15.8, 0.06, 0.05), gridRailMat);
+    crossBeam.position.set(0, 3.14, gz);
+    ceilingGroup.add(crossBeam);
+  }
+
+  // Luminarias fluorescentes / paneles LED rectangulares empotrados en el techo (como en la derecha de tu foto)
+  const lightFrameMat = new THREE.MeshStandardMaterial({ color: 0x94a3b8, metalness: 0.6, roughness: 0.25 });
+  const lightPanelMat = new THREE.MeshBasicMaterial({ color: 0xffffff });
+  const ceilingLightsCoords = [
+    [-5.8, -2.25],
+    [-5.8, 2.25],
+    [0.0, -2.25],
+    [0.0, 2.25],
+    [5.0, -2.25],
+    [5.0, 2.25]
+  ];
+  ceilingLightsCoords.forEach(([lx, lz]) => {
+    const lFrame = new THREE.Mesh(new THREE.BoxGeometry(1.25, 0.07, 0.62), lightFrameMat);
+    lFrame.position.set(lx, 3.14, lz);
+    const lGlow = new THREE.Mesh(new THREE.BoxGeometry(1.15, 0.075, 0.52), lightPanelMat);
+    lGlow.position.set(lx, 3.135, lz);
+    ceilingGroup.add(lFrame, lGlow);
+  });
 }
 
 // ============================================================================
@@ -498,6 +583,11 @@ function buildDataCenterRoom() {
   rackRoof.castShadow = true;
   rackGroup.add(rackRoof);
 
+  // Ducto vertical portacables desde el techo del Rack hasta el falso cielo raso (Y = 3.34m)
+  const rackChimney = new THREE.Mesh(new THREE.BoxGeometry(0.28, 1.05, 0.28), rackPostMat);
+  rackChimney.position.set(0, 2.75, 0);
+  rackGroup.add(rackChimney);
+
   const postPositions = [
     [-0.88, -0.98],
     [0.88, -0.98],
@@ -521,7 +611,7 @@ function buildDataCenterRoom() {
 
   scene.add(rackGroup);
   registerInteractable(rackGroup, 'rack_main');
-  addFloatingLabel('Rack Principal + Servidores UNAB', new THREE.Vector3(-6.2, 2.85, 0.2), '#22c55e');
+  addFloatingLabel('Rack Principal + Servidores UNAB', new THREE.Vector3(-6.2, 2.65, 0.2), '#22c55e');
 
   // 7.3 SERVIDORES RACK
   const serversGroup = new THREE.Group();
@@ -596,9 +686,9 @@ function buildDataCenterRoom() {
   switchMesh.position.y = 0.78;
   switchGroup.add(switchMesh);
 
-  // Ducto vertical organizador de cables (sube desde el Switch/Patch Panel hasta la bandeja aérea en Y=2.40)
-  const verticalRiser = new THREE.Mesh(new THREE.BoxGeometry(0.18, 1.15, 0.14), rackPostMat);
-  verticalRiser.position.set(0, 1.7, -0.15);
+  // Columna organizadora vertical que sube hasta el falso cielo raso (Y = 3.34m)
+  const verticalRiser = new THREE.Mesh(new THREE.BoxGeometry(0.2, 2.15, 0.16), rackPostMat);
+  verticalRiser.position.set(0, 2.15, -0.15);
   switchGroup.add(verticalRiser);
 
   const patchCordMat = new THREE.MeshStandardMaterial({ color: 0x0284c7, roughness: 0.3 });
@@ -639,9 +729,9 @@ function buildDataCenterRoom() {
   routerChassis.castShadow = true;
   routerGroup.add(routerChassis);
 
-  // Ducto vertical organizador desde el Router hacia la bandeja aérea
-  const routerRiser = new THREE.Mesh(new THREE.BoxGeometry(0.14, 1.4, 0.12), rackPostMat);
-  routerRiser.position.set(0, 1.55, -0.15);
+  // Columna organizadora vertical desde el Router hasta el falso cielo raso
+  const routerRiser = new THREE.Mesh(new THREE.BoxGeometry(0.14, 2.35, 0.12), rackPostMat);
+  routerRiser.position.set(0, 2.02, -0.15);
   routerGroup.add(routerRiser);
 
   [-0.38, 0.38].forEach((ax) => {
@@ -903,153 +993,142 @@ function buildMonitoringOffice() {
 }
 
 // ============================================================================
-// 9. CABLEADO ESTRUCTURADO PROFESIONAL (BANDEJA AÉREA EN SERVIDOR + CANALETA LIMPIA SIN BLOQUEAR PUERTA)
+// 9. CABLEADO ESTRUCTURADO REAL POR FALSO CIELO RASO (PLÉNUM EN Y = 3.34m) + BAJANTES VERTICALES
 // ============================================================================
+// Así es como se instala realmente el cableado estructurado en universidades y oficinas:
+// 1. Los cables suben por los ductos verticales desde el Switch/Rack/Router hasta encima del Falso Cielo Raso (Y = 3.34m).
+// 2. Viajan ordenados sobre bandejas portacables ocultas encima del falso techo (Plénum).
+// 3. Justo encima de cada PC o Impresora, bajan verticalmente dentro de una canaleta blanca de pared hasta la toma RJ45 (faceplate).
+// ¡Cero cables regados por el piso! Y al ocultar el techo (Tecla T o botón Techo: OFF) se ve toda la ingeniería aérea.
 const dataPackets = [];
 let packetsEnabled = true;
 
 function buildStructuredCabling() {
   const cablingGroup = new THREE.Group();
   const ladderMat = new THREE.MeshStandardMaterial({ color: 0x475569, roughness: 0.35, metalness: 0.75 });
-  const trayMat = new THREE.MeshStandardMaterial({ color: 0xcbd5e1, roughness: 0.3, metalness: 0.2 });
+  const trayMat = new THREE.MeshStandardMaterial({ color: 0xe2e8f0, roughness: 0.35 });
   const faceplateMat = new THREE.MeshStandardMaterial({ color: 0xffffff, roughness: 0.3 });
 
-  // 9.1 BANDEJA PORTACABLES AÉREA TIPO ESCALERILLA (Ladder Rack en el Data Center a Y = 2.46m)
-  function createOverheadLadderTray(x, y, zStart, zEnd, width = 0.42) {
+  // 9.1 BANDEJAS PORTACABLES TIPO ESCALERILLA EN EL PLÉNUM SOBRE EL FALSO TECHO (Y = 3.32m)
+  function createPlenumLadderZ(x, y, zStart, zEnd, width = 0.4) {
     const length = Math.abs(zEnd - zStart);
     const zMid = (zStart + zEnd) / 2;
-    const railL = new THREE.Mesh(new THREE.BoxGeometry(0.04, 0.06, length), ladderMat);
+    const railL = new THREE.Mesh(new THREE.BoxGeometry(0.04, 0.05, length), ladderMat);
     railL.position.set(x - width / 2, y, zMid);
-    const railR = new THREE.Mesh(new THREE.BoxGeometry(0.04, 0.06, length), ladderMat);
+    const railR = new THREE.Mesh(new THREE.BoxGeometry(0.04, 0.05, length), ladderMat);
     railR.position.set(x + width / 2, y, zMid);
     cablingGroup.add(railL, railR);
 
-    const numRungs = Math.floor(length / 0.35);
+    const numRungs = Math.floor(length / 0.4);
     for (let i = 0; i <= numRungs; i++) {
-      const rz = Math.min(zStart, zEnd) + i * 0.35;
-      const rung = new THREE.Mesh(new THREE.BoxGeometry(width, 0.025, 0.04), ladderMat);
+      const rz = Math.min(zStart, zEnd) + i * 0.4;
+      const rung = new THREE.Mesh(new THREE.BoxGeometry(width, 0.02, 0.04), ladderMat);
       rung.position.set(x, y - 0.015, rz);
       cablingGroup.add(rung);
     }
   }
 
-  // Bandeja aérea principal sobre Rack, Switch y Router (X = -6.2, desde Z = -0.6 hasta Z = 3.3)
-  createOverheadLadderTray(-6.2, 2.46, -0.6, 3.3, 0.44);
+  function createPlenumLadderX(z, y, xStart, xEnd, width = 0.4) {
+    const length = Math.abs(xEnd - xStart);
+    const xMid = (xStart + xEnd) / 2;
+    const railF = new THREE.Mesh(new THREE.BoxGeometry(length, 0.05, 0.04), ladderMat);
+    railF.position.set(xMid, y, z - width / 2);
+    const railB = new THREE.Mesh(new THREE.BoxGeometry(length, 0.05, 0.04), ladderMat);
+    railB.position.set(xMid, y, z + width / 2);
+    cablingGroup.add(railF, railB);
 
-  // Puente de bandeja aérea desde el Switch (X = -6.2, Z = 1.95) hacia el pasamuros del muro divisor (X = -3.2, Z = 1.95)
-  const bridgeRail1 = new THREE.Mesh(new THREE.BoxGeometry(3.0, 0.06, 0.04), ladderMat);
-  bridgeRail1.position.set(-4.7, 2.46, 1.78);
-  const bridgeRail2 = new THREE.Mesh(new THREE.BoxGeometry(3.0, 0.06, 0.04), ladderMat);
-  bridgeRail2.position.set(-4.7, 2.46, 2.12);
-  cablingGroup.add(bridgeRail1, bridgeRail2);
-  for (let bx = -6.0; bx <= -3.3; bx += 0.35) {
-    const rung = new THREE.Mesh(new THREE.BoxGeometry(0.04, 0.025, 0.34), ladderMat);
-    rung.position.set(bx, 2.445, 1.95);
-    cablingGroup.add(rung);
+    const numRungs = Math.floor(length / 0.4);
+    for (let i = 0; i <= numRungs; i++) {
+      const rx = Math.min(xStart, xEnd) + i * 0.4;
+      const rung = new THREE.Mesh(new THREE.BoxGeometry(0.04, 0.02, width), ladderMat);
+      rung.position.set(rx, y - 0.015, z);
+      cablingGroup.add(rung);
+    }
   }
 
-  // 9.2 CANALETAS DE PVC EN LA OFICINA (NUNCA CRUZAN EL HUECO DE LA PUERTA)
-  // La puerta está en X = -3.2, Z de -4.65 a -3.20.
-  // Por eso el pasamuros entra en Z = 1.95 y la canaleta solo va desde Z = -2.90 hacia el sur (Z = 5.34),
-  // y para ir a las PCs del norte sube por encima del marco de la puerta o baja directo sin tocar el vano.
-  function addCableTray(x, y, z, w, h, d) {
-    const tray = new THREE.Mesh(new THREE.BoxGeometry(w, h, d), trayMat);
-    tray.position.set(x, y, z);
-    tray.receiveShadow = true;
-    cablingGroup.add(tray);
-  }
+  // Bandeja Troncal Data Center sobre el falso techo (X = -6.2, de Z = -5.1 a Z = 3.2)
+  createPlenumLadderZ(-6.2, 3.32, -5.1, 3.2, 0.42);
+  // Bandeja Aérea Norte sobre el falso techo hacia PC 1 y PC 2 (Z = -5.1, de X = -6.2 a X = 6.5)
+  createPlenumLadderX(-5.1, 3.32, -6.2, 6.5, 0.38);
+  // Bandeja Aérea Central/Sur desde Switch (Z = 1.95) hacia Muro Divisor y Muro Sur
+  createPlenumLadderX(1.95, 3.32, -6.2, -3.0, 0.36);
+  createPlenumLadderZ(-3.0, 3.32, 0.6, 5.1, 0.36);
+  createPlenumLadderX(5.1, 3.32, -3.0, 4.15, 0.36);
 
-  function addWallFaceplate(x, y, z, rotY = 0) {
-    const fp = new THREE.Mesh(new THREE.BoxGeometry(0.18, 0.18, 0.05), faceplateMat);
-    fp.position.set(x, y, z);
+  // 9.2 CANALETAS VERTICALES DE PARED (BAJANTES DESDE EL FALSO TECHO HASTA CADA EQUIPO)
+  function addVerticalWallDrop(x, z, rotY = 0) {
+    // Canaleta vertical blanca de PVC que baja desde el techo (Y=3.20) hasta la toma RJ45 (Y=0.45)
+    const drop = new THREE.Mesh(new THREE.BoxGeometry(0.09, 2.8, 0.05), trayMat);
+    drop.position.set(x, 1.82, z);
+    drop.rotation.y = rotY;
+    cablingGroup.add(drop);
+
+    // Caja Toma RJ45 (Faceplate) al final de la bajante
+    const fp = new THREE.Mesh(new THREE.BoxGeometry(0.18, 0.18, 0.06), faceplateMat);
+    fp.position.set(x, 0.45, z);
     fp.rotation.y = rotY;
     cablingGroup.add(fp);
   }
 
-  // Bajante vertical de PVC en lado oficina desde el pasamuros aéreo (Y = 2.46 a Y = 0.32 en X = -3.05, Z = 1.95)
-  addCableTray(-3.05, 1.39, 1.95, 0.08, 2.15, 0.12);
+  // 4 Bajantes verticales limpias detrás de cada estación de trabajo (sin ningún cable en el piso)
+  addVerticalWallDrop(1.91, -5.34, 0); // Bajante PC Monitoreo 1
+  addVerticalWallDrop(6.46, -5.34, 0); // Bajante PC Monitoreo 2
+  addVerticalWallDrop(-3.04, 0.65, Math.PI / 2); // Bajante Impresora
+  addVerticalWallDrop(4.1, 5.34, Math.PI); // Bajante PC Admin
 
-  // Canaleta horizontal en muro divisor SOLO en el tramo sólido de pared (Z = -2.85 a Z = 5.34, termina ANTES de la puerta)
-  addCableTray(-3.05, 0.32, 1.25, 0.08, 0.1, 8.2);
-
-  // En Z = -2.85 (antes de la puerta), la canaleta dobla pegada al piso junto a la base del escritorio/pared hacia el muro norte, dejando la puerta 100% libre
-  // Mejor aún: cruza por un segundo pasamuros superior sobre la esquina norte (Z = -5.32) directamente desde la bandeja aérea del Data Center:
-  createOverheadLadderTray(-6.2, 2.46, -5.32, -0.6, 0.36);
-  const northBridge = new THREE.Mesh(new THREE.BoxGeometry(3.0, 0.06, 0.28), ladderMat);
-  northBridge.position.set(-4.7, 2.45, -5.22);
-  cablingGroup.add(northBridge);
-
-  // Bajante vertical limpia en la esquina norte de la oficina (X = -3.02, Z = -5.32, de Y = 2.46 a Y = 0.32)
-  addCableTray(-3.02, 1.39, -5.32, 0.1, 2.15, 0.08);
-
-  // Canaleta horizontal Muro Norte (Z = -5.34, desde X = -3.02 hasta X = 6.6, detrás de PC 1 y PC 2)
-  addCableTray(1.8, 0.32, -5.34, 9.65, 0.1, 0.08);
-
-  // Canaleta horizontal Muro Sur (Z = 5.34, desde X = -3.05 hasta X = 4.2, detrás de PC Admin)
-  addCableTray(0.58, 0.32, 5.34, 7.3, 0.1, 0.08);
-
-  // Cajas Toma de Red RJ45 (Faceplates) detrás de cada estación
-  addWallFaceplate(1.91, 0.45, -5.32, 0); // Toma PC 1
-  addWallFaceplate(6.46, 0.45, -5.32, 0); // Toma PC 2
-  addWallFaceplate(-3.03, 0.45, 0.65, Math.PI / 2); // Toma Impresora
-  addWallFaceplate(4.1, 0.45, 5.32, Math.PI); // Toma PC Admin
-
-  // 9.3 RUTAS ORTOGONALES 100% VERTICALES Y HORIZONTALES (CERO CABLES DIAGONALES EN EL AIRE Y PUERTA 100% LIBRE)
+  // 9.3 RUTAS DE CABLES UTP CAT6A POR EL FALSO TECHO (Y = 3.34m) Y BAJADAS 100% VERTICALES
   const cableRoutes = [
-    // Ruta 1 (PC Monitoreo 1): Switch Core -> Sube en vertical a Bandeja Aérea (Y=2.48) -> Va hacia el Norte -> Cruza Pasamuros Esquina Norte -> Baja en vertical a Canaleta Norte -> Sube en vertical a PC 1
+    // Cable 1 (PC Monitoreo 1): Switch Core -> Sube al Falso Techo (Y=3.34) -> Va por Bandeja Norte -> Baja en vertical por pared hasta PC 1
     [
       new THREE.Vector3(-6.2, 1.02, 1.82),
-      new THREE.Vector3(-6.2, 2.48, 1.82),
-      new THREE.Vector3(-6.2, 2.48, -5.22),
-      new THREE.Vector3(-3.02, 2.48, -5.22),
-      new THREE.Vector3(-3.02, 0.34, -5.31),
-      new THREE.Vector3(1.91, 0.34, -5.31),
-      new THREE.Vector3(1.91, 1.15, -5.31),
+      new THREE.Vector3(-6.2, 3.34, 1.82),
+      new THREE.Vector3(-6.2, 3.34, -5.08),
+      new THREE.Vector3(1.91, 3.34, -5.08),
+      new THREE.Vector3(1.91, 3.34, -5.32),
+      new THREE.Vector3(1.91, 0.45, -5.32),
       new THREE.Vector3(1.91, 1.15, -3.95)
     ],
-    // Ruta 2 (PC Monitoreo 2): Switch Core -> Bandeja Aérea -> Pasamuros Esquina Norte -> Canaleta Norte -> Sube en vertical a PC 2
+    // Cable 2 (PC Monitoreo 2): Switch Core -> Sube al Falso Techo -> Bandeja Norte -> Baja en vertical por pared hasta PC 2
     [
-      new THREE.Vector3(-6.16, 1.02, 1.82),
-      new THREE.Vector3(-6.16, 2.49, 1.82),
-      new THREE.Vector3(-6.16, 2.49, -5.25),
-      new THREE.Vector3(-3.0, 2.49, -5.25),
-      new THREE.Vector3(-3.0, 0.31, -5.31),
-      new THREE.Vector3(6.46, 0.31, -5.31),
-      new THREE.Vector3(6.46, 1.15, -5.31),
+      new THREE.Vector3(-6.15, 1.02, 1.82),
+      new THREE.Vector3(-6.15, 3.35, 1.82),
+      new THREE.Vector3(-6.15, 3.35, -5.14),
+      new THREE.Vector3(6.46, 3.35, -5.14),
+      new THREE.Vector3(6.46, 3.35, -5.32),
+      new THREE.Vector3(6.46, 0.45, -5.32),
       new THREE.Vector3(6.46, 1.15, -3.95)
     ],
-    // Ruta 3 (Impresora en Red): Switch Core -> Sube a Bandeja Aérea -> Puente Central (Z=1.95) -> Baja por Bajante Oficina -> Canaleta Pared -> Impresora
+    // Cable 3 (Impresora en Red): Switch Core -> Sube al Falso Techo -> Cruza Muro Divisor por arriba -> Baja en vertical hasta Impresora
     [
       new THREE.Vector3(-6.2, 1.02, 1.95),
-      new THREE.Vector3(-6.2, 2.48, 1.95),
-      new THREE.Vector3(-3.04, 2.48, 1.95),
-      new THREE.Vector3(-3.04, 0.34, 1.95),
-      new THREE.Vector3(-3.04, 0.34, 0.65),
-      new THREE.Vector3(-1.75, 0.34, 0.65),
+      new THREE.Vector3(-6.2, 3.34, 1.95),
+      new THREE.Vector3(-3.03, 3.34, 1.95),
+      new THREE.Vector3(-3.03, 3.34, 0.65),
+      new THREE.Vector3(-3.03, 0.45, 0.65),
       new THREE.Vector3(-1.75, 0.95, 0.65)
     ],
-    // Ruta 4 (PC Administración): Switch Core -> Bandeja Aérea -> Puente Central -> Bajante Oficina -> Canaleta Sur -> PC Admin
+    // Cable 4 (PC Administración): Switch Core -> Sube al Falso Techo -> Bandeja Sur -> Baja en vertical por pared sur hasta PC Admin
     [
-      new THREE.Vector3(-6.24, 1.02, 1.98),
-      new THREE.Vector3(-6.24, 2.48, 1.98),
-      new THREE.Vector3(-3.04, 2.48, 1.98),
-      new THREE.Vector3(-3.04, 0.3, 1.98),
-      new THREE.Vector3(-3.04, 0.3, 5.31),
-      new THREE.Vector3(4.1, 0.3, 5.31),
-      new THREE.Vector3(4.1, 1.1, 5.31),
+      new THREE.Vector3(-6.25, 1.02, 1.98),
+      new THREE.Vector3(-6.25, 3.35, 1.98),
+      new THREE.Vector3(-3.0, 3.35, 1.98),
+      new THREE.Vector3(-3.0, 3.35, 5.12),
+      new THREE.Vector3(4.1, 3.35, 5.12),
+      new THREE.Vector3(4.1, 3.35, 5.32),
+      new THREE.Vector3(4.1, 0.45, 5.32),
       new THREE.Vector3(4.1, 1.1, 4.35)
     ],
-    // Ruta 5 (Troncal Aérea Data Center): Router WAN -> Sube en vertical a Bandeja Aérea -> Switch Core -> Sube y entra por techo del Rack a Servidores
+    // Cable 5 (Troncal Data Center por Falso Techo): Router WAN -> Sube al Falso Techo -> Switch Core -> Rack Principal de Servidores
     [
       new THREE.Vector3(-6.2, 0.85, 2.95),
-      new THREE.Vector3(-6.2, 2.48, 2.95),
-      new THREE.Vector3(-6.2, 2.48, 1.95),
+      new THREE.Vector3(-6.2, 3.34, 2.95),
+      new THREE.Vector3(-6.2, 3.34, 1.95),
       new THREE.Vector3(-6.2, 1.02, 1.95),
-      new THREE.Vector3(-6.2, 2.48, 1.95),
-      new THREE.Vector3(-6.2, 2.48, 0.2),
+      new THREE.Vector3(-6.2, 3.34, 1.95),
+      new THREE.Vector3(-6.2, 3.34, 0.2),
       new THREE.Vector3(-6.2, 1.4, 0.2)
     ],
-    // Ruta 6 (Energía / Monitoreo UPS por piso falso técnico en ángulos de 90°): UPS -> Bajo Piso Técnico -> Router & Rack
+    // Cable 6 (Alimentación UPS por bajo el Piso Falso Técnico en el Data Center):
     [
       new THREE.Vector3(-4.55, 0.22, 4.45),
       new THREE.Vector3(-6.2, 0.22, 4.45),
@@ -1097,7 +1176,7 @@ function buildStructuredCabling() {
 
   scene.add(cablingGroup);
   registerInteractable(cablingGroup, 'structured_cabling');
-  addFloatingLabel('Bandeja Aerea y Cableado Cat6A', new THREE.Vector3(-6.2, 2.75, 1.95), '#0284c7');
+  addFloatingLabel('Bandeja Aerea sobre Falso Techo (Cat6A)', new THREE.Vector3(-3.0, 3.55, -2.0), '#0284c7');
 }
 
 buildEnvironmentAndArchitecture();
@@ -1196,7 +1275,7 @@ document.getElementById('btn-close-inspector').addEventListener('click', () => {
 });
 
 // ============================================================================
-// 11. MODOS DE CÁMARA: INICIA EN CAMINATA Y CON ESC VA A VISTA GENERAL ISOMÉTRICA
+// 11. MODOS DE CÁMARA Y CONTROL DEL FALSO TECHO
 // ============================================================================
 const btnFps = document.getElementById('btn-mode-fps');
 const fpsCrosshair = document.getElementById('fps-crosshair');
@@ -1204,15 +1283,27 @@ const fpsCrosshair = document.getElementById('fps-crosshair');
 const btnToggleViews = document.getElementById('btn-toggle-views');
 const viewsDropdownMenu = document.getElementById('views-dropdown-menu');
 const btnCloseViews = document.getElementById('btn-close-views');
+const btnToggleCeiling = document.getElementById('btn-toggle-ceiling');
 
 let cameraTransition = null;
 
 const CAMERA_VIEWS = {
   iso: { pos: [0, 17, 16], target: [0, 0.8, 0] },
   datacenter: { pos: [-1.5, 5.2, 4.0], target: [-6.0, 1.2, 0.8] },
-  cabling: { pos: [-1.2, 5.4, 2.2], target: [-5.2, 1.6, 1.2] },
+  cabling: { pos: [-0.5, 7.5, 5.5], target: [-2.5, 2.6, 0.0] },
   monitoring: { pos: [2.8, 3.8, 0.8], target: [2.8, 1.3, -4.0] }
 };
+
+function setCeilingState(visible) {
+  ceilingVisible = visible;
+  ceilingGroup.visible = ceilingVisible;
+  btnToggleCeiling.classList.toggle('active', ceilingVisible);
+  btnToggleCeiling.textContent = `Techo: ${ceilingVisible ? 'ON' : 'OFF'}`;
+}
+
+btnToggleCeiling.addEventListener('click', () => {
+  setCeilingState(!ceilingVisible);
+});
 
 function clearMovementKeys() {
   moveState.forward = false;
@@ -1231,6 +1322,10 @@ function switchToCameraView(viewKey = 'iso') {
   orbitControls.enabled = true;
   btnFps.classList.remove('active');
   fpsCrosshair.classList.add('hidden');
+
+  // Al salir a Vista Isométrica o Vistas Aéreas, ocultamos el techo automáticamente
+  // para que se vea todo el interior y las bandejas portacables aéreas (y el usuario puede prenderlo con el botón Techo)
+  setCeilingState(false);
 
   const v = CAMERA_VIEWS[viewKey] || CAMERA_VIEWS.iso;
   cameraTransition = {
@@ -1252,6 +1347,9 @@ function activateFpsMode() {
   viewsDropdownMenu.classList.add('hidden');
   btnToggleViews.classList.remove('active');
 
+  // En Modo Caminata activamos el falso cielo raso por defecto para que se sienta dentro del edificio real
+  setCeilingState(true);
+
   camera.position.set(2.2, 1.7, 0.4);
   yaw = Math.PI / 2;
   pitch = 0;
@@ -1261,12 +1359,10 @@ function activateFpsMode() {
   renderer.domElement.requestPointerLock();
 }
 
-// Cuando el usuario presiona ESC en Modo Caminata, el navegador libera el PointerLock
-// y aquí lo pasamos automáticamente a la Vista General Isométrica
 document.addEventListener('pointerlockchange', () => {
   isPointerLocked = document.pointerLockElement === renderer.domElement;
   if (isPointerLocked) {
-    fpsHint.innerHTML = '<b>W, A, S, D</b> caminar &bull; <b>Click</b> inspeccionar equipo &bull; <b>ESC</b> ir a Vista General Isométrica';
+    fpsHint.innerHTML = '<b>W, A, S, D</b> caminar &bull; <b>Tecla T</b> ocultar/ver techo &bull; <b>ESC</b> ir a Vista General Isométrica';
   } else if (currentMode === 'fps') {
     switchToCameraView('iso');
   }
@@ -1357,6 +1453,9 @@ window.addEventListener('keydown', (e) => {
       if (currentMode === 'fps' && !isPointerLocked) {
         switchToCameraView('iso');
       }
+      break;
+    case 'KeyT':
+      btnToggleCeiling.click();
       break;
     case 'KeyC':
       btnTogglePackets.click();
@@ -1478,5 +1577,5 @@ window.addEventListener('resize', () => {
   camera.aspect = window.innerWidth / window.innerHeight;
   camera.updateProjectionMatrix();
   renderer.setSize(window.innerWidth, window.innerHeight);
-  labelRenderer.setSize(window.innerHeight ? window.innerWidth : 0, window.innerHeight);
+  labelRenderer.setSize(window.innerWidth, window.innerHeight);
 });
