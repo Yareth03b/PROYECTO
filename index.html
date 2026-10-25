@@ -1,0 +1,123 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>UNAB - Prototipo 3D Data Center & Monitoreo de Buses</title>
+  <link rel="stylesheet" href="style.css" />
+  <script type="importmap">
+    {
+      "imports": {
+        "three": "https://unpkg.com/three@0.160.0/build/three.module.js",
+        "three/addons/": "https://unpkg.com/three@0.160.0/examples/jsm/"
+      }
+    }
+  </script>
+</head>
+<body>
+  <!-- Top Header Banner -->
+  <header class="hud-header">
+    <div class="brand">
+      <div class="unab-badge">UNAB</div>
+      <div class="brand-text">
+        <h1>Centro de Monitoreo GPS Buses &amp; Cuarto de Telecomunicaciones</h1>
+        <p>Curso: Administración de Servicios de Red &bull; Prototipo Interactivo 3D</p>
+      </div>
+    </div>
+
+    <div class="toolbar">
+      <button id="btn-mode-orbit" class="btn active" title="Vista Aérea / Maqueta 3D (Tecla 1)">
+        <span class="icon">🏗️</span> Modo Maqueta (Órbita)
+      </button>
+      <button id="btn-mode-fps" class="btn" title="Caminar en 1ra Persona (Tecla 2)">
+        <span class="icon">🚶</span> Modo Caminata (WASD)
+      </button>
+      <div class="divider"></div>
+      <button id="btn-toggle-packets" class="btn active" title="Animar tráfico de red en los cables (Tecla C)">
+        <span class="icon">⚡</span> Flujo de Datos: ON
+      </button>
+      <button id="btn-toggle-walls" class="btn" title="Bajar muros para ver mejor el cableado (Tecla M)">
+        <span class="icon">🧱</span> Vista Muros: Normal
+      </button>
+      <button id="btn-toggle-labels" class="btn active" title="Mostrar etiquetas sobre equipos (Tecla L)">
+        <span class="icon">🏷️</span> Etiquetas: ON
+      </button>
+    </div>
+  </header>
+
+  <!-- Quick Camera Presets (Left Side) -->
+  <aside class="camera-presets">
+    <div class="panel-title">Vistas Rápidas</div>
+    <button class="preset-btn" data-view="top">📐 Plano 2D/3D (Arriba)</button>
+    <button class="preset-btn" data-view="iso">🏢 Vista General Isométrica</button>
+    <button class="preset-btn" data-view="datacenter">🖥️ Cuarto de Servidores (Rack)</button>
+    <button class="preset-btn" data-view="cabling">🔌 Paso de Cableado / Switch</button>
+    <button class="preset-btn" data-view="monitoring">🚌 Monitores GPS Buses UNAB</button>
+    <button class="preset-btn" data-view="door" id="btn-toggle-doors">🚪 Abrir / Cerrar Puertas</button>
+
+    <div class="panel-title" style="margin-top: 14px;">Leyenda de Red</div>
+    <div class="legend-item">
+      <span class="dot cable-blue"></span> Cableado UTP Cat6A (Azul)
+    </div>
+    <div class="legend-item">
+      <span class="dot cable-tray"></span> Canaleta PVC / Bandeja
+    </div>
+    <div class="legend-item">
+      <span class="dot packet-gps"></span> Paquetes GPS / Red en Vivo
+    </div>
+    <div class="legend-item">
+      <span class="dot floor-tech"></span> Piso Falso Técnico (Data Center)
+    </div>
+  </aside>
+
+  <!-- Equipment Inspector Panel (Right Side) -->
+  <aside id="inspector-panel" class="inspector-panel">
+    <div class="inspector-header">
+      <span id="inspector-category" class="badge">SELECCIONA UN EQUIPO</span>
+      <button id="btn-close-inspector" class="close-btn" title="Cerrar">&times;</button>
+    </div>
+    <h2 id="inspector-title">Prototipo de Red UNAB</h2>
+    <p id="inspector-desc">
+      Haz clic sobre cualquier <strong>Servidor, Rack, Switch, Router, UPS, PC de Monitoreo, Impresora o Cableado</strong> en el escenario 3D para inspeccionar su función dentro de la arquitectura del sistema de seguimiento de buses.
+    </p>
+    <div id="inspector-specs" class="specs-grid">
+      <div class="spec-row">
+        <span class="spec-label">Proyecto:</span>
+        <span class="spec-value">App Ubicación de Buses UNAB en Tiempo Real</span>
+      </div>
+      <div class="spec-row">
+        <span class="spec-label">Curso:</span>
+        <span class="spec-value">Administración de Servicios de Red</span>
+      </div>
+      <div class="spec-row">
+        <span class="spec-label">Nota:</span>
+        <span class="spec-value">Datos técnicos (IPs, VLANs, subredes) editables en <code>data.js</code></span>
+      </div>
+    </div>
+  </aside>
+
+  <!-- First Person Crosshair & Instructions Overlay -->
+  <div id="fps-crosshair" class="fps-crosshair hidden">
+    <div class="crosshair-dot"></div>
+    <div class="fps-hint">
+      Usa <b>W, A, S, D</b> para caminar &bull; <b>Espacio / Shift</b> subir/bajar &bull; <b>Click</b> para inspeccionar equipo &bull; <b>ESC</b> para salir al modo ratón
+    </div>
+  </div>
+
+  <!-- Hover Tooltip -->
+  <div id="hover-tooltip" class="hover-tooltip hidden"></div>
+
+  <!-- Bottom Controls Bar -->
+  <footer class="hud-footer">
+    <span>🖱️ <b>Click Izquierdo + Arrastrar:</b> Rotar cámara</span>
+    <span>🖱️ <b>Click Derecho + Arrastrar:</b> Mover plano</span>
+    <span>🔍 <b>Rueda del Mouse:</b> Zoom</span>
+    <span>👆 <b>Click en Equipos/Cables:</b> Ver ficha técnica</span>
+  </footer>
+
+  <!-- 3D Canvas Container -->
+  <div id="canvas-container"></div>
+
+  <script type="module" src="app.js"></script>
+</body>
+</html>
