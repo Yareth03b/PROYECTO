@@ -10,10 +10,10 @@ import { EQUIPMENT_DATA } from './data.js';
 const container = document.getElementById('canvas-container');
 const scene = new THREE.Scene();
 scene.background = new THREE.Color(0x0f172a);
-scene.fog = new THREE.FogExp2(0x0f172a, 0.015);
+scene.fog = new THREE.FogExp2(0x0f172a, 0.014);
 
 const camera = new THREE.PerspectiveCamera(50, window.innerWidth / window.innerHeight, 0.1, 200);
-camera.position.set(0, 17, 15);
+camera.position.set(0, 18, 16);
 
 const renderer = new THREE.WebGLRenderer({ antialias: true, powerPreference: 'high-performance' });
 renderer.setSize(window.innerWidth, window.innerHeight);
@@ -22,7 +22,6 @@ renderer.shadowMap.enabled = true;
 renderer.shadowMap.type = THREE.PCFSoftShadowMap;
 container.appendChild(renderer.domElement);
 
-// Etiquetas flotantes HTML 2D sobre objetos 3D
 const labelRenderer = new CSS2DRenderer();
 labelRenderer.setSize(window.innerWidth, window.innerHeight);
 labelRenderer.domElement.style.position = 'absolute';
@@ -40,10 +39,10 @@ orbitControls.dampingFactor = 0.06;
 orbitControls.maxPolarAngle = Math.PI / 2 - 0.03;
 orbitControls.minDistance = 2;
 orbitControls.maxDistance = 42;
-orbitControls.target.set(0, 1, 0);
+orbitControls.target.set(0, 1.2, 0);
 
 const fpsControls = new PointerLockControls(camera, document.body);
-let currentMode = 'orbit'; // 'orbit' | 'fps'
+let currentMode = 'orbit';
 const moveState = { forward: false, backward: false, left: false, right: false, up: false, down: false };
 
 // ============================================================================
@@ -53,12 +52,12 @@ const ambientLight = new THREE.AmbientLight(0xdbeafe, 0.85);
 scene.add(ambientLight);
 
 const sunLight = new THREE.DirectionalLight(0xfffbeb, 1.35);
-sunLight.position.set(12, 24, 14);
+sunLight.position.set(12, 26, 14);
 sunLight.castShadow = true;
 sunLight.shadow.mapSize.width = 2048;
 sunLight.shadow.mapSize.height = 2048;
 sunLight.shadow.camera.near = 1;
-sunLight.shadow.camera.far = 60;
+sunLight.shadow.camera.far = 65;
 const d = 16;
 sunLight.shadow.camera.left = -d;
 sunLight.shadow.camera.right = d;
@@ -67,18 +66,16 @@ sunLight.shadow.camera.bottom = -d;
 sunLight.shadow.bias = -0.0005;
 scene.add(sunLight);
 
-// Luz azul tecnológica en el cuarto de servidores (Izquierda)
 const dcLight = new THREE.PointLight(0x38bdf8, 1.2, 12);
-dcLight.position.set(-5.8, 3.2, 0.5);
+dcLight.position.set(-5.8, 3.4, 0.5);
 scene.add(dcLight);
 
-// Luz cálida de oficina en el centro de monitoreo (Derecha)
 const officeLight = new THREE.PointLight(0xfef3c7, 0.9, 16);
-officeLight.position.set(2.5, 3.5, 0);
+officeLight.position.set(2.5, 3.6, 0);
 scene.add(officeLight);
 
 // ============================================================================
-// 4. TEXTURAS PROCEDURALES (PISO TÉCNICO, BALDOSAS Y PANTALLA GPS UNAB)
+// 4. TEXTURAS PROCEDURALES
 // ============================================================================
 function createRaisedFloorTexture() {
   const c = document.createElement('canvas');
@@ -97,12 +94,9 @@ function createRaisedFloorTexture() {
   ctx.lineWidth = 2;
   ctx.strokeRect(12, 12, 232, 232);
 
-  // Rejillas de ventilación como en la imagen
   ctx.fillStyle = '#090d11';
-  const cols = 4;
-  const rows = 8;
-  for (let i = 0; i < cols; i++) {
-    for (let j = 0; j < rows; j++) {
+  for (let i = 0; i < 4; i++) {
+    for (let j = 0; j < 8; j++) {
       ctx.fillRect(28 + i * 52, 28 + j * 25, 38, 12);
     }
   }
@@ -140,17 +134,14 @@ function createBusMapScreenTexture(variant = 1) {
   c.height = 300;
   const ctx = c.getContext('2d');
 
-  // Fondo mapa
   ctx.fillStyle = '#0f2942';
   ctx.fillRect(0, 0, 512, 300);
 
-  // Áreas verdes campus / ciudad
   ctx.fillStyle = '#14532d';
   ctx.fillRect(20, 40, 180, 110);
   ctx.fillRect(280, 150, 190, 120);
   ctx.fillRect(60, 190, 140, 85);
 
-  // Calles y avenidas
   ctx.strokeStyle = '#334155';
   ctx.lineWidth = 14;
   ctx.beginPath();
@@ -160,7 +151,6 @@ function createBusMapScreenTexture(variant = 1) {
   ctx.lineTo(235, 300);
   ctx.stroke();
 
-  // Ruta GPS activa del Bus UNAB
   ctx.strokeStyle = '#38bdf8';
   ctx.lineWidth = 6;
   ctx.setLineDash([10, 6]);
@@ -172,7 +162,6 @@ function createBusMapScreenTexture(variant = 1) {
   ctx.stroke();
   ctx.setLineDash([]);
 
-  // Puntos de Bus y Campus UNAB
   ctx.fillStyle = '#22c55e';
   ctx.beginPath();
   ctx.arc(430, 95, 14, 0, Math.PI * 2);
@@ -183,7 +172,6 @@ function createBusMapScreenTexture(variant = 1) {
   ctx.arc(variant === 1 ? 235 : 140, variant === 1 ? 165 : 240, 12, 0, Math.PI * 2);
   ctx.fill();
 
-  // Barra superior de la App UNAB
   ctx.fillStyle = '#0284c7';
   ctx.fillRect(0, 0, 512, 36);
   ctx.fillStyle = '#ffffff';
@@ -196,7 +184,6 @@ function createBusMapScreenTexture(variant = 1) {
     24
   );
 
-  // Tarjetas informativas en pantalla
   ctx.fillStyle = 'rgba(15, 23, 42, 0.85)';
   ctx.fillRect(310, 48, 188, 95);
   ctx.fillStyle = '#4ade80';
@@ -205,7 +192,7 @@ function createBusMapScreenTexture(variant = 1) {
   ctx.fillStyle = '#e2e8f0';
   ctx.fillText('Llegada UNAB: 4 min', 320, 92);
   ctx.fillStyle = '#38bdf8';
-  ctx.fillText('BUS #02: YA SALIÓ', 320, 118);
+  ctx.fillText('BUS #02: YA SALIO', 320, 118);
 
   return new THREE.CanvasTexture(c);
 }
@@ -232,7 +219,7 @@ function registerInteractable(meshOrGroup, dataKey) {
 function addFloatingLabel(text, position, color = '#38bdf8') {
   const div = document.createElement('div');
   div.style.padding = '3px 8px';
-  div.style.background = 'rgba(15, 23, 42, 0.86)';
+  div.style.background = 'rgba(15, 23, 42, 0.88)';
   div.style.border = `1px solid ${color}`;
   div.style.borderRadius = '6px';
   div.style.color = '#f8fafc';
@@ -249,17 +236,10 @@ function addFloatingLabel(text, position, color = '#38bdf8') {
 }
 
 // ============================================================================
-// 6. CONSTRUCCIÓN ARQUITECTÓNICA (FIEL AL MAPA 2D SUBIDO)
+// 6. CONSTRUCCIÓN ARQUITECTÓNICA (PAREDES BLANCAS ALTAS Y PUERTAS BLANCO/NEGRO)
 // ============================================================================
-// Dimensiones generales del edificio:
-// Ancho X: -8.0 a +8.0 (Total 16m)
-// Largo Z: -5.5 a +5.5 (Total 11m)
-// Muro divisor interno en X = -3.2:
-//   - Izquierda (-8.0 a -3.2): Cuarto de Telecomunicaciones / Data Center
-//   - Derecha (-3.2 a +8.0): Sala de Monitoreo y Control de Buses UNAB
-
 function buildEnvironmentAndArchitecture() {
-  // 1. Césped exterior alrededor del edificio
+  // 1. Césped exterior
   const grassGeo = new THREE.PlaneGeometry(45, 36);
   const grassMat = new THREE.MeshStandardMaterial({ color: 0x65a30d, roughness: 0.95 });
   const grass = new THREE.Mesh(grassGeo, grassMat);
@@ -268,7 +248,7 @@ function buildEnvironmentAndArchitecture() {
   grass.receiveShadow = true;
   scene.add(grass);
 
-  // Camino de piedras a la derecha (como en tu imagen)
+  // Camino de piedras a la derecha
   const stoneMat = new THREE.MeshStandardMaterial({ color: 0xa8a29e, roughness: 0.85 });
   for (let z = -5.2; z <= 5.2; z += 0.75) {
     for (let x = 9.0; x <= 10.4; x += 0.65) {
@@ -280,7 +260,7 @@ function buildEnvironmentAndArchitecture() {
     }
   }
 
-  // Arbustos decorativos exteriores
+  // Arbustos exteriores
   const bushPositions = [
     [-9.2, -2.5], [-8.8, 5.2], [-6.8, 5.9],
     [8.9, -1.8], [8.9, 2.5]
@@ -301,7 +281,7 @@ function buildEnvironmentAndArchitecture() {
     scene.add(bushGroup);
   });
 
-  // 2. Piso Falso Técnico del Data Center (Izquierda: X de -8 a -3.2, Z de -5.5 a 5.5)
+  // 2. Piso Falso Técnico del Data Center
   const dcFloorGeo = new THREE.BoxGeometry(4.8, 0.16, 11.0);
   const dcFloorMat = new THREE.MeshStandardMaterial({
     map: createRaisedFloorTexture(),
@@ -313,7 +293,7 @@ function buildEnvironmentAndArchitecture() {
   dcFloor.receiveShadow = true;
   scene.add(dcFloor);
 
-  // 3. Piso de Baldosas Claras de la Oficina (Derecha: X de -3.2 a +8.0, Z de -5.5 a 5.5)
+  // 3. Piso de Baldosas Claras de la Oficina
   const officeFloorGeo = new THREE.BoxGeometry(11.2, 0.12, 11.0);
   const officeFloorMat = new THREE.MeshStandardMaterial({
     map: createOfficeTileTexture(),
@@ -324,11 +304,11 @@ function buildEnvironmentAndArchitecture() {
   officeFloor.receiveShadow = true;
   scene.add(officeFloor);
 
-  // 4. Muros Verdes (Estilo exacto del plano)
-  const wallHeight = 2.8;
+  // 4. Muros Blancos con mayor altura (3.6m)
+  const wallHeight = 3.6;
   const wallThickness = 0.24;
-  const wallMat = new THREE.MeshStandardMaterial({ color: 0x2e7d32, roughness: 0.65 });
-  const wallTopMat = new THREE.MeshStandardMaterial({ color: 0x4caf50, roughness: 0.4 });
+  const wallMat = new THREE.MeshStandardMaterial({ color: 0xf8fafc, roughness: 0.55 });
+  const wallTopMat = new THREE.MeshStandardMaterial({ color: 0x1e293b, roughness: 0.4 });
 
   function addWallSegment(x, z, width, depth) {
     const group = new THREE.Group();
@@ -347,52 +327,85 @@ function buildEnvironmentAndArchitecture() {
     wallMeshes.push(group);
   }
 
-  // Muro Norte (Arriba, Z = -5.5)
+  // Muro Norte (Z = -5.5)
   addWallSegment(0, -5.5, 16.24, wallThickness);
-  // Muro Sur (Abajo, Z = +5.5)
+  // Muro Sur (Z = +5.5)
   addWallSegment(0, 5.5, 16.24, wallThickness);
-  // Muro Oeste (Izquierda, X = -8.0)
+  // Muro Oeste (X = -8.0)
   addWallSegment(-8.0, 0, wallThickness, 11.0);
 
-  // Muro Este (Derecha, X = +8.0) con abertura central para la puerta doble (Z de -1.4 a +1.4)
+  // Muro Este (X = +8.0) con abertura central para la puerta doble
   addWallSegment(8.0, -3.45, wallThickness, 4.1);
   addWallSegment(8.0, 3.45, wallThickness, 4.1);
 
-  // Muro Divisor Interno (X = -3.2) con puerta hacia el Data Center arriba (Z de -4.7 a -3.1)
+  // Muro Divisor Interno (X = -3.2) con puerta hacia el Data Center arriba
   addWallSegment(-3.2, -5.1, wallThickness, 0.8);
   addWallSegment(-3.2, 1.2, wallThickness, 8.6);
 
-  // 5. Puertas (Interactivas para abrir/cerrar)
-  const doorMat = new THREE.MeshStandardMaterial({ color: 0x4b8b52, roughness: 0.5 });
+  // 5. Puertas Blancas con Bordes/Detalles en Negro y mayor altura (2.85m)
+  const doorHeight = 2.85;
+  const doorWhiteMat = new THREE.MeshStandardMaterial({ color: 0xffffff, roughness: 0.4 });
+  const doorBlackMat = new THREE.MeshStandardMaterial({ color: 0x111827, roughness: 0.35, metalness: 0.4 });
+
+  function createWhiteBlackDoorLeaf(widthZ, zOffsetSign = 1) {
+    const leafGroup = new THREE.Group();
+    const zCenter = (widthZ / 2) * zOffsetSign;
+
+    // Panel principal blanco
+    const panel = new THREE.Mesh(new THREE.BoxGeometry(0.08, doorHeight, widthZ), doorWhiteMat);
+    panel.position.set(0, doorHeight / 2, zCenter);
+    panel.castShadow = true;
+    leafGroup.add(panel);
+
+    // Marco superior e inferior negro
+    const topTrim = new THREE.Mesh(new THREE.BoxGeometry(0.11, 0.1, widthZ + 0.02), doorBlackMat);
+    topTrim.position.set(0, doorHeight - 0.05, zCenter);
+    leafGroup.add(topTrim);
+
+    const botTrim = new THREE.Mesh(new THREE.BoxGeometry(0.11, 0.12, widthZ + 0.02), doorBlackMat);
+    botTrim.position.set(0, 0.06, zCenter);
+    leafGroup.add(botTrim);
+
+    // Bordes verticales negros
+    const sideTrim1 = new THREE.Mesh(new THREE.BoxGeometry(0.11, doorHeight, 0.08), doorBlackMat);
+    sideTrim1.position.set(0, doorHeight / 2, 0.04 * zOffsetSign);
+    leafGroup.add(sideTrim1);
+
+    const sideTrim2 = new THREE.Mesh(new THREE.BoxGeometry(0.11, doorHeight, 0.08), doorBlackMat);
+    sideTrim2.position.set(0, doorHeight / 2, (widthZ - 0.04) * zOffsetSign);
+    leafGroup.add(sideTrim2);
+
+    // Visor / franja central y manija negra
+    const visor = new THREE.Mesh(new THREE.BoxGeometry(0.11, 1.1, 0.22), doorBlackMat);
+    visor.position.set(0, doorHeight * 0.58, zCenter);
+    leafGroup.add(visor);
+
+    const handle = new THREE.Mesh(new THREE.BoxGeometry(0.18, 0.06, 0.18), doorBlackMat);
+    handle.position.set(0, 1.15, (widthZ - 0.22) * zOffsetSign);
+    leafGroup.add(handle);
+
+    return leafGroup;
+  }
 
   // Puerta interna Data Center (X = -3.2, Z = -4.7)
   const dcDoorPivot = new THREE.Group();
   dcDoorPivot.position.set(-3.2, 0, -4.7);
-  const dcDoorMesh = new THREE.Mesh(new THREE.BoxGeometry(0.1, 2.3, 1.5), doorMat);
-  dcDoorMesh.position.set(0, 1.15, 0.75);
-  dcDoorMesh.castShadow = true;
-  dcDoorPivot.add(dcDoorMesh);
-  dcDoorPivot.rotation.y = Math.PI * 0.42; // Abierta como en el plano
+  dcDoorPivot.add(createWhiteBlackDoorLeaf(1.5, 1));
+  dcDoorPivot.rotation.y = Math.PI * 0.42;
   scene.add(dcDoorPivot);
   doorPivots.push({ pivot: dcDoorPivot, openRot: Math.PI * 0.42, closedRot: 0 });
 
   // Puerta doble principal Este (X = 8.0, Z = -1.4 y Z = +1.4)
   const mainDoorTopPivot = new THREE.Group();
   mainDoorTopPivot.position.set(8.0, 0, -1.4);
-  const mainDoorTopMesh = new THREE.Mesh(new THREE.BoxGeometry(0.1, 2.3, 1.35), doorMat);
-  mainDoorTopMesh.position.set(0, 1.15, 0.675);
-  mainDoorTopMesh.castShadow = true;
-  mainDoorTopPivot.add(mainDoorTopMesh);
+  mainDoorTopPivot.add(createWhiteBlackDoorLeaf(1.35, 1));
   mainDoorTopPivot.rotation.y = Math.PI * 0.45;
   scene.add(mainDoorTopPivot);
   doorPivots.push({ pivot: mainDoorTopPivot, openRot: Math.PI * 0.45, closedRot: 0 });
 
   const mainDoorBotPivot = new THREE.Group();
   mainDoorBotPivot.position.set(8.0, 0, 1.4);
-  const mainDoorBotMesh = new THREE.Mesh(new THREE.BoxGeometry(0.1, 2.3, 1.35), doorMat);
-  mainDoorBotMesh.position.set(0, 1.15, -0.675);
-  mainDoorBotMesh.castShadow = true;
-  mainDoorBotPivot.add(mainDoorBotMesh);
+  mainDoorBotPivot.add(createWhiteBlackDoorLeaf(1.35, -1));
   mainDoorBotPivot.rotation.y = -Math.PI * 0.42;
   scene.add(mainDoorBotPivot);
   doorPivots.push({ pivot: mainDoorBotPivot, openRot: -Math.PI * 0.42, closedRot: 0 });
@@ -402,18 +415,15 @@ function buildEnvironmentAndArchitecture() {
 // 7. EQUIPAMIENTO DEL CUARTO DE SERVIDORES (ZONA IZQUIERDA)
 // ============================================================================
 function buildDataCenterRoom() {
-  // 7.1 Climatización / Aire Acondicionado y Estantería (Arriba a la izquierda)
   const acGroup = new THREE.Group();
   const whiteMetalMat = new THREE.MeshStandardMaterial({ color: 0xe2e8f0, roughness: 0.35, metalness: 0.2 });
   const darkVentMat = new THREE.MeshStandardMaterial({ color: 0x334155, roughness: 0.6 });
 
-  // Gabinete blanco climatizador vertical (esquina sup-izq)
   const acCabinet = new THREE.Mesh(new THREE.BoxGeometry(1.1, 2.3, 2.2), whiteMetalMat);
   acCabinet.position.set(-7.1, 1.25, -4.0);
   acCabinet.castShadow = true;
   acGroup.add(acCabinet);
 
-  // Unidad Split de aire acondicionado en la pared del rack
   const wallSplit = new THREE.Mesh(new THREE.BoxGeometry(2.1, 0.45, 0.45), whiteMetalMat);
   wallSplit.position.set(-6.4, 2.2, -1.65);
   wallSplit.castShadow = true;
@@ -421,9 +431,8 @@ function buildDataCenterRoom() {
 
   scene.add(acGroup);
   registerInteractable(acGroup, 'ac_unit');
-  addFloatingLabel('❄️ Climatización Data Center', new THREE.Vector3(-7.0, 2.65, -4.0), '#38bdf8');
+  addFloatingLabel('Climatizacion Data Center', new THREE.Vector3(-7.0, 2.65, -4.0), '#38bdf8');
 
-  // Estantería metálica blanca (arriba centro-izq del cuarto técnico)
   const shelfGroup = new THREE.Group();
   const shelfFrame = new THREE.Mesh(new THREE.BoxGeometry(1.6, 2.1, 0.8), whiteMetalMat);
   shelfFrame.position.set(-4.8, 1.15, -4.4);
@@ -436,14 +445,13 @@ function buildDataCenterRoom() {
   }
   scene.add(shelfGroup);
 
-  // 7.2 RACK PRINCIPAL DE SERVIDORES (Centro-izquierda del cuarto técnico)
+  // RACK PRINCIPAL DE SERVIDORES
   const rackGroup = new THREE.Group();
   rackGroup.position.set(-6.2, 0.16, 0.2);
 
   const rackFrameMat = new THREE.MeshStandardMaterial({ color: 0x334155, roughness: 0.4, metalness: 0.7 });
   const serverChassisMat = new THREE.MeshStandardMaterial({ color: 0x1e293b, roughness: 0.35, metalness: 0.8 });
 
-  // Cuerpo del gabinete Rack
   const rackBody = new THREE.Mesh(new THREE.BoxGeometry(2.0, 2.45, 2.2), rackFrameMat);
   rackBody.position.y = 1.225;
   rackBody.castShadow = true;
@@ -452,20 +460,17 @@ function buildDataCenterRoom() {
 
   scene.add(rackGroup);
   registerInteractable(rackGroup, 'rack_main');
-  addFloatingLabel('🖥️ Rack Principal + Servidores UNAB', new THREE.Vector3(-6.2, 2.95, 0.2), '#22c55e');
+  addFloatingLabel('Rack Principal + Servidores UNAB', new THREE.Vector3(-6.2, 2.95, 0.2), '#22c55e');
 
-  // 7.3 Módulos de Servidores Blade y 2U dentro del Rack (con luces LED parpadeantes)
   const serversGroup = new THREE.Group();
   serversGroup.position.copy(rackGroup.position);
 
-  // 4 Módulos Blade verticales superiores (tal como se ve en el dibujo)
   for (let i = 0; i < 4; i++) {
     const blade = new THREE.Mesh(new THREE.BoxGeometry(0.38, 0.55, 0.95), serverChassisMat);
     blade.position.set(-0.63 + i * 0.42, 2.15, -0.45);
     blade.castShadow = true;
     serversGroup.add(blade);
 
-    // LEDs verdes y rojos en cada blade
     const ledGreen = new THREE.Mesh(
       new THREE.SphereGeometry(0.035, 8, 8),
       new THREE.MeshBasicMaterial({ color: 0x4ade80 })
@@ -475,14 +480,12 @@ function buildDataCenterRoom() {
     blinkingLEDs.push({ mesh: ledGreen, speed: 3 + i, baseColor: 0x4ade80 });
   }
 
-  // 2 Servidores Rack horizontales (2U) en la parte frontal/media
   for (let r = 0; r < 2; r++) {
     const srv = new THREE.Mesh(new THREE.BoxGeometry(1.75, 0.36, 0.9), serverChassisMat);
     srv.position.set(0, 1.55 - r * 0.48, 0.68);
     srv.castShadow = true;
     serversGroup.add(srv);
 
-    // Ranuras de ventilación y LEDs
     const ledG = new THREE.Mesh(
       new THREE.SphereGeometry(0.04, 8, 8),
       new THREE.MeshBasicMaterial({ color: 0x22c55e })
@@ -503,7 +506,7 @@ function buildDataCenterRoom() {
   scene.add(serversGroup);
   registerInteractable(serversGroup, 'server_gps');
 
-  // 7.4 Patch Panel & Switch Administrable (Debajo del Rack, Z = 1.85)
+  // Patch Panel & Switch Administrable
   const switchGroup = new THREE.Group();
   switchGroup.position.set(-6.2, 0.16, 1.85);
 
@@ -516,7 +519,6 @@ function buildDataCenterRoom() {
   swUnit.position.y = 0.98;
   switchGroup.add(swUnit);
 
-  // Puertos RJ45 iluminados
   for (let p = 0; p < 8; p++) {
     const portLed = new THREE.Mesh(
       new THREE.BoxGeometry(0.06, 0.04, 0.04),
@@ -529,9 +531,9 @@ function buildDataCenterRoom() {
 
   scene.add(switchGroup);
   registerInteractable(switchGroup, 'switch_core');
-  addFloatingLabel('🔀 Switch Core + Patch Panel', new THREE.Vector3(-6.2, 1.65, 1.85), '#38bdf8');
+  addFloatingLabel('Switch Core + Patch Panel', new THREE.Vector3(-6.2, 1.65, 1.85), '#38bdf8');
 
-  // 7.5 Router / Gateway con Antena y Firewall (Z = 2.9 y Z = 3.85)
+  // Router / Gateway
   const routerGroup = new THREE.Group();
   routerGroup.position.set(-6.3, 0.16, 2.95);
 
@@ -543,7 +545,6 @@ function buildDataCenterRoom() {
   routerBody.castShadow = true;
   routerGroup.add(routerBody);
 
-  // Antena receptora / telemetría
   const antenna = new THREE.Mesh(
     new THREE.CylinderGeometry(0.03, 0.03, 0.75, 10),
     new THREE.MeshStandardMaterial({ color: 0xe2e8f0 })
@@ -552,7 +553,6 @@ function buildDataCenterRoom() {
   antenna.position.set(-0.55, 0.55, 0);
   routerGroup.add(antenna);
 
-  // Equipo Firewall / Módem Fibra debajo (Z = 3.85)
   const modemBox = new THREE.Mesh(new THREE.BoxGeometry(1.1, 0.35, 0.45), rackFrameMat);
   modemBox.position.set(0.05, 0.25, 0.9);
   modemBox.castShadow = true;
@@ -560,9 +560,9 @@ function buildDataCenterRoom() {
 
   scene.add(routerGroup);
   registerInteractable(routerGroup, 'router_gateway');
-  addFloatingLabel('📡 Router / Gateway GPS WAN', new THREE.Vector3(-6.3, 1.4, 3.2), '#f59e0b');
+  addFloatingLabel('Router / Gateway GPS WAN', new THREE.Vector3(-6.3, 1.4, 3.2), '#f59e0b');
 
-  // 7.6 UPS (Sistema de Alimentación Ininterrumpida) abajo a la derecha del Data Center
+  // UPS
   const upsGroup = new THREE.Group();
   upsGroup.position.set(-4.35, 0.16, 4.45);
 
@@ -583,7 +583,7 @@ function buildDataCenterRoom() {
 
   scene.add(upsGroup);
   registerInteractable(upsGroup, 'ups_power');
-  addFloatingLabel('🔋 UPS Respaldo 3000VA', new THREE.Vector3(-4.35, 1.35, 4.45), '#4ade80');
+  addFloatingLabel('UPS Respaldo 3000VA', new THREE.Vector3(-4.35, 1.35, 4.45), '#4ade80');
 }
 
 // ============================================================================
@@ -598,27 +598,23 @@ function createWorkstationDesk({ x, z, rotationY = 0, screenVariant = 1, hasTowe
   const legMat = new THREE.MeshStandardMaterial({ color: 0x64748b, metalness: 0.5, roughness: 0.4 });
   const darkPlastic = new THREE.MeshStandardMaterial({ color: 0x1e293b, roughness: 0.4 });
 
-  // Tablero del escritorio
   const top = new THREE.Mesh(new THREE.BoxGeometry(3.1, 0.1, 1.35), woodDeskMat);
   top.position.y = 0.78;
   top.castShadow = true;
   top.receiveShadow = true;
   group.add(top);
 
-  // Cajonera lateral
   const drawer = new THREE.Mesh(new THREE.BoxGeometry(0.85, 0.72, 1.2), woodDeskMat);
   drawer.position.set(-1.05, 0.38, 0);
   drawer.castShadow = true;
   group.add(drawer);
 
-  // Patas derechas
   const leg1 = new THREE.Mesh(new THREE.BoxGeometry(0.08, 0.75, 0.08), legMat);
   leg1.position.set(1.45, 0.38, -0.58);
   const leg2 = leg1.clone();
   leg2.position.set(1.45, 0.38, 0.58);
   group.add(leg1, leg2);
 
-  // Monitor con el mapa GPS de los buses de la UNAB
   const monitorStand = new THREE.Mesh(new THREE.CylinderGeometry(0.06, 0.18, 0.32, 12), darkPlastic);
   monitorStand.position.set(0, 0.95, -0.32);
   group.add(monitorStand);
@@ -634,7 +630,6 @@ function createWorkstationDesk({ x, z, rotationY = 0, screenVariant = 1, hasTowe
   screenMesh.position.set(0, 1.38, -0.275);
   group.add(screenMesh);
 
-  // Teclado y Mouse
   const keyboard = new THREE.Mesh(new THREE.BoxGeometry(0.75, 0.03, 0.26), darkPlastic);
   keyboard.position.set(0, 0.85, 0.18);
   group.add(keyboard);
@@ -643,14 +638,12 @@ function createWorkstationDesk({ x, z, rotationY = 0, screenVariant = 1, hasTowe
   mouse.position.set(0.58, 0.85, 0.2);
   group.add(mouse);
 
-  // Gabinete / Case PC (Torre)
   if (hasTower) {
     const tower = new THREE.Mesh(new THREE.BoxGeometry(0.45, 0.85, 0.92), darkPlastic);
     tower.position.set(1.18, 1.25, -0.1);
     tower.castShadow = true;
     group.add(tower);
 
-    // Archivadores de colores a la izquierda del escritorio (como en el plano)
     const binderColors = [0xdc2626, 0x3b82f6, 0x1e293b];
     binderColors.forEach((col, idx) => {
       const binder = new THREE.Mesh(
@@ -663,7 +656,6 @@ function createWorkstationDesk({ x, z, rotationY = 0, screenVariant = 1, hasTowe
     });
   }
 
-  // Silla ergonómica de oficina
   const chairGroup = new THREE.Group();
   chairGroup.position.set(0, 0, 1.05);
   const chairMat = new THREE.MeshStandardMaterial({ color: 0x3b5998, roughness: 0.6 });
@@ -689,7 +681,6 @@ function createWorkstationDesk({ x, z, rotationY = 0, screenVariant = 1, hasTowe
 }
 
 function buildMonitoringOffice() {
-  // 8.1 PC Operador 1 (Arriba Izquierda de la oficina)
   createWorkstationDesk({
     x: 0.2,
     z: -3.85,
@@ -698,9 +689,8 @@ function buildMonitoringOffice() {
     hasTower: true,
     dataKey: 'pc_monitor_1'
   });
-  addFloatingLabel('🚌 PC Monitoreo #1 (Mapa GPS)', new THREE.Vector3(0.2, 2.25, -4.1), '#38bdf8');
+  addFloatingLabel('PC Monitoreo #1 (Mapa GPS)', new THREE.Vector3(0.2, 2.25, -4.1), '#38bdf8');
 
-  // 8.2 PC Operador 2 (Arriba Derecha de la oficina)
   createWorkstationDesk({
     x: 5.3,
     z: -3.85,
@@ -709,9 +699,8 @@ function buildMonitoringOffice() {
     hasTower: true,
     dataKey: 'pc_monitor_2'
   });
-  addFloatingLabel('🚌 PC Monitoreo #2 (Salidas/Llegadas)', new THREE.Vector3(5.3, 2.25, -4.1), '#38bdf8');
+  addFloatingLabel('PC Monitoreo #2 (Salidas/Llegadas)', new THREE.Vector3(5.3, 2.25, -4.1), '#38bdf8');
 
-  // 8.3 PC Administración de Red (Abajo Derecha, mirando hacia arriba como en el plano)
   createWorkstationDesk({
     x: 4.1,
     z: 4.15,
@@ -720,9 +709,8 @@ function buildMonitoringOffice() {
     hasTower: false,
     dataKey: 'pc_admin'
   });
-  addFloatingLabel('💻 PC Administración de Red', new THREE.Vector3(4.1, 2.25, 4.35), '#4ade80');
+  addFloatingLabel('PC Administracion de Red', new THREE.Vector3(4.1, 2.25, 4.35), '#4ade80');
 
-  // 8.4 Impresora de Red sobre mesa propia (Centro-Izquierda de la oficina)
   const printerGroup = new THREE.Group();
   printerGroup.position.set(-1.6, 0.12, 0.45);
 
@@ -740,7 +728,6 @@ function buildMonitoringOffice() {
   printerBody.castShadow = true;
   printerGroup.add(printerBody);
 
-  // Hoja de papel saliendo de la impresora
   const paper = new THREE.Mesh(
     new THREE.BoxGeometry(0.58, 0.02, 0.48),
     new THREE.MeshBasicMaterial({ color: 0xffffff })
@@ -750,25 +737,21 @@ function buildMonitoringOffice() {
 
   scene.add(printerGroup);
   registerInteractable(printerGroup, 'printer_net');
-  addFloatingLabel('🖨️ Impresora en Red', new THREE.Vector3(-1.6, 1.65, 0.45), '#f59e0b');
+  addFloatingLabel('Impresora en Red', new THREE.Vector3(-1.6, 1.65, 0.45), '#f59e0b');
 
-  // 8.5 Muebles y Archivadores laterales (fiel al plano)
   const brownWood = new THREE.MeshStandardMaterial({ color: 0x9a6b4c, roughness: 0.65 });
   const whiteCabinetMat = new THREE.MeshStandardMaterial({ color: 0xdcdcdc, roughness: 0.5 });
 
-  // Gabinete marrón junto a la pared divisoria (arriba de la impresora)
   const cab1 = new THREE.Mesh(new THREE.BoxGeometry(0.95, 1.35, 1.75), brownWood);
   cab1.position.set(-2.5, 0.79, -0.95);
   cab1.castShadow = true;
   scene.add(cab1);
 
-  // Armario blanco alto junto a la pared divisoria (abajo de la impresora)
   const cab2 = new THREE.Mesh(new THREE.BoxGeometry(1.05, 1.95, 2.2), whiteCabinetMat);
   cab2.position.set(-2.45, 1.09, 3.6);
   cab2.castShadow = true;
   scene.add(cab2);
 
-  // Gabinete marrón pequeño abajo a la derecha (junto a PC Admin)
   const cab3 = new THREE.Mesh(new THREE.BoxGeometry(1.15, 0.95, 1.15), brownWood);
   cab3.position.set(6.55, 0.59, 4.25);
   cab3.castShadow = true;
@@ -776,16 +759,14 @@ function buildMonitoringOffice() {
 }
 
 // ============================================================================
-// 9. CABLEADO ESTRUCTURADO Y PAQUETES DE DATOS EN VIVO (EL CORAZÓN DEL PROYECTO)
+// 9. CABLEADO ESTRUCTURADO Y PAQUETES DE DATOS EN VIVO
 // ============================================================================
 const dataPackets = [];
 let packetsEnabled = true;
 
 function buildStructuredCabling() {
   const cablingGroup = new THREE.Group();
-
-  // 9.1 Canaletas blancas de PVC (en paredes y piso como se ve en la imagen)
-  const trayMat = new THREE.MeshStandardMaterial({ color: 0xf1f5f9, roughness: 0.35 });
+  const trayMat = new THREE.MeshStandardMaterial({ color: 0xe2e8f0, roughness: 0.35 });
 
   function addCableTray(x, y, z, w, h, d) {
     const tray = new THREE.Mesh(new THREE.BoxGeometry(w, h, d), trayMat);
@@ -794,19 +775,13 @@ function buildStructuredCabling() {
     cablingGroup.add(tray);
   }
 
-  // Canaleta blanca pared norte (detrás de las 2 PCs superiores)
   addCableTray(2.7, 0.32, -5.25, 8.6, 0.18, 0.16);
-  // Canaleta vertical/piso junto al muro divisor (para distribuir los cables azules)
   addCableTray(-2.98, 0.18, 1.65, 0.22, 0.12, 7.6);
-  // Canaleta blanca inferior hacia la PC de Administración (pared sur)
   addCableTray(0.6, 0.18, 5.25, 7.2, 0.14, 0.18);
-  // Bandejas portacables internas en el cuarto de servidores
   addCableTray(-6.3, 0.2, -2.55, 2.2, 0.12, 0.25);
   addCableTray(-6.2, 0.2, -1.0, 0.3, 0.12, 1.5);
 
-  // 9.2 Rutas exactas de los cables UTP Cat6A Azules (siguiendo el plano subido)
   const cableRoutes = [
-    // Ruta 1: Rack/Switch -> Muro Divisor -> Canaleta Norte -> PC Monitoreo 1
     [
       new THREE.Vector3(-5.5, 0.55, 1.85),
       new THREE.Vector3(-4.8, 0.24, 1.85),
@@ -817,7 +792,6 @@ function buildStructuredCabling() {
       new THREE.Vector3(1.38, 0.28, -5.2),
       new THREE.Vector3(1.38, 1.1, -4.0)
     ],
-    // Ruta 2: Rack/Switch -> Muro Divisor -> Línea Horizontal Superior -> PC Monitoreo 1 (Torre)
     [
       new THREE.Vector3(-5.2, 0.9, 0.3),
       new THREE.Vector3(-4.6, 0.25, 0.3),
@@ -825,7 +799,6 @@ function buildStructuredCabling() {
       new THREE.Vector3(1.38, 0.25, -1.75),
       new THREE.Vector3(1.38, 1.15, -3.85)
     ],
-    // Ruta 3: Rack/Switch -> Muro Divisor -> Línea Horizontal Larga -> PC Monitoreo 2 (Torre)
     [
       new THREE.Vector3(-5.5, 0.5, 1.85),
       new THREE.Vector3(-4.35, 0.25, 1.85),
@@ -833,7 +806,6 @@ function buildStructuredCabling() {
       new THREE.Vector3(6.48, 0.25, -1.55),
       new THREE.Vector3(6.48, 1.15, -3.85)
     ],
-    // Ruta 4: Switch -> Muro Divisor -> Impresora de Red
     [
       new THREE.Vector3(-5.5, 0.45, 1.85),
       new THREE.Vector3(-3.0, 0.24, 1.85),
@@ -841,7 +813,6 @@ function buildStructuredCabling() {
       new THREE.Vector3(-1.6, 0.24, -1.35),
       new THREE.Vector3(-1.6, 0.95, 0.35)
     ],
-    // Ruta 5: Switch -> Canaleta Vertical -> Canaleta Sur -> PC Administración de Red
     [
       new THREE.Vector3(-5.5, 0.4, 1.85),
       new THREE.Vector3(-3.6, 0.24, 1.85),
@@ -849,14 +820,12 @@ function buildStructuredCabling() {
       new THREE.Vector3(4.1, 0.24, 5.2),
       new THREE.Vector3(4.1, 1.15, 4.35)
     ],
-    // Ruta 6: Enlaces Internos Data Center (Router WAN -> Switch -> Rack Servidores -> UPS)
     [
       new THREE.Vector3(-6.2, 0.3, 3.85),
       new THREE.Vector3(-6.2, 0.3, 2.95),
       new THREE.Vector3(-6.2, 0.5, 1.85),
       new THREE.Vector3(-6.2, 0.9, 0.5)
     ],
-    // Ruta 7: Respaldo eléctrico y monitoreo UPS -> Rack/Router
     [
       new THREE.Vector3(-4.35, 0.35, 4.45),
       new THREE.Vector3(-4.35, 0.24, 5.15),
@@ -883,7 +852,6 @@ function buildStructuredCabling() {
     cableMesh.castShadow = true;
     cablingGroup.add(cableMesh);
 
-    // Crear 2 pulsos luminosos por cada cable para visualizar el tráfico de red
     for (let k = 0; k < 2; k++) {
       const pulse = new THREE.Mesh(packetGeo, packetMat);
       scene.add(pulse);
@@ -898,10 +866,9 @@ function buildStructuredCabling() {
 
   scene.add(cablingGroup);
   registerInteractable(cablingGroup, 'structured_cabling');
-  addFloatingLabel('🔌 Paso de Cableado UTP Cat6A', new THREE.Vector3(-2.95, 0.85, -1.6), '#0284c7');
+  addFloatingLabel('Paso de Cableado UTP Cat6A', new THREE.Vector3(-2.95, 0.85, -1.6), '#0284c7');
 }
 
-// Inicializar toda la maqueta 3D
 buildEnvironmentAndArchitecture();
 buildDataCenterRoom();
 buildMonitoringOffice();
@@ -940,7 +907,7 @@ function updateInspectorUI(dataKey) {
 
 window.addEventListener('pointermove', (e) => {
   if (currentMode === 'fps' && fpsControls.isLocked) {
-    mouse.set(0, 0); // En primera persona apunta con la mira central
+    mouse.set(0, 0);
   } else {
     mouse.x = (e.clientX / window.innerWidth) * 2 - 1;
     mouse.y = -(e.clientY / window.innerHeight) * 2 + 1;
@@ -954,7 +921,7 @@ window.addEventListener('pointermove', (e) => {
     const info = EQUIPMENT_DATA[key];
     if (info && currentMode === 'orbit') {
       document.body.style.cursor = 'pointer';
-      tooltip.textContent = `🔍 ${info.title}`;
+      tooltip.textContent = info.title;
       tooltip.style.left = `${e.clientX}px`;
       tooltip.style.top = `${e.clientY}px`;
       tooltip.classList.remove('hidden');
@@ -967,8 +934,7 @@ window.addEventListener('pointermove', (e) => {
 });
 
 window.addEventListener('click', (e) => {
-  // Evitar que clics sobre los botones del HUD disparen el raycaster
-  if (e.target.closest('header, aside, footer')) return;
+  if (e.target.closest('header, aside')) return;
 
   if (currentMode === 'fps' && !fpsControls.isLocked) {
     fpsControls.lock();
@@ -988,11 +954,25 @@ document.getElementById('btn-close-inspector').addEventListener('click', () => {
 });
 
 // ============================================================================
-// 11. BOTONES DE INTERFAZ Y MODOS DE CÁMARA
+// 11. BOTONES DE INTERFAZ Y MENÚ DESPLEGABLE DE VISTAS RÁPIDAS EN EL NAV
 // ============================================================================
 const btnOrbit = document.getElementById('btn-mode-orbit');
 const btnFps = document.getElementById('btn-mode-fps');
 const fpsCrosshair = document.getElementById('fps-crosshair');
+
+const btnToggleViews = document.getElementById('btn-toggle-views');
+const viewsDropdownMenu = document.getElementById('views-dropdown-menu');
+const btnCloseViews = document.getElementById('btn-close-views');
+
+btnToggleViews.addEventListener('click', () => {
+  const isHidden = viewsDropdownMenu.classList.toggle('hidden');
+  btnToggleViews.classList.toggle('active', !isHidden);
+});
+
+btnCloseViews.addEventListener('click', () => {
+  viewsDropdownMenu.classList.add('hidden');
+  btnToggleViews.classList.remove('active');
+});
 
 function activateOrbitMode() {
   currentMode = 'orbit';
@@ -1009,8 +989,9 @@ function activateFpsMode() {
   btnFps.classList.add('active');
   btnOrbit.classList.remove('active');
   fpsCrosshair.classList.remove('hidden');
+  viewsDropdownMenu.classList.add('hidden');
+  btnToggleViews.classList.remove('active');
 
-  // Posicionar a altura de una persona dentro de la oficina mirando hacia el Data Center
   camera.position.set(2.5, 1.72, 1.2);
   camera.lookAt(-4.5, 1.5, 0);
   fpsControls.lock();
@@ -1025,7 +1006,6 @@ fpsControls.addEventListener('unlock', () => {
   }
 });
 
-// Vistas rápidas de cámara
 let cameraTransition = null;
 function flyToCamera(pos, target) {
   activateOrbitMode();
@@ -1039,11 +1019,11 @@ function flyToCamera(pos, target) {
 }
 
 const CAMERA_VIEWS = {
-  top: { pos: [0, 21.5, 0.01], target: [0, 0, 0] },
-  iso: { pos: [0, 16, 15], target: [0, 0.8, 0] },
-  datacenter: { pos: [-1.5, 4.8, 3.8], target: [-6.0, 1.2, 0.8] },
-  cabling: { pos: [-1.2, 5.2, 2.2], target: [-3.5, 0.4, -0.8] },
-  monitoring: { pos: [2.8, 3.6, 0.8], target: [2.8, 1.3, -4.0] }
+  top: { pos: [0, 22, 0.01], target: [0, 0, 0] },
+  iso: { pos: [0, 17, 16], target: [0, 0.8, 0] },
+  datacenter: { pos: [-1.5, 5.2, 4.0], target: [-6.0, 1.2, 0.8] },
+  cabling: { pos: [-1.2, 5.4, 2.2], target: [-3.5, 0.4, -0.8] },
+  monitoring: { pos: [2.8, 3.8, 0.8], target: [2.8, 1.3, -4.0] }
 };
 
 document.querySelectorAll('.preset-btn[data-view]').forEach((btn) => {
@@ -1064,19 +1044,19 @@ btnTogglePackets.addEventListener('click', () => {
   packetsEnabled = !packetsEnabled;
   dataPackets.forEach((p) => (p.mesh.visible = packetsEnabled));
   btnTogglePackets.classList.toggle('active', packetsEnabled);
-  btnTogglePackets.innerHTML = `<span class="icon">⚡</span> Flujo de Datos: ${packetsEnabled ? 'ON' : 'OFF'}`;
+  btnTogglePackets.textContent = `Flujo de Datos: ${packetsEnabled ? 'ON' : 'OFF'}`;
 });
 
-// Toggle Altura de Muros (para ver el cableado sin obstáculos)
+// Toggle Altura de Muros
 let wallsLowered = false;
 const btnToggleWalls = document.getElementById('btn-toggle-walls');
 btnToggleWalls.addEventListener('click', () => {
   wallsLowered = !wallsLowered;
   wallMeshes.forEach((w) => {
-    w.scale.y = wallsLowered ? 0.18 : 1;
+    w.scale.y = wallsLowered ? 0.16 : 1;
   });
   btnToggleWalls.classList.toggle('active', wallsLowered);
-  btnToggleWalls.innerHTML = `<span class="icon">🧱</span> Vista Muros: ${wallsLowered ? 'Bajos' : 'Normal'}`;
+  btnToggleWalls.textContent = `Vista Muros: ${wallsLowered ? 'Bajos' : 'Normal'}`;
 });
 
 // Toggle Etiquetas Flotantes
@@ -1086,10 +1066,9 @@ btnToggleLabels.addEventListener('click', () => {
   labelsVisible = !labelsVisible;
   floatingLabels.forEach((l) => (l.visible = labelsVisible));
   btnToggleLabels.classList.toggle('active', labelsVisible);
-  btnToggleLabels.innerHTML = `<span class="icon">🏷️</span> Etiquetas: ${labelsVisible ? 'ON' : 'OFF'}`;
+  btnToggleLabels.textContent = `Etiquetas: ${labelsVisible ? 'ON' : 'OFF'}`;
 });
 
-// Controles de Teclado (WASD + Atajos)
 window.addEventListener('keydown', (e) => {
   switch (e.code) {
     case 'KeyW':
@@ -1171,7 +1150,6 @@ function animate() {
   const delta = Math.min(clock.getDelta(), 0.1);
   const elapsed = clock.getElapsedTime();
 
-  // 1. Animar transición suave de vistas de cámara
   if (cameraTransition) {
     cameraTransition.alpha += delta * 2.2;
     const t = Math.min(cameraTransition.alpha, 1);
@@ -1181,7 +1159,6 @@ function animate() {
     if (t >= 1) cameraTransition = null;
   }
 
-  // 2. Actualizar controles según el modo activo
   if (currentMode === 'orbit') {
     orbitControls.update();
   } else if (currentMode === 'fps' && fpsControls.isLocked) {
@@ -1194,7 +1171,6 @@ function animate() {
     if (moveState.down) camera.position.y = Math.max(0.8, camera.position.y - speed * 0.7);
   }
 
-  // 3. Animar paquetes de datos viajando por los cables azules
   if (packetsEnabled) {
     dataPackets.forEach((pkt) => {
       pkt.progress = (pkt.progress + delta * pkt.speed) % 1;
@@ -1203,13 +1179,11 @@ function animate() {
     });
   }
 
-  // 4. Parpadeo de LEDs de actividad en Servidores y Switch
   blinkingLEDs.forEach((led) => {
     const on = Math.sin(elapsed * led.speed) > -0.2;
     led.mesh.material.color.setHex(on ? led.baseColor : 0x0f172a);
   });
 
-  // 5. Animar apertura/cierre de puertas
   doorPivots.forEach((d) => {
     const targetRot = doorsOpen ? d.openRot : d.closedRot;
     d.pivot.rotation.y += (targetRot - d.pivot.rotation.y) * delta * 6;
@@ -1221,7 +1195,6 @@ function animate() {
 
 animate();
 
-// Ajuste responsivo de pantalla
 window.addEventListener('resize', () => {
   camera.aspect = window.innerWidth / window.innerHeight;
   camera.updateProjectionMatrix();

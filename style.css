@@ -1,10 +1,8 @@
 :root {
-  --bg-dark: rgba(12, 18, 28, 0.85);
-  --bg-panel: rgba(16, 24, 38, 0.9);
+  --bg-dark: rgba(12, 18, 28, 0.88);
+  --bg-panel: rgba(16, 24, 38, 0.94);
   --border-glass: rgba(255, 255, 255, 0.14);
-  --accent-green: #22c55e;
   --accent-blue: #38bdf8;
-  --accent-amber: #f59e0b;
   --text-main: #f1f5f9;
   --text-muted: #94a3b8;
 }
@@ -40,18 +38,18 @@ body, html {
   top: 12px;
   left: 16px;
   right: 16px;
-  z-index: 10;
+  z-index: 20;
   display: flex;
   align-items: center;
   justify-content: space-between;
   flex-wrap: wrap;
   gap: 12px;
-  padding: 10px 18px;
+  padding: 8px 18px;
   background: var(--bg-dark);
   backdrop-filter: blur(12px);
   border: 1px solid var(--border-glass);
-  border-radius: 14px;
-  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.45);
+  border-radius: 12px;
+  box-shadow: 0 8px 25px rgba(0, 0, 0, 0.45);
 }
 
 .brand {
@@ -60,27 +58,18 @@ body, html {
   gap: 12px;
 }
 
-.unab-badge {
-  background: linear-gradient(135deg, #16a34a, #15803d);
-  color: #fff;
-  font-weight: 800;
-  font-size: 0.95rem;
-  letter-spacing: 1px;
-  padding: 8px 12px;
-  border-radius: 10px;
-  box-shadow: 0 4px 12px rgba(22, 163, 74, 0.4);
-  border: 1px solid rgba(255,255,255,0.25);
+.unab-logo {
+  height: 44px;
+  width: auto;
+  object-fit: contain;
+  border-radius: 6px;
 }
 
 .brand-text h1 {
-  font-size: 1rem;
-  font-weight: 700;
+  font-size: 1.08rem;
+  font-weight: 800;
+  letter-spacing: 0.8px;
   color: #ffffff;
-}
-
-.brand-text p {
-  font-size: 0.76rem;
-  color: var(--text-muted);
 }
 
 .toolbar {
@@ -92,7 +81,7 @@ body, html {
 
 .divider {
   width: 1px;
-  height: 26px;
+  height: 24px;
   background: var(--border-glass);
   margin: 0 4px;
 }
@@ -100,111 +89,94 @@ body, html {
 .btn {
   display: inline-flex;
   align-items: center;
-  gap: 6px;
   background: rgba(255, 255, 255, 0.06);
   color: var(--text-main);
   border: 1px solid var(--border-glass);
-  padding: 8px 13px;
-  border-radius: 9px;
+  padding: 8px 14px;
+  border-radius: 8px;
   font-size: 0.8rem;
   font-weight: 600;
   cursor: pointer;
-  transition: all 0.18s ease;
+  transition: all 0.16s ease;
 }
 
 .btn:hover {
   background: rgba(255, 255, 255, 0.14);
-  transform: translateY(-1px);
 }
 
 .btn.active {
   background: rgba(56, 189, 248, 0.2);
   border-color: var(--accent-blue);
   color: #e0f2fe;
-  box-shadow: 0 0 14px rgba(56, 189, 248, 0.25);
 }
 
-/* Left Sidebar Camera Presets */
-.camera-presets {
-  position: fixed;
-  top: 88px;
-  left: 16px;
-  z-index: 10;
-  width: 235px;
+/* Navbar Dropdown for Vistas Rápidas */
+.nav-dropdown {
+  position: relative;
+}
+
+.dropdown-menu {
+  position: absolute;
+  top: calc(100% + 10px);
+  left: 0;
+  width: 240px;
   background: var(--bg-panel);
-  backdrop-filter: blur(12px);
+  backdrop-filter: blur(14px);
   border: 1px solid var(--border-glass);
-  border-radius: 14px;
-  padding: 14px;
+  border-radius: 12px;
+  padding: 12px;
   display: flex;
   flex-direction: column;
-  gap: 7px;
-  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.4);
+  gap: 6px;
+  box-shadow: 0 12px 30px rgba(0, 0, 0, 0.55);
+  z-index: 30;
 }
 
-.panel-title {
-  font-size: 0.72rem;
-  text-transform: uppercase;
-  letter-spacing: 1px;
-  color: var(--accent-blue);
+.dropdown-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-size: 0.74rem;
   font-weight: 700;
-  margin-bottom: 4px;
+  text-transform: uppercase;
+  letter-spacing: 0.8px;
+  color: var(--accent-blue);
+  padding-bottom: 6px;
+  margin-bottom: 2px;
+  border-bottom: 1px solid var(--border-glass);
 }
 
 .preset-btn {
   text-align: left;
-  background: rgba(255, 255, 255, 0.05);
+  background: rgba(255, 255, 255, 0.04);
   color: var(--text-main);
   border: 1px solid rgba(255, 255, 255, 0.08);
   padding: 8px 10px;
-  border-radius: 8px;
+  border-radius: 7px;
   font-size: 0.79rem;
+  font-weight: 500;
   cursor: pointer;
-  transition: all 0.15s ease;
+  transition: all 0.14s ease;
 }
 
 .preset-btn:hover {
-  background: rgba(34, 197, 94, 0.18);
-  border-color: var(--accent-green);
-  transform: translateX(3px);
+  background: rgba(56, 189, 248, 0.18);
+  border-color: var(--accent-blue);
 }
-
-.legend-item {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  font-size: 0.75rem;
-  color: #cbd5e1;
-  padding: 2px 0;
-}
-
-.dot {
-  width: 11px;
-  height: 11px;
-  border-radius: 50%;
-  display: inline-block;
-  flex-shrink: 0;
-}
-
-.cable-blue { background: #0284c7; box-shadow: 0 0 6px #38bdf8; }
-.cable-tray { background: #e2e8f0; border: 1px solid #64748b; }
-.packet-gps { background: #22d3ee; box-shadow: 0 0 8px #22d3ee; }
-.floor-tech { background: #1e293b; border: 1px solid #475569; }
 
 /* Right Inspector Panel */
 .inspector-panel {
   position: fixed;
-  top: 88px;
+  top: 82px;
   right: 16px;
-  z-index: 10;
+  z-index: 15;
   width: 320px;
   background: var(--bg-panel);
   backdrop-filter: blur(12px);
   border: 1px solid var(--border-glass);
-  border-radius: 14px;
+  border-radius: 12px;
   padding: 16px;
   box-shadow: 0 10px 30px rgba(0, 0, 0, 0.45);
-  transition: transform 0.25s ease, opacity 0.25s ease;
 }
 
 .inspector-header {
@@ -215,9 +187,9 @@ body, html {
 }
 
 .badge {
-  background: rgba(34, 197, 94, 0.2);
-  color: #4ade80;
-  border: 1px solid rgba(34, 197, 94, 0.4);
+  background: rgba(56, 189, 248, 0.16);
+  color: #38bdf8;
+  border: 1px solid rgba(56, 189, 248, 0.35);
   font-size: 0.68rem;
   font-weight: 700;
   padding: 3px 8px;
@@ -230,9 +202,10 @@ body, html {
   background: none;
   border: none;
   color: var(--text-muted);
-  font-size: 1.3rem;
+  font-size: 1.25rem;
   cursor: pointer;
   line-height: 1;
+  padding: 0 4px;
 }
 
 .close-btn:hover {
@@ -240,13 +213,13 @@ body, html {
 }
 
 .inspector-panel h2 {
-  font-size: 1.05rem;
+  font-size: 1.02rem;
   margin-bottom: 8px;
   color: #fff;
 }
 
 .inspector-panel p {
-  font-size: 0.82rem;
+  font-size: 0.81rem;
   line-height: 1.45;
   color: #cbd5e1;
   margin-bottom: 14px;
@@ -300,7 +273,7 @@ body, html {
 
 .fps-hint {
   position: fixed;
-  bottom: 58px;
+  bottom: 24px;
   background: rgba(15, 23, 42, 0.88);
   border: 1px solid rgba(56, 189, 248, 0.4);
   padding: 8px 16px;
@@ -316,7 +289,7 @@ body, html {
 /* Hover Tooltip */
 .hover-tooltip {
   position: fixed;
-  z-index: 20;
+  z-index: 25;
   pointer-events: none;
   background: rgba(15, 23, 42, 0.92);
   border: 1px solid var(--accent-blue);
@@ -327,23 +300,4 @@ body, html {
   font-weight: 600;
   box-shadow: 0 4px 14px rgba(0, 0, 0, 0.5);
   transform: translate(12px, 12px);
-}
-
-/* Footer */
-.hud-footer {
-  position: fixed;
-  bottom: 12px;
-  left: 50%;
-  transform: translateX(-50%);
-  z-index: 10;
-  background: var(--bg-dark);
-  backdrop-filter: blur(10px);
-  border: 1px solid var(--border-glass);
-  border-radius: 30px;
-  padding: 7px 20px;
-  display: flex;
-  gap: 18px;
-  font-size: 0.76rem;
-  color: #cbd5e1;
-  white-space: nowrap;
 }
