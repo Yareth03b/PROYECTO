@@ -377,17 +377,9 @@ function registerInteractable(meshOrGroup, dataKey) {
   });
 }
 
-function addFloatingLabel(text, position, color = '#38bdf8') {
+function addFloatingLabel(text, position) {
   const div = document.createElement('div');
-  div.style.padding = '3px 8px';
-  div.style.background = 'rgba(15, 23, 42, 0.88)';
-  div.style.border = `1px solid ${color}`;
-  div.style.borderRadius = '6px';
-  div.style.color = '#f8fafc';
-  div.style.fontSize = '11px';
-  div.style.fontWeight = '700';
-  div.style.whiteSpace = 'nowrap';
-  div.style.boxShadow = '0 2px 8px rgba(0,0,0,0.45)';
+  div.className = 'floating-label-pill';
   div.textContent = text;
 
   const label = new CSS2DObject(div);
