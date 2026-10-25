@@ -25,10 +25,7 @@
     </div>
 
     <nav class="toolbar">
-      <button id="btn-mode-orbit" class="btn active" title="Vista Aérea / Maqueta 3D (Tecla 1)">
-        Modo Maqueta
-      </button>
-      <button id="btn-mode-fps" class="btn" title="Caminar en 1ra Persona (Tecla 2)">
+      <button id="btn-mode-fps" class="btn active" title="Caminar en 1ra Persona (WASD)">
         Modo Caminata (WASD)
       </button>
 
@@ -44,7 +41,6 @@
             <span>Vistas de Cámara</span>
             <button id="btn-close-views" class="close-btn" title="Cerrar">&times;</button>
           </div>
-          <button class="preset-btn" data-view="top">Plano Superior (2D/3D)</button>
           <button class="preset-btn" data-view="iso">Vista General Isométrica</button>
           <button class="preset-btn" data-view="datacenter">Cuarto de Servidores (Rack)</button>
           <button class="preset-btn" data-view="cabling">Paso de Cableado / Switch</button>
@@ -79,10 +75,10 @@
   </aside>
 
   <!-- First Person Crosshair & Instructions Overlay -->
-  <div id="fps-crosshair" class="fps-crosshair hidden">
+  <div id="fps-crosshair" class="fps-crosshair">
     <div class="crosshair-dot"></div>
-    <div class="fps-hint">
-      <b>W, A, S, D</b> caminar &bull; <b>Espacio / Shift</b> subir/bajar &bull; <b>Click</b> inspeccionar &bull; <b>ESC</b> salir
+    <div id="fps-hint" class="fps-hint">
+      Haz <b>Click en la pantalla</b> para mirar con el mouse &bull; <b>W, A, S, D</b> caminar &bull; <b>ESC</b> pasar a Vista General Isométrica
     </div>
   </div>
 

@@ -12,7 +12,6 @@ scene.background = new THREE.Color(0x0f172a);
 scene.fog = new THREE.FogExp2(0x0f172a, 0.013);
 
 const camera = new THREE.PerspectiveCamera(50, window.innerWidth / window.innerHeight, 0.1, 200);
-camera.position.set(0, 18, 16);
 
 const renderer = new THREE.WebGLRenderer({ antialias: true, powerPreference: 'high-performance' });
 renderer.setSize(window.innerWidth, window.innerHeight);
@@ -30,7 +29,7 @@ labelRenderer.domElement.style.zIndex = '5';
 container.appendChild(labelRenderer.domElement);
 
 // ============================================================================
-// 2. CONTROLES FLUIDOS: MODO MAQUETA Y MODO CAMINATA (WASD + MOUSE SMOOTH)
+// 2. CONTROLES: INICIA EN MODO CAMINATA (WASD) Y CON ESC PASA A VISTA ISOMÉTRICA
 // ============================================================================
 const orbitControls = new OrbitControls(camera, renderer.domElement);
 orbitControls.enableDamping = true;
@@ -39,17 +38,19 @@ orbitControls.maxPolarAngle = Math.PI / 2 - 0.03;
 orbitControls.minDistance = 2;
 orbitControls.maxDistance = 42;
 orbitControls.target.set(0, 1.2, 0);
+orbitControls.enabled = false;
 
-let currentMode = 'orbit';
+let currentMode = 'fps'; // Inicia directamente en Modo Caminata
 let isPointerLocked = false;
 const moveState = { forward: false, backward: false, left: false, right: false, up: false, down: false };
 const fpsVelocity = new THREE.Vector3();
 
-// Ángulos de cámara en 1ra persona con interpolación suave (sin tirones de navegador)
-let yaw = 0;
+// Posición inicial en 1ra persona dentro del Área de Transporte mirando hacia el Cuarto de Servidores
+camera.position.set(2.2, 1.7, 0.4);
+let yaw = Math.PI / 2;
 let pitch = 0;
-let targetYaw = 0;
-let targetPitch = 0;
+let targetYaw = yaw;
+let targetPitch = pitch;
 
 // ============================================================================
 // 3. ILUMINACIÓN
@@ -242,10 +243,9 @@ function addFloatingLabel(text, position, color = '#38bdf8') {
 }
 
 // ============================================================================
-// 6. ARQUITECTURA (SIN ARBUSTOS ATRAVESANDO PAREDES Y CON PUERTAS QUE BAJAN)
+// 6. ARQUITECTURA (MUROS BLANCOS Y PUERTAS BLANCO/NEGRO SINCRONIZADAS)
 // ============================================================================
 function buildEnvironmentAndArchitecture() {
-  // 1. Césped exterior
   const grassGeo = new THREE.PlaneGeometry(48, 38);
   const grassMat = new THREE.MeshStandardMaterial({ color: 0x65a30d, roughness: 0.95 });
   const grass = new THREE.Mesh(grassGeo, grassMat);
@@ -254,7 +254,6 @@ function buildEnvironmentAndArchitecture() {
   grass.receiveShadow = true;
   scene.add(grass);
 
-  // Camino de piedras bien afuera de la puerta derecha (X >= 9.3)
   const stoneMat = new THREE.MeshStandardMaterial({ color: 0xa8a29e, roughness: 0.85 });
   for (let z = -5.0; z <= 5.0; z += 0.85) {
     for (let x = 9.4; x <= 10.8; x += 0.7) {
@@ -266,7 +265,6 @@ function buildEnvironmentAndArchitecture() {
     }
   }
 
-  // Arbustos exteriores bien separados de los muros (mínimo 1.8m afuera para nunca atravesar)
   const bushPositions = [
     [-10.2, -3.2],
     [-10.2, 4.8],
@@ -290,7 +288,7 @@ function buildEnvironmentAndArchitecture() {
     scene.add(bushGroup);
   });
 
-  // 2. Piso Falso Técnico del Data Center
+  // Piso Falso Técnico del Data Center
   const dcFloorGeo = new THREE.BoxGeometry(4.8, 0.16, 11.0);
   const dcFloorMat = new THREE.MeshStandardMaterial({
     map: createRaisedFloorTexture(),
@@ -302,7 +300,7 @@ function buildEnvironmentAndArchitecture() {
   dcFloor.receiveShadow = true;
   scene.add(dcFloor);
 
-  // 3. Piso de Baldosas Claras de la Oficina
+  // Piso de Baldosas Claras de la Oficina
   const officeFloorGeo = new THREE.BoxGeometry(11.2, 0.12, 11.0);
   const officeFloorMat = new THREE.MeshStandardMaterial({
     map: createOfficeTileTexture(),
@@ -313,7 +311,7 @@ function buildEnvironmentAndArchitecture() {
   officeFloor.receiveShadow = true;
   scene.add(officeFloor);
 
-  // 4. Muros Blancos Altos (3.6m) con zócalo inferior negro elegante
+  // Muros Blancos Altos (3.6m)
   const wallHeight = 3.6;
   const wallThickness = 0.24;
   const wallMat = new THREE.MeshStandardMaterial({ color: 0xf8fafc, roughness: 0.5 });
@@ -340,22 +338,17 @@ function buildEnvironmentAndArchitecture() {
     wallMeshes.push(group);
   }
 
-  // Muro Norte (Z = -5.5)
   addWallSegment(0, -5.5, 16.24, wallThickness);
-  // Muro Sur (Z = +5.5)
   addWallSegment(0, 5.5, 16.24, wallThickness);
-  // Muro Oeste (X = -8.0)
   addWallSegment(-8.0, 0, wallThickness, 11.0);
-
-  // Muro Este (X = +8.0) con abertura central para la puerta doble
   addWallSegment(8.0, -3.45, wallThickness, 4.1);
   addWallSegment(8.0, 3.45, wallThickness, 4.1);
 
-  // Muro Divisor Interno (X = -3.2) con entrada amplia hacia el Data Center (Z de -4.65 a -3.05)
+  // Muro Divisor Interno (X = -3.2) con abertura para puerta en Z de -4.65 a -3.20
   addWallSegment(-3.2, -5.075, wallThickness, 0.85);
-  addWallSegment(-3.2, 1.225, wallThickness, 8.55);
+  addWallSegment(-3.2, 1.15, wallThickness, 8.7);
 
-  // 5. Puertas Blancas con Negro (Se agregan a wallMeshes para que bajen junto con los muros)
+  // Puertas Blancas con Negro
   const doorHeight = 2.85;
   const doorWhiteMat = new THREE.MeshStandardMaterial({ color: 0xffffff, roughness: 0.35 });
   const doorBlackMat = new THREE.MeshStandardMaterial({ color: 0x111827, roughness: 0.3, metalness: 0.4 });
@@ -386,7 +379,6 @@ function buildEnvironmentAndArchitecture() {
     sideTrim2.position.set(0, doorHeight / 2, (widthZ - 0.04) * zOffsetSign);
     leafGroup.add(sideTrim2);
 
-    // Marco de mirilla negro + vidrio translúcido
     const visorFrame = new THREE.Mesh(new THREE.BoxGeometry(0.1, 1.15, 0.24), doorBlackMat);
     visorFrame.position.set(0, doorHeight * 0.58, zCenter);
     leafGroup.add(visorFrame);
@@ -395,7 +387,6 @@ function buildEnvironmentAndArchitecture() {
     visorGlass.position.set(0, doorHeight * 0.58, zCenter);
     leafGroup.add(visorGlass);
 
-    // Manija tipo barra negra en ambos lados
     const handle = new THREE.Mesh(new THREE.BoxGeometry(0.2, 0.05, 0.22), doorBlackMat);
     handle.position.set(0, 1.12, (widthZ - 0.22) * zOffsetSign);
     leafGroup.add(handle);
@@ -403,16 +394,14 @@ function buildEnvironmentAndArchitecture() {
     return leafGroup;
   }
 
-  // Puerta interna Data Center: Abre hacia adentro del Data Center (-X) para dejar 100% libre el pasillo y el escritorio
   const dcDoorPivot = new THREE.Group();
   dcDoorPivot.position.set(-3.2, 0, -4.65);
   dcDoorPivot.add(createWhiteBlackDoorLeaf(1.45, 1));
   dcDoorPivot.rotation.y = -Math.PI * 0.45;
   scene.add(dcDoorPivot);
   doorPivots.push({ pivot: dcDoorPivot, openRot: -Math.PI * 0.45, closedRot: 0 });
-  wallMeshes.push(dcDoorPivot); // Baja junto con las paredes
+  wallMeshes.push(dcDoorPivot);
 
-  // Puerta doble principal Este (X = 8.0, Z = -1.4 y Z = +1.4)
   const mainDoorTopPivot = new THREE.Group();
   mainDoorTopPivot.position.set(8.0, 0, -1.4);
   mainDoorTopPivot.add(createWhiteBlackDoorLeaf(1.35, 1));
@@ -431,7 +420,7 @@ function buildEnvironmentAndArchitecture() {
 }
 
 // ============================================================================
-// 7. EQUIPAMIENTO DETALLADO DEL DATA CENTER (ENTRADA DESPEJADA Y MODELOS 3D RICOS)
+// 7. EQUIPAMIENTO DETALLADO DEL DATA CENTER
 // ============================================================================
 function buildDataCenterRoom() {
   const whiteMetalMat = new THREE.MeshStandardMaterial({ color: 0xe2e8f0, roughness: 0.35, metalness: 0.25 });
@@ -445,14 +434,13 @@ function buildDataCenterRoom() {
     metalness: 0.5
   });
 
-  // 7.1 Unidad de Climatización de Precisión CRAC (Pegada a esquina sup-izq para despejar entrada)
+  // 7.1 Unidad de Climatización CRAC
   const acGroup = new THREE.Group();
   const acCabinet = new THREE.Mesh(new THREE.BoxGeometry(0.95, 2.35, 1.85), whiteMetalMat);
   acCabinet.position.set(-7.3, 1.25, -4.3);
   acCabinet.castShadow = true;
   acGroup.add(acCabinet);
 
-  // Rejillas y panel digital del climatizador CRAC
   const acVent = new THREE.Mesh(new THREE.BoxGeometry(0.06, 0.75, 1.55), darkMetalMat);
   acVent.position.set(-6.81, 1.9, -4.3);
   acGroup.add(acVent);
@@ -464,21 +452,20 @@ function buildDataCenterRoom() {
   acDisplay.position.set(-6.81, 1.32, -4.3);
   acGroup.add(acDisplay);
 
-  // Split de Aire Acondicionado sobre la pared del Rack
   const wallSplit = new THREE.Mesh(new THREE.BoxGeometry(1.9, 0.38, 0.4), whiteMetalMat);
-  wallSplit.position.set(-6.3, 2.45, -1.65);
+  wallSplit.position.set(-6.3, 2.65, -1.65);
   wallSplit.castShadow = true;
   acGroup.add(wallSplit);
 
   const splitFlap = new THREE.Mesh(new THREE.BoxGeometry(1.8, 0.06, 0.42), darkMetalMat);
-  splitFlap.position.set(-6.3, 2.32, -1.64);
+  splitFlap.position.set(-6.3, 2.52, -1.64);
   acGroup.add(splitFlap);
 
   scene.add(acGroup);
   registerInteractable(acGroup, 'ac_unit');
   addFloatingLabel('Climatizacion Data Center', new THREE.Vector3(-7.3, 2.75, -4.3), '#38bdf8');
 
-  // Estantería técnica de herramientas/repuestos (Movida hacia X = -5.75, Z = -4.9 para que la puerta quede totalmente despejada)
+  // Estantería técnica
   const shelfGroup = new THREE.Group();
   const shelfBack = new THREE.Mesh(new THREE.BoxGeometry(1.4, 2.1, 0.08), whiteMetalMat);
   shelfBack.position.set(-5.75, 1.15, -5.28);
@@ -498,21 +485,19 @@ function buildDataCenterRoom() {
   }
   scene.add(shelfGroup);
 
-  // 7.2 RACK PRINCIPAL DE SERVIDORES 42U DETALLADO (Con postes verticales, techo con extractores y puerta acrílica)
+  // 7.2 RACK PRINCIPAL DE SERVIDORES 42U (X = -6.2, Z = 0.2)
   const rackGroup = new THREE.Group();
   rackGroup.position.set(-6.2, 0.16, 0.2);
 
-  // Base y techo del gabinete
   const rackBase = new THREE.Mesh(new THREE.BoxGeometry(1.9, 0.12, 2.1), rackPostMat);
   rackBase.position.y = 0.06;
   rackGroup.add(rackBase);
 
   const rackRoof = new THREE.Mesh(new THREE.BoxGeometry(1.9, 0.12, 2.1), rackPostMat);
-  rackRoof.position.y = 2.48;
+  rackRoof.position.y = 2.24;
   rackRoof.castShadow = true;
   rackGroup.add(rackRoof);
 
-  // 4 Columnas estructurales del Rack
   const postPositions = [
     [-0.88, -0.98],
     [0.88, -0.98],
@@ -520,60 +505,56 @@ function buildDataCenterRoom() {
     [0.88, 0.98]
   ];
   postPositions.forEach(([px, pz]) => {
-    const post = new THREE.Mesh(new THREE.BoxGeometry(0.12, 2.45, 0.12), rackPostMat);
-    post.position.set(px, 1.25, pz);
+    const post = new THREE.Mesh(new THREE.BoxGeometry(0.12, 2.25, 0.12), rackPostMat);
+    post.position.set(px, 1.15, pz);
     post.castShadow = true;
     rackGroup.add(post);
   });
 
-  // Paneles laterales semi-abiertos y puerta frontal de vidrio templado
-  const sidePanelL = new THREE.Mesh(new THREE.BoxGeometry(0.04, 2.35, 1.9), darkMetalMat);
-  sidePanelL.position.set(-0.9, 1.25, 0);
+  const sidePanelL = new THREE.Mesh(new THREE.BoxGeometry(0.04, 2.15, 1.9), darkMetalMat);
+  sidePanelL.position.set(-0.9, 1.15, 0);
   rackGroup.add(sidePanelL);
 
-  const frontGlass = new THREE.Mesh(new THREE.BoxGeometry(0.04, 2.35, 1.9), glassFrontMat);
-  frontGlass.position.set(0.9, 1.25, 0);
+  const frontGlass = new THREE.Mesh(new THREE.BoxGeometry(0.04, 2.15, 1.9), glassFrontMat);
+  frontGlass.position.set(0.9, 1.15, 0);
   rackGroup.add(frontGlass);
 
   scene.add(rackGroup);
   registerInteractable(rackGroup, 'rack_main');
-  addFloatingLabel('Rack Principal + Servidores UNAB', new THREE.Vector3(-6.2, 2.95, 0.2), '#22c55e');
+  addFloatingLabel('Rack Principal + Servidores UNAB', new THREE.Vector3(-6.2, 2.85, 0.2), '#22c55e');
 
-  // 7.3 SERVIDORES RACK (Bahías de discos Hot-Swap, asas metálicas y LEDs de estado)
+  // 7.3 SERVIDORES RACK
   const serversGroup = new THREE.Group();
   serversGroup.position.copy(rackGroup.position);
 
-  // 4 Nodos Blade superiores
   for (let i = 0; i < 4; i++) {
-    const blade = new THREE.Mesh(new THREE.BoxGeometry(0.36, 0.58, 1.55), darkMetalMat);
-    blade.position.set(-0.57 + i * 0.38, 2.08, -0.1);
+    const blade = new THREE.Mesh(new THREE.BoxGeometry(0.36, 0.52, 1.55), darkMetalMat);
+    blade.position.set(-0.57 + i * 0.38, 1.9, -0.1);
     blade.castShadow = true;
     serversGroup.add(blade);
 
     const handle = new THREE.Mesh(new THREE.BoxGeometry(0.24, 0.06, 0.06), whiteMetalMat);
-    handle.position.set(-0.57 + i * 0.38, 1.88, 0.7);
+    handle.position.set(-0.57 + i * 0.38, 1.72, 0.7);
     serversGroup.add(handle);
 
     const ledGreen = new THREE.Mesh(
       new THREE.SphereGeometry(0.03, 8, 8),
       new THREE.MeshBasicMaterial({ color: 0x4ade80 })
     );
-    ledGreen.position.set(-0.57 + i * 0.38, 2.28, 0.7);
+    ledGreen.position.set(-0.57 + i * 0.38, 2.08, 0.7);
     serversGroup.add(ledGreen);
     blinkingLEDs.push({ mesh: ledGreen, speed: 3 + i, baseColor: 0x4ade80 });
   }
 
-  // 3 Servidores Rack 2U horizontales con bahías de discos SSD
   for (let r = 0; r < 3; r++) {
-    const yPos = 1.48 - r * 0.42;
-    const srv = new THREE.Mesh(new THREE.BoxGeometry(1.65, 0.32, 1.65), darkMetalMat);
+    const yPos = 1.35 - r * 0.4;
+    const srv = new THREE.Mesh(new THREE.BoxGeometry(1.65, 0.3, 1.65), darkMetalMat);
     srv.position.set(0, yPos, 0);
     srv.castShadow = true;
     serversGroup.add(srv);
 
-    // Bahías frontales de discos duros
     for (let b = 0; b < 6; b++) {
-      const caddy = new THREE.Mesh(new THREE.BoxGeometry(0.2, 0.22, 0.04), rackPostMat);
+      const caddy = new THREE.Mesh(new THREE.BoxGeometry(0.2, 0.2, 0.04), rackPostMat);
       caddy.position.set(-0.62 + b * 0.22, yPos, 0.84);
       serversGroup.add(caddy);
     }
@@ -598,7 +579,7 @@ function buildDataCenterRoom() {
   scene.add(serversGroup);
   registerInteractable(serversGroup, 'server_gps');
 
-  // 7.4 GABINETE DE CONMUTACIÓN: SWITCH CORE 24 PUERTOS + PATCH PANEL CAT6A (Z = 1.95)
+  // 7.4 GABINETE DE CONMUTACIÓN: SWITCH CORE + PATCH PANEL (X = -6.2, Z = 1.95)
   const switchGroup = new THREE.Group();
   switchGroup.position.set(-6.2, 0.16, 1.95);
 
@@ -607,7 +588,6 @@ function buildDataCenterRoom() {
   swCabinet.castShadow = true;
   switchGroup.add(swCabinet);
 
-  // Chasis Switch + Patch Panel superior
   const patchPanelMesh = new THREE.Mesh(new THREE.BoxGeometry(1.32, 0.16, 0.68), darkMetalMat);
   patchPanelMesh.position.y = 1.02;
   switchGroup.add(patchPanelMesh);
@@ -616,7 +596,11 @@ function buildDataCenterRoom() {
   switchMesh.position.y = 0.78;
   switchGroup.add(switchMesh);
 
-  // 12 puertos RJ45 con LEDs de actividad y latiguillos cortos (Patch Cords) entre Switch y Patch Panel
+  // Ducto vertical organizador de cables (sube desde el Switch/Patch Panel hasta la bandeja aérea en Y=2.40)
+  const verticalRiser = new THREE.Mesh(new THREE.BoxGeometry(0.18, 1.15, 0.14), rackPostMat);
+  verticalRiser.position.set(0, 1.7, -0.15);
+  switchGroup.add(verticalRiser);
+
   const patchCordMat = new THREE.MeshStandardMaterial({ color: 0x0284c7, roughness: 0.3 });
   for (let p = 0; p < 10; p++) {
     const px = -0.5 + p * 0.11;
@@ -628,13 +612,12 @@ function buildDataCenterRoom() {
     switchGroup.add(portLed);
     blinkingLEDs.push({ mesh: portLed, speed: 6 + p, baseColor: 0x38bdf8 });
 
-    // Pequeño arco de patch cord conectando Switch -> Patch Panel
     const curve = new THREE.CatmullRomCurve3([
       new THREE.Vector3(px, 0.78, 0.34),
-      new THREE.Vector3(px, 0.9, 0.44),
+      new THREE.Vector3(px, 0.9, 0.42),
       new THREE.Vector3(px, 1.02, 0.34)
     ]);
-    const cord = new THREE.Mesh(new THREE.TubeGeometry(curve, 12, 0.012, 6, false), patchCordMat);
+    const cord = new THREE.Mesh(new THREE.TubeGeometry(curve, 12, 0.01, 6, false), patchCordMat);
     switchGroup.add(cord);
   }
 
@@ -642,7 +625,7 @@ function buildDataCenterRoom() {
   registerInteractable(switchGroup, 'switch_core');
   addFloatingLabel('Switch Core + Patch Panel', new THREE.Vector3(-6.2, 1.65, 1.95), '#38bdf8');
 
-  // 7.5 ROUTER / GATEWAY WAN CON DOBLE ANTENA Y FIREWALL (Z = 3.1)
+  // 7.5 ROUTER / GATEWAY WAN (X = -6.2, Z = 3.1)
   const routerGroup = new THREE.Group();
   routerGroup.position.set(-6.2, 0.16, 3.1);
 
@@ -656,14 +639,17 @@ function buildDataCenterRoom() {
   routerChassis.castShadow = true;
   routerGroup.add(routerChassis);
 
-  // 2 Antenas omnidireccionales verticales
+  // Ducto vertical organizador desde el Router hacia la bandeja aérea
+  const routerRiser = new THREE.Mesh(new THREE.BoxGeometry(0.14, 1.4, 0.12), rackPostMat);
+  routerRiser.position.set(0, 1.55, -0.15);
+  routerGroup.add(routerRiser);
+
   [-0.38, 0.38].forEach((ax) => {
     const ant = new THREE.Mesh(new THREE.CylinderGeometry(0.02, 0.025, 0.55, 10), darkMetalMat);
-    ant.position.set(ax, 1.1, -0.2);
+    ant.position.set(ax, 1.1, 0.15);
     routerGroup.add(ant);
   });
 
-  // Firewall / ONT Fibra debajo
   const firewallChassis = new THREE.Mesh(new THREE.BoxGeometry(1.0, 0.18, 0.58), darkMetalMat);
   firewallChassis.position.set(0, 0.52, 0.04);
   routerGroup.add(firewallChassis);
@@ -672,7 +658,7 @@ function buildDataCenterRoom() {
   registerInteractable(routerGroup, 'router_gateway');
   addFloatingLabel('Router / Gateway GPS WAN', new THREE.Vector3(-6.2, 1.55, 3.1), '#f59e0b');
 
-  // 7.6 UPS ONLINE TORRE DOBLE CONVERSIÓN (Abajo en el cuarto de servidores)
+  // 7.6 UPS ONLINE TORRE DOBLE CONVERSIÓN (X = -4.55, Z = 4.45)
   const upsGroup = new THREE.Group();
   upsGroup.position.set(-4.55, 0.16, 4.45);
 
@@ -698,7 +684,7 @@ function buildDataCenterRoom() {
 }
 
 // ============================================================================
-// 8. SALA DE MONITOREO CON MOBILIARIO Y EQUIPOS 3D DETALLADOS
+// 8. SALA DE MONITOREO Y OFICINA DE CONTROL DE BUSES
 // ============================================================================
 function createWorkstationDesk({ x, z, rotationY = 0, screenVariant = 1, hasTower = true, dataKey }) {
   const group = new THREE.Group();
@@ -710,14 +696,12 @@ function createWorkstationDesk({ x, z, rotationY = 0, screenVariant = 1, hasTowe
   const darkPlastic = new THREE.MeshStandardMaterial({ color: 0x111827, roughness: 0.35 });
   const chromeMat = new THREE.MeshStandardMaterial({ color: 0x94a3b8, metalness: 0.8, roughness: 0.2 });
 
-  // Tablero del escritorio con borde biselado
   const top = new THREE.Mesh(new THREE.BoxGeometry(2.85, 0.08, 1.3), woodDeskMat);
   top.position.y = 0.78;
   top.castShadow = true;
   top.receiveShadow = true;
   group.add(top);
 
-  // Cajonera con 3 gavetas y tiradores metálicos
   const drawerBox = new THREE.Mesh(new THREE.BoxGeometry(0.78, 0.72, 1.18), woodDeskMat);
   drawerBox.position.set(-0.98, 0.38, 0);
   drawerBox.castShadow = true;
@@ -729,7 +713,6 @@ function createWorkstationDesk({ x, z, rotationY = 0, screenVariant = 1, hasTowe
     group.add(handle);
   }
 
-  // Estructura de patas metálicas en U
   const leg1 = new THREE.Mesh(new THREE.BoxGeometry(0.07, 0.74, 0.07), legMat);
   leg1.position.set(1.32, 0.38, -0.55);
   const leg2 = leg1.clone();
@@ -738,7 +721,6 @@ function createWorkstationDesk({ x, z, rotationY = 0, screenVariant = 1, hasTowe
   legBar.position.set(1.32, 0.06, 0);
   group.add(leg1, leg2, legBar);
 
-  // Monitor Ultrawide con base plana, brazo articulado y pantalla GPS UNAB
   const monitorBase = new THREE.Mesh(new THREE.BoxGeometry(0.42, 0.03, 0.28), darkPlastic);
   monitorBase.position.set(-0.05, 0.83, -0.34);
   group.add(monitorBase);
@@ -758,7 +740,6 @@ function createWorkstationDesk({ x, z, rotationY = 0, screenVariant = 1, hasTowe
   screenMesh.position.set(-0.05, 1.38, -0.285);
   group.add(screenMesh);
 
-  // Teclado con reposamuñecas, Mousepad y Mouse
   const keyboard = new THREE.Mesh(new THREE.BoxGeometry(0.68, 0.03, 0.24), darkPlastic);
   keyboard.position.set(-0.08, 0.84, 0.18);
   group.add(keyboard);
@@ -774,7 +755,6 @@ function createWorkstationDesk({ x, z, rotationY = 0, screenVariant = 1, hasTowe
   mouse.position.set(0.48, 0.84, 0.18);
   group.add(mouse);
 
-  // Case / Torre PC con panel lateral y botón de encendido LED
   if (hasTower) {
     const tower = new THREE.Mesh(new THREE.BoxGeometry(0.38, 0.78, 0.78), darkPlastic);
     tower.position.set(1.06, 1.21, -0.1);
@@ -800,7 +780,6 @@ function createWorkstationDesk({ x, z, rotationY = 0, screenVariant = 1, hasTowe
     });
   }
 
-  // Silla ergonómica detallada (Base estrella de 5 ruedas, pistón, posabrazos y respaldo)
   const chairGroup = new THREE.Group();
   chairGroup.position.set(-0.05, 0, 0.98);
   const chairMat = new THREE.MeshStandardMaterial({ color: 0x1e3a8a, roughness: 0.55 });
@@ -815,7 +794,6 @@ function createWorkstationDesk({ x, z, rotationY = 0, screenVariant = 1, hasTowe
   backrest.castShadow = true;
   chairGroup.add(backrest);
 
-  // Posabrazos en T
   [-0.38, 0.38].forEach((ax) => {
     const armVert = new THREE.Mesh(new THREE.BoxGeometry(0.05, 0.24, 0.05), darkPlastic);
     armVert.position.set(ax, 0.62, 0.05);
@@ -824,7 +802,6 @@ function createWorkstationDesk({ x, z, rotationY = 0, screenVariant = 1, hasTowe
     chairGroup.add(armVert, armPad);
   });
 
-  // Pistón central y estrella de 5 patas con ruedas
   const piston = new THREE.Mesh(new THREE.CylinderGeometry(0.045, 0.045, 0.42, 10), darkPlastic);
   piston.position.y = 0.26;
   chairGroup.add(piston);
@@ -844,7 +821,6 @@ function createWorkstationDesk({ x, z, rotationY = 0, screenVariant = 1, hasTowe
 }
 
 function buildMonitoringOffice() {
-  // PC Operador 1 movida ligeramente a la derecha (X = 0.85) para dejar un corredor amplio frente a la puerta del servidor
   createWorkstationDesk({
     x: 0.85,
     z: -3.85,
@@ -855,7 +831,6 @@ function buildMonitoringOffice() {
   });
   addFloatingLabel('PC Monitoreo #1 (Mapa GPS)', new THREE.Vector3(0.85, 2.25, -4.1), '#38bdf8');
 
-  // PC Operador 2
   createWorkstationDesk({
     x: 5.4,
     z: -3.85,
@@ -866,7 +841,6 @@ function buildMonitoringOffice() {
   });
   addFloatingLabel('PC Monitoreo #2 (Salidas/Llegadas)', new THREE.Vector3(5.4, 2.25, -4.1), '#38bdf8');
 
-  // PC Administración de Red
   createWorkstationDesk({
     x: 4.1,
     z: 4.15,
@@ -877,7 +851,6 @@ function buildMonitoringOffice() {
   });
   addFloatingLabel('PC Administracion de Red', new THREE.Vector3(4.1, 2.25, 4.35), '#4ade80');
 
-  // Impresora Multifuncional Corporativa sobre mesa
   const printerGroup = new THREE.Group();
   printerGroup.position.set(-1.75, 0.12, 0.65);
 
@@ -910,7 +883,6 @@ function buildMonitoringOffice() {
   registerInteractable(printerGroup, 'printer_net');
   addFloatingLabel('Impresora en Red', new THREE.Vector3(-1.75, 1.65, 0.65), '#f59e0b');
 
-  // Muebles y Archivadores laterales
   const brownWood = new THREE.MeshStandardMaterial({ color: 0x8c5a3c, roughness: 0.6 });
   const whiteCabinetMat = new THREE.MeshStandardMaterial({ color: 0xe2e8f0, roughness: 0.45 });
 
@@ -931,20 +903,55 @@ function buildMonitoringOffice() {
 }
 
 // ============================================================================
-// 9. CABLEADO ESTRUCTURADO PROFESIONAL (DELGADO, ORDENADO POR PARED Y CANALETA)
+// 9. CABLEADO ESTRUCTURADO PROFESIONAL (BANDEJA AÉREA EN SERVIDOR + CANALETA LIMPIA SIN BLOQUEAR PUERTA)
 // ============================================================================
-// En instalaciones reales (ANSI/TIA-568), los cables NUNCA van sueltos a mitad del
-// salón; viajan pegados a las paredes dentro de canaletas perimetrales de PVC,
-// entran por pasamuros, llegan a cajas toma de red (faceplates RJ45) y de ahí
-// suben ordenadamente a cada estación de trabajo.
 const dataPackets = [];
 let packetsEnabled = true;
 
 function buildStructuredCabling() {
   const cablingGroup = new THREE.Group();
+  const ladderMat = new THREE.MeshStandardMaterial({ color: 0x475569, roughness: 0.35, metalness: 0.75 });
   const trayMat = new THREE.MeshStandardMaterial({ color: 0xcbd5e1, roughness: 0.3, metalness: 0.2 });
   const faceplateMat = new THREE.MeshStandardMaterial({ color: 0xffffff, roughness: 0.3 });
 
+  // 9.1 BANDEJA PORTACABLES AÉREA TIPO ESCALERILLA (Ladder Rack en el Data Center a Y = 2.46m)
+  function createOverheadLadderTray(x, y, zStart, zEnd, width = 0.42) {
+    const length = Math.abs(zEnd - zStart);
+    const zMid = (zStart + zEnd) / 2;
+    const railL = new THREE.Mesh(new THREE.BoxGeometry(0.04, 0.06, length), ladderMat);
+    railL.position.set(x - width / 2, y, zMid);
+    const railR = new THREE.Mesh(new THREE.BoxGeometry(0.04, 0.06, length), ladderMat);
+    railR.position.set(x + width / 2, y, zMid);
+    cablingGroup.add(railL, railR);
+
+    const numRungs = Math.floor(length / 0.35);
+    for (let i = 0; i <= numRungs; i++) {
+      const rz = Math.min(zStart, zEnd) + i * 0.35;
+      const rung = new THREE.Mesh(new THREE.BoxGeometry(width, 0.025, 0.04), ladderMat);
+      rung.position.set(x, y - 0.015, rz);
+      cablingGroup.add(rung);
+    }
+  }
+
+  // Bandeja aérea principal sobre Rack, Switch y Router (X = -6.2, desde Z = -0.6 hasta Z = 3.3)
+  createOverheadLadderTray(-6.2, 2.46, -0.6, 3.3, 0.44);
+
+  // Puente de bandeja aérea desde el Switch (X = -6.2, Z = 1.95) hacia el pasamuros del muro divisor (X = -3.2, Z = 1.95)
+  const bridgeRail1 = new THREE.Mesh(new THREE.BoxGeometry(3.0, 0.06, 0.04), ladderMat);
+  bridgeRail1.position.set(-4.7, 2.46, 1.78);
+  const bridgeRail2 = new THREE.Mesh(new THREE.BoxGeometry(3.0, 0.06, 0.04), ladderMat);
+  bridgeRail2.position.set(-4.7, 2.46, 2.12);
+  cablingGroup.add(bridgeRail1, bridgeRail2);
+  for (let bx = -6.0; bx <= -3.3; bx += 0.35) {
+    const rung = new THREE.Mesh(new THREE.BoxGeometry(0.04, 0.025, 0.34), ladderMat);
+    rung.position.set(bx, 2.445, 1.95);
+    cablingGroup.add(rung);
+  }
+
+  // 9.2 CANALETAS DE PVC EN LA OFICINA (NUNCA CRUZAN EL HUECO DE LA PUERTA)
+  // La puerta está en X = -3.2, Z de -4.65 a -3.20.
+  // Por eso el pasamuros entra en Z = 1.95 y la canaleta solo va desde Z = -2.90 hacia el sur (Z = 5.34),
+  // y para ir a las PCs del norte sube por encima del marco de la puerta o baja directo sin tocar el vano.
   function addCableTray(x, y, z, w, h, d) {
     const tray = new THREE.Mesh(new THREE.BoxGeometry(w, h, d), trayMat);
     tray.position.set(x, y, z);
@@ -959,78 +966,95 @@ function buildStructuredCabling() {
     cablingGroup.add(fp);
   }
 
-  // 1. Canaletas perimetrales de PVC adosadas a los muros (ningún cable suelto cruzando el piso)
-  // Canaleta Muro Norte (detrás de PC 1 y PC 2, desde el muro divisor X = -3.1 hasta X = 6.6)
-  addCableTray(1.75, 0.32, -5.34, 9.7, 0.1, 0.08);
-  // Canaleta Muro Divisor lado Oficina (X = -3.05, desde Z = -5.3 hasta Z = 5.3)
-  addCableTray(-3.05, 0.32, 0.0, 0.08, 0.1, 10.6);
-  // Canaleta Muro Sur hacia PC Administración (Z = 5.34, desde X = -3.05 hasta X = 4.2)
-  addCableTray(0.58, 0.32, 5.34, 7.3, 0.1, 0.08);
-  // Bandeja portacables interna del Data Center (X = -4.9, conectando Rack, Switch, Router y UPS)
-  addCableTray(-4.9, 0.2, 1.2, 0.18, 0.06, 6.8);
+  // Bajante vertical de PVC en lado oficina desde el pasamuros aéreo (Y = 2.46 a Y = 0.32 en X = -3.05, Z = 1.95)
+  addCableTray(-3.05, 1.39, 1.95, 0.08, 2.15, 0.12);
 
-  // Cajas Toma de Red RJ45 (Faceplates) en la pared detrás de cada equipo
-  addWallFaceplate(1.9, 0.45, -5.32, 0); // Toma PC 1
-  addWallFaceplate(6.45, 0.45, -5.32, 0); // Toma PC 2
+  // Canaleta horizontal en muro divisor SOLO en el tramo sólido de pared (Z = -2.85 a Z = 5.34, termina ANTES de la puerta)
+  addCableTray(-3.05, 0.32, 1.25, 0.08, 0.1, 8.2);
+
+  // En Z = -2.85 (antes de la puerta), la canaleta dobla pegada al piso junto a la base del escritorio/pared hacia el muro norte, dejando la puerta 100% libre
+  // Mejor aún: cruza por un segundo pasamuros superior sobre la esquina norte (Z = -5.32) directamente desde la bandeja aérea del Data Center:
+  createOverheadLadderTray(-6.2, 2.46, -5.32, -0.6, 0.36);
+  const northBridge = new THREE.Mesh(new THREE.BoxGeometry(3.0, 0.06, 0.28), ladderMat);
+  northBridge.position.set(-4.7, 2.45, -5.22);
+  cablingGroup.add(northBridge);
+
+  // Bajante vertical limpia en la esquina norte de la oficina (X = -3.02, Z = -5.32, de Y = 2.46 a Y = 0.32)
+  addCableTray(-3.02, 1.39, -5.32, 0.1, 2.15, 0.08);
+
+  // Canaleta horizontal Muro Norte (Z = -5.34, desde X = -3.02 hasta X = 6.6, detrás de PC 1 y PC 2)
+  addCableTray(1.8, 0.32, -5.34, 9.65, 0.1, 0.08);
+
+  // Canaleta horizontal Muro Sur (Z = 5.34, desde X = -3.05 hasta X = 4.2, detrás de PC Admin)
+  addCableTray(0.58, 0.32, 5.34, 7.3, 0.1, 0.08);
+
+  // Cajas Toma de Red RJ45 (Faceplates) detrás de cada estación
+  addWallFaceplate(1.91, 0.45, -5.32, 0); // Toma PC 1
+  addWallFaceplate(6.46, 0.45, -5.32, 0); // Toma PC 2
   addWallFaceplate(-3.03, 0.45, 0.65, Math.PI / 2); // Toma Impresora
   addWallFaceplate(4.1, 0.45, 5.32, Math.PI); // Toma PC Admin
 
-  // 2. Rutas ortogonales limpias y delgadas (Radio 0.018m) con pequeños offsets para que vayan en paralelo sin superponerse
+  // 9.3 RUTAS ORTOGONALES 100% VERTICALES Y HORIZONTALES (CERO CABLES DIAGONALES EN EL AIRE Y PUERTA 100% LIBRE)
   const cableRoutes = [
-    // Cable 1: Switch Core -> Pasamuros -> Canaleta Divisor -> Canaleta Norte -> PC Monitoreo 1
+    // Ruta 1 (PC Monitoreo 1): Switch Core -> Sube en vertical a Bandeja Aérea (Y=2.48) -> Va hacia el Norte -> Cruza Pasamuros Esquina Norte -> Baja en vertical a Canaleta Norte -> Sube en vertical a PC 1
     [
-      new THREE.Vector3(-5.6, 0.78, 1.92),
-      new THREE.Vector3(-4.92, 0.24, 1.92),
-      new THREE.Vector3(-4.92, 0.24, -2.1),
-      new THREE.Vector3(-3.04, 0.35, -2.1),
-      new THREE.Vector3(-3.04, 0.35, -5.32),
-      new THREE.Vector3(1.91, 0.35, -5.32),
+      new THREE.Vector3(-6.2, 1.02, 1.82),
+      new THREE.Vector3(-6.2, 2.48, 1.82),
+      new THREE.Vector3(-6.2, 2.48, -5.22),
+      new THREE.Vector3(-3.02, 2.48, -5.22),
+      new THREE.Vector3(-3.02, 0.34, -5.31),
+      new THREE.Vector3(1.91, 0.34, -5.31),
+      new THREE.Vector3(1.91, 1.15, -5.31),
       new THREE.Vector3(1.91, 1.15, -3.95)
     ],
-    // Cable 2: Switch Core -> Pasamuros -> Canaleta Divisor -> Canaleta Norte -> PC Monitoreo 2
+    // Ruta 2 (PC Monitoreo 2): Switch Core -> Bandeja Aérea -> Pasamuros Esquina Norte -> Canaleta Norte -> Sube en vertical a PC 2
     [
-      new THREE.Vector3(-5.6, 0.78, 1.96),
-      new THREE.Vector3(-4.88, 0.24, 1.96),
-      new THREE.Vector3(-4.88, 0.24, -2.15),
-      new THREE.Vector3(-3.02, 0.31, -2.15),
-      new THREE.Vector3(-3.02, 0.31, -5.3),
-      new THREE.Vector3(6.46, 0.31, -5.3),
+      new THREE.Vector3(-6.16, 1.02, 1.82),
+      new THREE.Vector3(-6.16, 2.49, 1.82),
+      new THREE.Vector3(-6.16, 2.49, -5.25),
+      new THREE.Vector3(-3.0, 2.49, -5.25),
+      new THREE.Vector3(-3.0, 0.31, -5.31),
+      new THREE.Vector3(6.46, 0.31, -5.31),
+      new THREE.Vector3(6.46, 1.15, -5.31),
       new THREE.Vector3(6.46, 1.15, -3.95)
     ],
-    // Cable 3: Switch Core -> Pasamuros -> Canaleta Divisor -> Toma Pared -> Impresora en Red
+    // Ruta 3 (Impresora en Red): Switch Core -> Sube a Bandeja Aérea -> Puente Central (Z=1.95) -> Baja por Bajante Oficina -> Canaleta Pared -> Impresora
     [
-      new THREE.Vector3(-5.6, 0.78, 2.0),
-      new THREE.Vector3(-4.85, 0.24, 2.0),
-      new THREE.Vector3(-4.85, 0.24, 0.65),
-      new THREE.Vector3(-3.02, 0.33, 0.65),
-      new THREE.Vector3(-1.75, 0.33, 0.65),
+      new THREE.Vector3(-6.2, 1.02, 1.95),
+      new THREE.Vector3(-6.2, 2.48, 1.95),
+      new THREE.Vector3(-3.04, 2.48, 1.95),
+      new THREE.Vector3(-3.04, 0.34, 1.95),
+      new THREE.Vector3(-3.04, 0.34, 0.65),
+      new THREE.Vector3(-1.75, 0.34, 0.65),
       new THREE.Vector3(-1.75, 0.95, 0.65)
     ],
-    // Cable 4: Switch Core -> Pasamuros -> Canaleta Divisor -> Canaleta Sur -> PC Administración
+    // Ruta 4 (PC Administración): Switch Core -> Bandeja Aérea -> Puente Central -> Bajante Oficina -> Canaleta Sur -> PC Admin
     [
-      new THREE.Vector3(-5.6, 0.78, 2.04),
-      new THREE.Vector3(-4.9, 0.24, 2.04),
-      new THREE.Vector3(-3.04, 0.29, 2.04),
-      new THREE.Vector3(-3.04, 0.29, 5.32),
-      new THREE.Vector3(4.1, 0.29, 5.32),
+      new THREE.Vector3(-6.24, 1.02, 1.98),
+      new THREE.Vector3(-6.24, 2.48, 1.98),
+      new THREE.Vector3(-3.04, 2.48, 1.98),
+      new THREE.Vector3(-3.04, 0.3, 1.98),
+      new THREE.Vector3(-3.04, 0.3, 5.31),
+      new THREE.Vector3(4.1, 0.3, 5.31),
+      new THREE.Vector3(4.1, 1.1, 5.31),
       new THREE.Vector3(4.1, 1.1, 4.35)
     ],
-    // Cable 5 (Troncal Data Center): Router WAN -> Switch Core -> Servidor Principal en Rack
+    // Ruta 5 (Troncal Aérea Data Center): Router WAN -> Sube en vertical a Bandeja Aérea -> Switch Core -> Sube y entra por techo del Rack a Servidores
     [
-      new THREE.Vector3(-5.8, 0.75, 3.1),
-      new THREE.Vector3(-4.94, 0.26, 3.1),
-      new THREE.Vector3(-4.94, 0.26, 1.95),
-      new THREE.Vector3(-5.6, 0.78, 1.95),
-      new THREE.Vector3(-4.94, 0.26, 1.95),
-      new THREE.Vector3(-4.94, 0.26, 0.2),
-      new THREE.Vector3(-5.5, 1.2, 0.2)
+      new THREE.Vector3(-6.2, 0.85, 2.95),
+      new THREE.Vector3(-6.2, 2.48, 2.95),
+      new THREE.Vector3(-6.2, 2.48, 1.95),
+      new THREE.Vector3(-6.2, 1.02, 1.95),
+      new THREE.Vector3(-6.2, 2.48, 1.95),
+      new THREE.Vector3(-6.2, 2.48, 0.2),
+      new THREE.Vector3(-6.2, 1.4, 0.2)
     ],
-    // Cable 6 (Línea UPS Respaldo): UPS -> Router -> Switch -> Rack
+    // Ruta 6 (Energía / Monitoreo UPS por piso falso técnico en ángulos de 90°): UPS -> Bajo Piso Técnico -> Router & Rack
     [
-      new THREE.Vector3(-4.55, 0.35, 4.45),
-      new THREE.Vector3(-4.86, 0.22, 4.45),
-      new THREE.Vector3(-4.86, 0.22, 0.2),
-      new THREE.Vector3(-5.5, 0.9, 0.2)
+      new THREE.Vector3(-4.55, 0.22, 4.45),
+      new THREE.Vector3(-6.2, 0.22, 4.45),
+      new THREE.Vector3(-6.2, 0.22, 3.1),
+      new THREE.Vector3(-6.2, 0.22, 0.2)
     ]
   ];
 
@@ -1041,10 +1065,9 @@ function buildStructuredCabling() {
     roughness: 0.25
   });
 
-  const packetGeo = new THREE.SphereGeometry(0.055, 10, 10);
+  const packetGeo = new THREE.SphereGeometry(0.05, 10, 10);
   const packetMat = new THREE.MeshBasicMaterial({ color: 0x38bdf8 });
 
-  // Función que genera esquinas rectas limpias (sin curvas grandes desordenadas)
   function createCleanPathCurve(pts) {
     const path = new THREE.CurvePath();
     for (let i = 0; i < pts.length - 1; i++) {
@@ -1055,7 +1078,7 @@ function buildStructuredCabling() {
 
   cableRoutes.forEach((points, routeIndex) => {
     const curvePath = createCleanPathCurve(points);
-    const tubeGeo = new THREE.TubeGeometry(curvePath, 100, 0.018, 8, false);
+    const tubeGeo = new THREE.TubeGeometry(curvePath, 110, 0.016, 8, false);
     const cableMesh = new THREE.Mesh(tubeGeo, cableMat);
     cableMesh.castShadow = true;
     cablingGroup.add(cableMesh);
@@ -1074,7 +1097,7 @@ function buildStructuredCabling() {
 
   scene.add(cablingGroup);
   registerInteractable(cablingGroup, 'structured_cabling');
-  addFloatingLabel('Canaleta y Cableado UTP Cat6A', new THREE.Vector3(-3.0, 0.9, -2.0), '#0284c7');
+  addFloatingLabel('Bandeja Aerea y Cableado Cat6A', new THREE.Vector3(-6.2, 2.75, 1.95), '#0284c7');
 }
 
 buildEnvironmentAndArchitecture();
@@ -1088,6 +1111,7 @@ buildStructuredCabling();
 const raycaster = new THREE.Raycaster();
 const mouse = new THREE.Vector2();
 const tooltip = document.getElementById('hover-tooltip');
+const fpsHint = document.getElementById('fps-hint');
 
 const inspectorCategory = document.getElementById('inspector-category');
 const inspectorTitle = document.getElementById('inspector-title');
@@ -1113,7 +1137,6 @@ function updateInspectorUI(dataKey) {
   });
 }
 
-// Manejo suave de rotación en Primera Persona (Filtra saltos bruscos del PointerLock en Windows)
 document.addEventListener('mousemove', (e) => {
   if (currentMode === 'fps' && isPointerLocked) {
     const dx = Math.max(-60, Math.min(60, e.movementX || 0));
@@ -1173,9 +1196,8 @@ document.getElementById('btn-close-inspector').addEventListener('click', () => {
 });
 
 // ============================================================================
-// 11. BOTONES DE INTERFAZ Y MENÚ DESPLEGABLE DE VISTAS RÁPIDAS
+// 11. MODOS DE CÁMARA: INICIA EN CAMINATA Y CON ESC VA A VISTA GENERAL ISOMÉTRICA
 // ============================================================================
-const btnOrbit = document.getElementById('btn-mode-orbit');
 const btnFps = document.getElementById('btn-mode-fps');
 const fpsCrosshair = document.getElementById('fps-crosshair');
 
@@ -1183,15 +1205,14 @@ const btnToggleViews = document.getElementById('btn-toggle-views');
 const viewsDropdownMenu = document.getElementById('views-dropdown-menu');
 const btnCloseViews = document.getElementById('btn-close-views');
 
-btnToggleViews.addEventListener('click', () => {
-  const isHidden = viewsDropdownMenu.classList.toggle('hidden');
-  btnToggleViews.classList.toggle('active', !isHidden);
-});
+let cameraTransition = null;
 
-btnCloseViews.addEventListener('click', () => {
-  viewsDropdownMenu.classList.add('hidden');
-  btnToggleViews.classList.remove('active');
-});
+const CAMERA_VIEWS = {
+  iso: { pos: [0, 17, 16], target: [0, 0.8, 0] },
+  datacenter: { pos: [-1.5, 5.2, 4.0], target: [-6.0, 1.2, 0.8] },
+  cabling: { pos: [-1.2, 5.4, 2.2], target: [-5.2, 1.6, 1.2] },
+  monitoring: { pos: [2.8, 3.8, 0.8], target: [2.8, 1.3, -4.0] }
+};
 
 function clearMovementKeys() {
   moveState.forward = false;
@@ -1203,28 +1224,35 @@ function clearMovementKeys() {
   fpsVelocity.set(0, 0, 0);
 }
 
-function activateOrbitMode() {
+function switchToCameraView(viewKey = 'iso') {
   currentMode = 'orbit';
   clearMovementKeys();
   if (document.pointerLockElement) document.exitPointerLock();
   orbitControls.enabled = true;
-  btnOrbit.classList.add('active');
   btnFps.classList.remove('active');
   fpsCrosshair.classList.add('hidden');
+
+  const v = CAMERA_VIEWS[viewKey] || CAMERA_VIEWS.iso;
+  cameraTransition = {
+    startPos: camera.position.clone(),
+    endPos: new THREE.Vector3(...v.pos),
+    startTarget: orbitControls.target.clone(),
+    endTarget: new THREE.Vector3(...v.target),
+    alpha: 0
+  };
 }
 
 function activateFpsMode() {
+  cameraTransition = null;
   currentMode = 'fps';
   clearMovementKeys();
   orbitControls.enabled = false;
   btnFps.classList.add('active');
-  btnOrbit.classList.remove('active');
   fpsCrosshair.classList.remove('hidden');
   viewsDropdownMenu.classList.add('hidden');
   btnToggleViews.classList.remove('active');
 
-  // Posición inicial cómoda mirando hacia la puerta del cuarto de servidores
-  camera.position.set(1.5, 1.7, 0.5);
+  camera.position.set(2.2, 1.7, 0.4);
   yaw = Math.PI / 2;
   pitch = 0;
   targetYaw = yaw;
@@ -1233,37 +1261,30 @@ function activateFpsMode() {
   renderer.domElement.requestPointerLock();
 }
 
+// Cuando el usuario presiona ESC en Modo Caminata, el navegador libera el PointerLock
+// y aquí lo pasamos automáticamente a la Vista General Isométrica
 document.addEventListener('pointerlockchange', () => {
   isPointerLocked = document.pointerLockElement === renderer.domElement;
-  if (!isPointerLocked && currentMode === 'fps') {
-    activateOrbitMode();
+  if (isPointerLocked) {
+    fpsHint.innerHTML = '<b>W, A, S, D</b> caminar &bull; <b>Click</b> inspeccionar equipo &bull; <b>ESC</b> ir a Vista General Isométrica';
+  } else if (currentMode === 'fps') {
+    switchToCameraView('iso');
   }
 });
 
 window.addEventListener('blur', clearMovementKeys);
 
-btnOrbit.addEventListener('click', activateOrbitMode);
 btnFps.addEventListener('click', activateFpsMode);
 
-let cameraTransition = null;
-function flyToCamera(pos, target) {
-  activateOrbitMode();
-  cameraTransition = {
-    startPos: camera.position.clone(),
-    endPos: new THREE.Vector3(...pos),
-    startTarget: orbitControls.target.clone(),
-    endTarget: new THREE.Vector3(...target),
-    alpha: 0
-  };
-}
+btnToggleViews.addEventListener('click', () => {
+  const isHidden = viewsDropdownMenu.classList.toggle('hidden');
+  btnToggleViews.classList.toggle('active', !isHidden);
+});
 
-const CAMERA_VIEWS = {
-  top: { pos: [0, 22, 0.01], target: [0, 0, 0] },
-  iso: { pos: [0, 17, 16], target: [0, 0.8, 0] },
-  datacenter: { pos: [-1.5, 5.2, 4.0], target: [-6.0, 1.2, 0.8] },
-  cabling: { pos: [-1.2, 5.4, 2.2], target: [-3.5, 0.4, -0.8] },
-  monitoring: { pos: [2.8, 3.8, 0.8], target: [2.8, 1.3, -4.0] }
-};
+btnCloseViews.addEventListener('click', () => {
+  viewsDropdownMenu.classList.add('hidden');
+  btnToggleViews.classList.remove('active');
+});
 
 document.querySelectorAll('.preset-btn[data-view]').forEach((btn) => {
   btn.addEventListener('click', () => {
@@ -1272,8 +1293,7 @@ document.querySelectorAll('.preset-btn[data-view]').forEach((btn) => {
       doorsOpen = !doorsOpen;
       return;
     }
-    const v = CAMERA_VIEWS[viewName];
-    if (v) flyToCamera(v.pos, v.target);
+    switchToCameraView(viewName);
   });
 });
 
@@ -1286,7 +1306,7 @@ btnTogglePackets.addEventListener('click', () => {
   btnTogglePackets.textContent = `Flujo de Datos: ${packetsEnabled ? 'ON' : 'OFF'}`;
 });
 
-// Toggle Altura de Muros y Puertas al mismo tiempo
+// Toggle Altura de Muros y Puertas
 let wallsLowered = false;
 const btnToggleWalls = document.getElementById('btn-toggle-walls');
 btnToggleWalls.addEventListener('click', () => {
@@ -1333,11 +1353,10 @@ window.addEventListener('keydown', (e) => {
     case 'ShiftRight':
       moveState.down = true;
       break;
-    case 'Digit1':
-      activateOrbitMode();
-      break;
-    case 'Digit2':
-      activateFpsMode();
+    case 'Escape':
+      if (currentMode === 'fps' && !isPointerLocked) {
+        switchToCameraView('iso');
+      }
       break;
     case 'KeyC':
       btnTogglePackets.click();
@@ -1380,7 +1399,7 @@ window.addEventListener('keyup', (e) => {
 });
 
 // ============================================================================
-// 12. BUCLE DE ANIMACIÓN PRINCIPAL (CON MOVIMIENTO SUAVE E INERCIA EN 1RA PERSONA)
+// 12. BUCLE DE ANIMACIÓN PRINCIPAL
 // ============================================================================
 const clock = new THREE.Clock();
 const euler = new THREE.Euler(0, 0, 0, 'YXZ');
@@ -1404,7 +1423,6 @@ function animate() {
   if (currentMode === 'orbit') {
     orbitControls.update();
   } else if (currentMode === 'fps') {
-    // Interpolación suave de la mirada (evita que la cámara se quede colgada o salte)
     const lookSmoothing = Math.min(1, delta * 18);
     yaw += (targetYaw - yaw) * lookSmoothing;
     pitch += (targetPitch - pitch) * lookSmoothing;
@@ -1412,7 +1430,6 @@ function animate() {
     euler.set(pitch, yaw, 0, 'YXZ');
     camera.quaternion.setFromEuler(euler);
 
-    // Dirección de avance horizontal en el plano XZ
     forwardDir.set(0, 0, -1).applyAxisAngle(new THREE.Vector3(0, 1, 0), yaw);
     rightDir.set(1, 0, 0).applyAxisAngle(new THREE.Vector3(0, 1, 0), yaw);
 
@@ -1428,7 +1445,6 @@ function animate() {
     }
     targetVel.y = inputY * 3.8;
 
-    // Aceleración y frenado suaves
     fpsVelocity.lerp(targetVel, Math.min(1, delta * 12));
     camera.position.addScaledVector(fpsVelocity, delta);
     camera.position.y = Math.max(0.85, Math.min(14, camera.position.y));
@@ -1462,5 +1478,5 @@ window.addEventListener('resize', () => {
   camera.aspect = window.innerWidth / window.innerHeight;
   camera.updateProjectionMatrix();
   renderer.setSize(window.innerWidth, window.innerHeight);
-  labelRenderer.setSize(window.innerWidth, window.innerHeight);
+  labelRenderer.setSize(window.innerHeight ? window.innerWidth : 0, window.innerHeight);
 });
