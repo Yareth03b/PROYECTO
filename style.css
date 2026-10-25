@@ -338,3 +338,316 @@ body, html {
   box-shadow: 0 6px 18px rgba(0, 0, 0, 0.65);
   transform: translate(12px, 12px);
 }
+
+/* Open Console Action Button inside Inspector */
+.console-open-btn {
+  margin-top: 14px;
+  width: 100%;
+  background: #ffffff;
+  color: #09090b;
+  border: 1px solid #ffffff;
+  padding: 10px 16px;
+  border-radius: 999px;
+  font-size: 0.8rem;
+  font-weight: 800;
+  cursor: pointer;
+  transition: all 0.16s ease;
+}
+
+.console-open-btn:hover {
+  background: #e4e4e7;
+}
+
+/* Interactive Device Console Modal (Cisco Packet Tracer Style) */
+.device-modal-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 40;
+  background: rgba(0, 0, 0, 0.62);
+  backdrop-filter: blur(6px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+}
+
+.device-modal {
+  width: min(860px, 95vw);
+  max-height: 85vh;
+  background: #050507;
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  border-radius: 24px;
+  box-shadow: 0 22px 60px rgba(0, 0, 0, 0.85);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.device-modal-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 16px 22px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.device-modal-title-group {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.device-modal-title-group h3 {
+  font-size: 1rem;
+  font-weight: 800;
+  color: #ffffff;
+}
+
+.device-modal-tabs {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 22px;
+  background: #0a0a0e;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+  flex-wrap: wrap;
+}
+
+.modal-tab-btn {
+  background: #141417;
+  color: #d4d4d8;
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  padding: 7px 16px;
+  border-radius: 999px;
+  font-size: 0.78rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.modal-tab-btn:hover {
+  background: #1f2025;
+  color: #ffffff;
+}
+
+.modal-tab-btn.active {
+  background: #ffffff;
+  color: #09090b;
+  border-color: #ffffff;
+}
+
+.device-modal-body {
+  padding: 20px 22px;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+/* Packet Tracer Forms, Cards & Tables */
+.pt-grid-2 {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+  gap: 14px;
+}
+
+.pt-card {
+  background: #0d0d11;
+  border: 1px solid rgba(255, 255, 255, 0.09);
+  border-radius: 16px;
+  padding: 14px 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.pt-card-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.pt-card-title {
+  font-size: 0.84rem;
+  font-weight: 800;
+  color: #ffffff;
+  text-transform: uppercase;
+  letter-spacing: 0.4px;
+}
+
+.pt-form-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  font-size: 0.8rem;
+}
+
+.pt-form-row label {
+  color: #a1a1aa;
+  font-weight: 600;
+}
+
+.pt-input {
+  background: #141417;
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  color: #ffffff;
+  padding: 6px 12px;
+  border-radius: 999px;
+  font-family: 'Consolas', monospace;
+  font-size: 0.8rem;
+  width: 185px;
+  user-select: text;
+}
+
+.pt-input:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+.pt-pill-btn {
+  background: #141417;
+  color: #f4f4f5;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  padding: 6px 14px;
+  border-radius: 999px;
+  font-size: 0.76rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.14s ease;
+}
+
+.pt-pill-btn:hover {
+  background: #27272a;
+}
+
+.pt-pill-btn.active,
+.pt-pill-btn.primary {
+  background: #ffffff;
+  color: #09090b;
+  border-color: #ffffff;
+}
+
+.pt-status-pill {
+  display: inline-flex;
+  align-items: center;
+  padding: 3px 10px;
+  border-radius: 999px;
+  font-size: 0.7rem;
+  font-weight: 800;
+  background: #141417;
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  color: #ffffff;
+}
+
+.pt-status-pill.off {
+  color: #a1a1aa;
+  border-color: rgba(255, 255, 255, 0.06);
+}
+
+.pt-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.78rem;
+}
+
+.pt-table th,
+.pt-table td {
+  padding: 8px 10px;
+  text-align: left;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.pt-table th {
+  color: #a1a1aa;
+  font-weight: 700;
+  text-transform: uppercase;
+  font-size: 0.7rem;
+  letter-spacing: 0.4px;
+}
+
+.pt-table td {
+  color: #f4f4f5;
+  font-family: 'Consolas', monospace;
+}
+
+/* Terminal CLI / Command Prompt */
+.pt-terminal {
+  background: #08080a;
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  border-radius: 16px;
+  padding: 14px;
+  font-family: 'Consolas', monospace;
+  font-size: 0.8rem;
+  color: #e4e4e7;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.pt-terminal-output {
+  max-height: 240px;
+  min-height: 170px;
+  overflow-y: auto;
+  white-space: pre-wrap;
+  line-height: 1.45;
+  user-select: text;
+}
+
+.pt-terminal-input-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  border-top: 1px solid rgba(255, 255, 255, 0.1);
+  padding-top: 10px;
+}
+
+.pt-terminal-prompt {
+  color: #ffffff;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.pt-terminal-input {
+  flex: 1;
+  background: transparent;
+  border: none;
+  outline: none;
+  color: #ffffff;
+  font-family: 'Consolas', monospace;
+  font-size: 0.82rem;
+  user-select: text;
+}
+
+.pt-quick-cmds {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+/* GPS Map Canvas inside PC Web Browser Tab */
+.gps-browser-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  background: #141417;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  padding: 7px 14px;
+  border-radius: 999px;
+  font-family: 'Consolas', monospace;
+  font-size: 0.78rem;
+  color: #e4e4e7;
+}
+
+.gps-live-canvas {
+  width: 100%;
+  height: 200px;
+  background: #0a1420;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 14px;
+  display: block;
+}
+

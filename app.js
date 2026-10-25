@@ -1,7 +1,7 @@
 import * as THREE from 'three';
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
 import { CSS2DRenderer, CSS2DObject } from 'three/addons/renderers/CSS2DRenderer.js';
-import { EQUIPMENT_DATA } from './data.js';
+import { EQUIPMENT_DATA, NETWORK_SIM_STATE } from './data.js';
 
 // ============================================================================
 // 1. CONFIGURACIÓN ESCENA, CÁMARA Y RENDERERS
@@ -1638,7 +1638,7 @@ buildMonitoringOffice();
 buildStructuredCabling();
 
 // ============================================================================
-// 10. INTERACCIÓN CON EL MOUSE (RAYCASTER PARA INSPECCIONAR EQUIPOS)
+// 10. INTERACCIÓN CON EL MOUSE Y CONSOLA INTERACTIVA (ESTILO PACKET TRACER)
 // ============================================================================
 const raycaster = new THREE.Raycaster();
 const mouse = new THREE.Vector2();
@@ -1650,11 +1650,28 @@ const inspectorTitle = document.getElementById('inspector-title');
 const inspectorDesc = document.getElementById('inspector-desc');
 const inspectorSpecs = document.getElementById('inspector-specs');
 const inspectorPanel = document.getElementById('inspector-panel');
+const btnOpenConsole = document.getElementById('btn-open-console');
+
+const deviceModal = document.getElementById('device-modal');
+const modalDeviceBadge = document.getElementById('modal-device-badge');
+const modalDeviceTitle = document.getElementById('modal-device-title');
+const modalTabs = document.getElementById('modal-tabs');
+const modalBody = document.getElementById('modal-body');
+const btnCloseModal = document.getElementById('btn-close-modal');
+
+let activeInspectedKey = null;
+let isDeviceModalOpen = false;
+let activeGpsCanvas = null;
+
+function isConsoleSupported(dataKey) {
+  return Boolean(dataKey && dataKey !== 'structured_cabling');
+}
 
 function updateInspectorUI(dataKey) {
   const info = EQUIPMENT_DATA[dataKey];
   if (!info) return;
 
+  activeInspectedKey = dataKey;
   inspectorPanel.classList.remove('hidden');
   inspectorCategory.textContent = info.category;
   inspectorTitle.textContent = info.title;
@@ -1667,10 +1684,932 @@ function updateInspectorUI(dataKey) {
     row.innerHTML = `<span class="spec-label">${label}:</span><span class="spec-value">${val}</span>`;
     inspectorSpecs.appendChild(row);
   });
+
+  if (isConsoleSupported(dataKey)) {
+    btnOpenConsole.classList.remove('hidden');
+    if (dataKey.startsWith('pc_')) {
+      btnOpenConsole.textContent = 'Usar Monitor / Consola PC (Tecla F)';
+    } else if (['rack_main', 'server_gps', 'switch_core', 'router_gateway', 'patch_panel'].includes(dataKey)) {
+      btnOpenConsole.textContent = 'Configurar Servidor / Router / Switch (Tecla F)';
+    } else {
+      btnOpenConsole.textContent = 'Abrir Panel de Control (Tecla F)';
+    }
+  } else {
+    btnOpenConsole.classList.add('hidden');
+  }
 }
 
+// Verifica si un equipo tiene su puerto de switch UP
+function isDeviceLinkUp(dataKey) {
+  const portObj = NETWORK_SIM_STATE.switchPorts.find((p) => p.targetKey === dataKey);
+  return portObj ? portObj.up : true;
+}
+
+function resolveHostOrIp(target) {
+  const clean = target.trim().toLowerCase();
+  if (/^\d+\.\d+\.\d+\.\d+$/.test(clean)) {
+    return { ip: clean, resolvedByDns: false };
+  }
+  const serverPortUp = NETWORK_SIM_STATE.switchPorts.find((p) => p.port === 'Gi0/2')?.up ?? true;
+  if (!NETWORK_SIM_STATE.server.services.dns || !serverPortUp) {
+    return { ip: null, error: 'DNS_OFF' };
+  }
+  const rec = NETWORK_SIM_STATE.server.dnsRecords.find((r) => r.domain.toLowerCase() === clean);
+  if (rec) return { ip: rec.ip, resolvedByDns: true, domain: rec.domain };
+  return { ip: null, error: 'NXDOMAIN' };
+}
+
+function isIpReachableFromLan(targetIp) {
+  const srvUp = NETWORK_SIM_STATE.switchPorts.find((p) => p.port === 'Gi0/2')?.up ?? true;
+  const rtrUp = (NETWORK_SIM_STATE.switchPorts.find((p) => p.port === 'Gi0/1')?.up ?? true) && NETWORK_SIM_STATE.router.lanUp;
+
+  if (targetIp === NETWORK_SIM_STATE.server.ip && srvUp) return true;
+  if (targetIp === NETWORK_SIM_STATE.router.lanIp && rtrUp) return true;
+  if (targetIp === '192.168.20.2') return true;
+  if (targetIp === NETWORK_SIM_STATE.printer.ip && isDeviceLinkUp('printer_net')) return true;
+
+  for (const [k, pc] of Object.entries(NETWORK_SIM_STATE.pcs)) {
+    if (pc.ip === targetIp && isDeviceLinkUp(k)) return true;
+  }
+  return false;
+}
+
+// ============================================================================
+// RENDERIZADO DE PESTAÑAS PARA LAS 3 PCs (WEB GPS, IP CONFIG, CMD)
+// ============================================================================
+function renderPcWebTab(pcKey) {
+  activeGpsCanvas = null;
+  const pc = NETWORK_SIM_STATE.pcs[pcKey];
+  const linkUp = isDeviceLinkUp(pcKey);
+  const srvUp = NETWORK_SIM_STATE.switchPorts.find((p) => p.port === 'Gi0/2')?.up ?? true;
+  const httpUp = NETWORK_SIM_STATE.server.services.httpGps && NETWORK_SIM_STATE.server.services.postgres && srvUp;
+  const sameSubnet = pc.ip.startsWith('192.168.20.');
+
+  if (!linkUp || !sameSubnet || !httpUp) {
+    let reason = 'El servicio HTTP / API GPS o PostgreSQL está apagado en el Servidor Central (192.168.20.10).';
+    if (!linkUp) reason = `El puerto ${pc.switchPort} del Switch conectado a esta PC está administrativamente apagado (DOWN).`;
+    else if (!sameSubnet) reason = `La dirección IP actual (${pc.ip}) está fuera de la red LAN 192.168.20.0/24.`;
+
+    modalBody.innerHTML = `
+      <div class="gps-browser-bar">
+        <span>URL: http://gps.unab.edu.pe/dashboard</span>
+        <span class="pt-status-pill off">SIN CONEXIÓN</span>
+      </div>
+      <div class="pt-card">
+        <div class="pt-card-title">No se puede acceder a este sitio web (ERR_CONNECTION_REFUSED)</div>
+        <p style="font-size:0.82rem;color:#a1a1aa;line-height:1.5;">
+          <b>Diagnóstico de Red:</b> ${reason}<br/>
+          Ve a la pestaña <b>IP Configuration</b> de esta PC o abre la consola del <b>Rack Principal</b> para verificar los servicios <b>HTTP/GPS</b> y el estado de los puertos del Switch.
+        </p>
+      </div>
+    `;
+    return;
+  }
+
+  modalBody.innerHTML = `
+    <div class="gps-browser-bar">
+      <span>URL: http://gps.unab.edu.pe/dashboard (${NETWORK_SIM_STATE.server.ip}:443)</span>
+      <span class="pt-status-pill">CONECTADO EN TIEMPO REAL</span>
+    </div>
+    <canvas id="gps-live-canvas" class="gps-live-canvas" width="780" height="200"></canvas>
+    <div class="pt-card">
+      <div class="pt-card-header">
+        <span class="pt-card-title">Flota de Buses UNAB - Telemetría GPS Activa</span>
+        <button id="btn-print-fleet" class="pt-pill-btn primary">Imprimir Reporte en Epson (${NETWORK_SIM_STATE.printer.ip})</button>
+      </div>
+      <table class="pt-table">
+        <thead>
+          <tr>
+            <th>Unidad / Placa</th>
+            <th>Ruta Asignada</th>
+            <th>Velocidad</th>
+            <th>Ocupación</th>
+            <th>Estado</th>
+            <th>Acción de Despacho</th>
+          </tr>
+        </thead>
+        <tbody id="bus-fleet-tbody"></tbody>
+      </table>
+      <div id="print-feedback" style="font-size:0.78rem;color:#a1a1aa;"></div>
+    </div>
+  `;
+
+  activeGpsCanvas = document.getElementById('gps-live-canvas');
+  const tbody = document.getElementById('bus-fleet-tbody');
+
+  function refreshBusTable() {
+    tbody.innerHTML = '';
+    NETWORK_SIM_STATE.buses.forEach((b, idx) => {
+      const tr = document.createElement('tr');
+      const isMoving = b.status === 'EN RUTA';
+      tr.innerHTML = `
+        <td><b>${b.id}</b> (${b.plate})</td>
+        <td>${b.route}</td>
+        <td>${isMoving ? b.speed + ' km/h' : '0 km/h'}</td>
+        <td>${b.passengers}/${b.capacity} est.</td>
+        <td><span class="pt-status-pill ${isMoving ? '' : 'off'}">${b.status}</span></td>
+        <td>
+          <button class="pt-pill-btn" data-bus-idx="${idx}">
+            ${isMoving ? 'Detener en Paradero' : 'Despachar a Ruta'}
+          </button>
+        </td>
+      `;
+      tbody.appendChild(tr);
+    });
+
+    tbody.querySelectorAll('button[data-bus-idx]').forEach((btn) => {
+      btn.addEventListener('click', () => {
+        const i = Number(btn.getAttribute('data-bus-idx'));
+        const bus = NETWORK_SIM_STATE.buses[i];
+        if (bus.status === 'EN RUTA') {
+          bus.status = 'EN PARADERO';
+          bus.speed = 0;
+        } else {
+          bus.status = 'EN RUTA';
+          bus.speed = 45;
+        }
+        refreshBusTable();
+      });
+    });
+  }
+
+  refreshBusTable();
+
+  document.getElementById('btn-print-fleet').addEventListener('click', () => {
+    const feedback = document.getElementById('print-feedback');
+    if (!isDeviceLinkUp('printer_net')) {
+      feedback.textContent = 'Error de Impresión: El puerto Gi0/6 de la impresora en el Switch está apagado.';
+      return;
+    }
+    const now = new Date();
+    const timeStr = now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+    const nextId = 100 + NETWORK_SIM_STATE.printer.jobs.length + 1;
+    NETWORK_SIM_STATE.printer.jobs.unshift({
+      id: nextId,
+      doc: `Reporte_GPS_${pc.hostname}.pdf`,
+      user: pc.hostname,
+      pages: 2,
+      time: timeStr,
+      state: 'Impreso OK'
+    });
+    feedback.textContent = `Trabajo #${nextId} enviado por red (TCP 9100) a la Impresora Epson EcoTank (${NETWORK_SIM_STATE.printer.ip}).`;
+  });
+}
+
+function renderPcIpConfigTab(pcKey) {
+  activeGpsCanvas = null;
+  const pc = NETWORK_SIM_STATE.pcs[pcKey];
+  const isDhcp = pc.mode === 'DHCP';
+
+  modalBody.innerHTML = `
+    <div class="pt-card">
+      <div class="pt-card-header">
+        <span class="pt-card-title">Configuración de Interfaz FastEthernet0 (${pc.hostname})</span>
+        <div style="display:flex;gap:8px;">
+          <button id="btn-mode-dhcp" class="pt-pill-btn ${isDhcp ? 'active' : ''}">DHCP</button>
+          <button id="btn-mode-static" class="pt-pill-btn ${!isDhcp ? 'active' : ''}">Static</button>
+        </div>
+      </div>
+      <div class="pt-grid-2">
+        <div class="pt-form-row">
+          <label>IPv4 Address:</label>
+          <input id="inp-pc-ip" class="pt-input" value="${pc.ip}" ${isDhcp ? 'disabled' : ''} />
+        </div>
+        <div class="pt-form-row">
+          <label>Subnet Mask:</label>
+          <input id="inp-pc-mask" class="pt-input" value="${pc.mask}" ${isDhcp ? 'disabled' : ''} />
+        </div>
+        <div class="pt-form-row">
+          <label>Default Gateway:</label>
+          <input id="inp-pc-gw" class="pt-input" value="${pc.gateway}" ${isDhcp ? 'disabled' : ''} />
+        </div>
+        <div class="pt-form-row">
+          <label>DNS Server:</label>
+          <input id="inp-pc-dns" class="pt-input" value="${pc.dns}" ${isDhcp ? 'disabled' : ''} />
+        </div>
+      </div>
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-top:6px;">
+        <span id="ip-status-msg" style="font-size:0.78rem;color:#a1a1aa;">
+          Dirección MAC: ${pc.mac} &bull; Puerto Switch: ${pc.switchPort}
+        </span>
+        <button id="btn-save-ip" class="pt-pill-btn primary">Aplicar Configuración IP</button>
+      </div>
+    </div>
+  `;
+
+  const statusMsg = document.getElementById('ip-status-msg');
+
+  document.getElementById('btn-mode-dhcp').addEventListener('click', () => {
+    pc.mode = 'DHCP';
+    const srvUp = NETWORK_SIM_STATE.switchPorts.find((p) => p.port === 'Gi0/2')?.up ?? true;
+    if (NETWORK_SIM_STATE.server.services.dhcp && srvUp && isDeviceLinkUp(pcKey)) {
+      const hostNum = pcKey === 'pc_monitor_1' ? 101 : pcKey === 'pc_monitor_2' ? 102 : 103;
+      pc.ip = `192.168.20.${hostNum}`;
+      pc.mask = NETWORK_SIM_STATE.server.dhcpConfig.subnetMask;
+      pc.gateway = NETWORK_SIM_STATE.server.dhcpConfig.defaultGateway;
+      pc.dns = NETWORK_SIM_STATE.server.dhcpConfig.dnsServer;
+      syncPcSpecsToData(pcKey);
+      renderPcIpConfigTab(pcKey);
+      document.getElementById('ip-status-msg').textContent = 'DHCP request successful (Asignado por 192.168.20.10).';
+    } else {
+      pc.ip = `169.254.${Math.floor(Math.random() * 200 + 10)}.${Math.floor(Math.random() * 200 + 10)}`;
+      pc.mask = '255.255.0.0';
+      pc.gateway = '0.0.0.0';
+      syncPcSpecsToData(pcKey);
+      renderPcIpConfigTab(pcKey);
+      document.getElementById('ip-status-msg').textContent = 'DHCP failed. APIPA is being used (Verifica el servicio DHCP del Servidor).';
+    }
+  });
+
+  document.getElementById('btn-mode-static').addEventListener('click', () => {
+    pc.mode = 'Static';
+    renderPcIpConfigTab(pcKey);
+  });
+
+  document.getElementById('btn-save-ip').addEventListener('click', () => {
+    if (pc.mode === 'Static') {
+      pc.ip = document.getElementById('inp-pc-ip').value.trim();
+      pc.mask = document.getElementById('inp-pc-mask').value.trim();
+      pc.gateway = document.getElementById('inp-pc-gw').value.trim();
+      pc.dns = document.getElementById('inp-pc-dns').value.trim();
+    }
+    syncPcSpecsToData(pcKey);
+    statusMsg.textContent = `Configuración guardada: ${pc.ip} / ${pc.mask}`;
+  });
+}
+
+function syncPcSpecsToData(pcKey) {
+  const pc = NETWORK_SIM_STATE.pcs[pcKey];
+  if (EQUIPMENT_DATA[pcKey]) {
+    EQUIPMENT_DATA[pcKey].specs['Dirección IP'] = `${pc.ip} (${pc.mode})`;
+    EQUIPMENT_DATA[pcKey].specs['Máscara / Gateway'] = `${pc.mask} / ${pc.gateway}`;
+    if (activeInspectedKey === pcKey) updateInspectorUI(pcKey);
+  }
+}
+
+function renderPcCmdTab(pcKey) {
+  activeGpsCanvas = null;
+  const pc = NETWORK_SIM_STATE.pcs[pcKey];
+
+  modalBody.innerHTML = `
+    <div class="pt-quick-cmds">
+      <button class="pt-pill-btn" data-cmd="ipconfig /all">ipconfig /all</button>
+      <button class="pt-pill-btn" data-cmd="ping 192.168.20.10">ping Servidor (192.168.20.10)</button>
+      <button class="pt-pill-btn" data-cmd="ping gps.unab.edu.pe">ping gps.unab.edu.pe</button>
+      <button class="pt-pill-btn" data-cmd="ping 192.168.20.1">ping Gateway (192.168.20.1)</button>
+      <button class="pt-pill-btn" data-cmd="ping 192.168.20.200">ping Impresora (192.168.20.200)</button>
+      <button class="pt-pill-btn" data-cmd="arp -a">arp -a</button>
+      <button class="pt-pill-btn" data-cmd="cls">cls</button>
+    </div>
+    <div class="pt-terminal">
+      <div id="cmd-output" class="pt-terminal-output">UNAB Windows Command Processor [Versión 10.0.22631]
+Estación: ${pc.hostname} (${pc.ip})
+Escribe "help" o usa los botones superiores para ejecutar pruebas de red.
+</div>
+      <div class="pt-terminal-input-row">
+        <span class="pt-terminal-prompt">C:\\Users\\${pc.hostname}&gt;</span>
+        <input id="cmd-input" class="pt-terminal-input" placeholder="Escribe un comando (ej. ping 192.168.20.10, ipconfig, arp -a)..." autocomplete="off" />
+      </div>
+    </div>
+  `;
+
+  const out = document.getElementById('cmd-output');
+  const inp = document.getElementById('cmd-input');
+  inp.focus();
+
+  function appendLine(text) {
+    out.textContent += `\n${text}\n`;
+    out.scrollTop = out.scrollHeight;
+  }
+
+  function runCommand(raw) {
+    const cmdLine = raw.trim();
+    if (!cmdLine) return;
+    out.textContent += `\nC:\\Users\\${pc.hostname}> ${cmdLine}`;
+
+    const parts = cmdLine.split(/\s+/);
+    const cmd = parts[0].toLowerCase();
+    const arg = parts[1] || '';
+
+    if (cmd === 'cls' || cmd === 'clear') {
+      out.textContent = '';
+      return;
+    }
+    if (cmd === 'help') {
+      appendLine(
+        `Comandos disponibles:\n  ipconfig [/all]         Muestra la configuración IPv4, MAC y DNS\n  ping <ip|dominio>       Envía 4 paquetes ICMP Echo Request\n  nslookup <dominio>      Consulta el servidor DNS (192.168.20.10)\n  tracert <ip>            Traza la ruta hacia el destino\n  arp -a                  Muestra la tabla ARP de la interfaz\n  cls                     Limpia la pantalla`
+      );
+      return;
+    }
+    if (cmd === 'ipconfig') {
+      appendLine(
+        `Configuración IP de Windows (${pc.hostname})\n\nAdaptador de Ethernet FastEthernet0:\n   Estado del enlace . . . . . . . : ${isDeviceLinkUp(pcKey) ? 'Conectado (1 Gbps)' : 'Medios desconectados'}\n   Modo de asignación. . . . . . . : ${pc.mode}\n   Dirección física (MAC). . . . . : ${pc.mac}\n   Dirección IPv4. . . . . . . . . : ${pc.ip}\n   Máscara de subred . . . . . . . : ${pc.mask}\n   Puerta de enlace predeterminada : ${pc.gateway}\n   Servidor DNS. . . . . . . . . . : ${pc.dns}`
+      );
+      return;
+    }
+    if (cmd === 'arp') {
+      appendLine(
+        `Interfaz: ${pc.ip} --- 0x1\n  Dirección de Internet    Dirección física      Tipo\n  192.168.20.1             00-90-2b-a1-10-01     dinámico\n  192.168.20.10            00-e0-4c-68-20-10     dinámico\n  192.168.20.200           00-26-ab-7c-40-99     dinámico`
+      );
+      return;
+    }
+    if (cmd === 'nslookup') {
+      if (!arg) {
+        appendLine('Uso: nslookup <dominio> (ej. nslookup gps.unab.edu.pe)');
+        return;
+      }
+      const res = resolveHostOrIp(arg);
+      if (res.ip) {
+        appendLine(`Servidor:  srv-buses-unab.local\nAddress:  ${pc.dns}\n\nNombre:    ${arg}\nAddress:   ${res.ip}`);
+      } else if (res.error === 'DNS_OFF') {
+        appendLine(`DNS request timed out.\n*** El servicio DNS en ${pc.dns} está inactivo.`);
+      } else {
+        appendLine(`*** ${pc.dns} no encuentra ${arg}: Non-existent domain.`);
+      }
+      return;
+    }
+    if (cmd === 'ping' || cmd === 'tracert') {
+      if (!arg) {
+        appendLine(`Uso: ${cmd} <dirección IP o nombre de dominio>`);
+        return;
+      }
+      if (!isDeviceLinkUp(pcKey)) {
+        appendLine(`PING: fallo en la transmisión. El puerto ${pc.switchPort} del Switch está apagado (DOWN).`);
+        return;
+      }
+      const res = resolveHostOrIp(arg);
+      if (!res.ip) {
+        appendLine(
+          res.error === 'DNS_OFF'
+            ? `La solicitud de ping no pudo encontrar el host ${arg}. El servidor DNS (192.168.20.10) está apagado.`
+            : `La solicitud de ping no pudo encontrar el host ${arg}. Compruebe el nombre.`
+        );
+        return;
+      }
+      const sameLan = pc.ip.startsWith('192.168.20.') && res.ip.startsWith('192.168.20.');
+      const ok = sameLan && isIpReachableFromLan(res.ip);
+      if (cmd === 'tracert') {
+        appendLine(
+          ok
+            ? `Traza a la dirección ${arg} [${res.ip}] sobre un máximo de 30 saltos:\n  1    <1 ms    <1 ms    <1 ms  ${res.ip}\nTraza completa.`
+            : `Traza a la dirección ${arg} [${res.ip}]:\n  1     *        *        *     Tiempo de espera agotado para esta solicitud.`
+        );
+        return;
+      }
+      if (ok) {
+        appendLine(
+          `Haciendo ping a ${arg} [${res.ip}] con 32 bytes de datos:\nRespuesta desde ${res.ip}: bytes=32 tiempo<1m TTL=64\nRespuesta desde ${res.ip}: bytes=32 tiempo=1ms TTL=64\nRespuesta desde ${res.ip}: bytes=32 tiempo<1m TTL=64\nRespuesta desde ${res.ip}: bytes=32 tiempo=1ms TTL=64\n\nEstadísticas de ping para ${res.ip}:\n    Paquetes: enviados = 4, recibidos = 4, perdidos = 0 (0% perdidos)`
+        );
+      } else {
+        appendLine(
+          `Haciendo ping a ${arg} [${res.ip}] con 32 bytes de datos:\nTiempo de espera agotado para esta solicitud.\nTiempo de espera agotado para esta solicitud.\n\nEstadísticas de ping para ${res.ip}:\n    Paquetes: enviados = 4, recibidos = 0, perdidos = 4 (100% perdidos)`
+        );
+      }
+      return;
+    }
+
+    appendLine(`"${cmd}" no se reconoce como un comando interno o externo. Escribe "help".`);
+  }
+
+  inp.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter') {
+      runCommand(inp.value);
+      inp.value = '';
+    }
+  });
+
+  modalBody.querySelectorAll('button[data-cmd]').forEach((btn) => {
+    btn.addEventListener('click', () => {
+      runCommand(btn.getAttribute('data-cmd'));
+      inp.focus();
+    });
+  });
+}
+
+// ============================================================================
+// RENDERIZADO DE PESTAÑAS PARA EL RACK (SERVIDOR, ROUTER, SWITCH, CLI)
+// ============================================================================
+function renderServerServicesTab() {
+  activeGpsCanvas = null;
+  const srv = NETWORK_SIM_STATE.server;
+  const dhcp = srv.dhcpConfig;
+
+  modalBody.innerHTML = `
+    <div class="pt-grid-2">
+      <div class="pt-card">
+        <div class="pt-card-header">
+          <span class="pt-card-title">Servicios Activos (${srv.hostname} - ${srv.ip})</span>
+        </div>
+        <div class="pt-form-row">
+          <label>HTTP / API REST GPS (Puerto 80/443):</label>
+          <button class="pt-pill-btn ${srv.services.httpGps ? 'active' : ''}" data-srv-toggle="httpGps">
+            ${srv.services.httpGps ? 'ON (Activo)' : 'OFF (Inactivo)'}
+          </button>
+        </div>
+        <div class="pt-form-row">
+          <label>Motor Base de Datos PostgreSQL (5432):</label>
+          <button class="pt-pill-btn ${srv.services.postgres ? 'active' : ''}" data-srv-toggle="postgres">
+            ${srv.services.postgres ? 'ON (Activo)' : 'OFF (Inactivo)'}
+          </button>
+        </div>
+        <div class="pt-form-row">
+          <label>Servicio DHCP Server (UDP 67/68):</label>
+          <button class="pt-pill-btn ${srv.services.dhcp ? 'active' : ''}" data-srv-toggle="dhcp">
+            ${srv.services.dhcp ? 'ON (Activo)' : 'OFF (Inactivo)'}
+          </button>
+        </div>
+        <div class="pt-form-row">
+          <label>Servicio DNS Server (UDP/TCP 53):</label>
+          <button class="pt-pill-btn ${srv.services.dns ? 'active' : ''}" data-srv-toggle="dns">
+            ${srv.services.dns ? 'ON (Activo)' : 'OFF (Inactivo)'}
+          </button>
+        </div>
+      </div>
+
+      <div class="pt-card">
+        <div class="pt-card-header">
+          <span class="pt-card-title">Configuración Pool DHCP (${dhcp.poolName})</span>
+        </div>
+        <div class="pt-form-row">
+          <label>Default Gateway:</label>
+          <input id="inp-dhcp-gw" class="pt-input" value="${dhcp.defaultGateway}" />
+        </div>
+        <div class="pt-form-row">
+          <label>DNS Server:</label>
+          <input id="inp-dhcp-dns" class="pt-input" value="${dhcp.dnsServer}" />
+        </div>
+        <div class="pt-form-row">
+          <label>Start IP Address:</label>
+          <input id="inp-dhcp-start" class="pt-input" value="${dhcp.startIp}" />
+        </div>
+        <div class="pt-form-row">
+          <label>Subnet Mask:</label>
+          <input id="inp-dhcp-mask" class="pt-input" value="${dhcp.subnetMask}" />
+        </div>
+        <button id="btn-save-dhcp" class="pt-pill-btn primary">Guardar Pool DHCP</button>
+      </div>
+    </div>
+
+    <div class="pt-card">
+      <div class="pt-card-header">
+        <span class="pt-card-title">Tabla de Registros DNS (Zona Directa UNAB)</span>
+        <div style="display:flex;gap:6px;flex-wrap:wrap;">
+          <input id="inp-dns-domain" class="pt-input" placeholder="dominio.unab.local" style="width:165px;" />
+          <input id="inp-dns-ip" class="pt-input" placeholder="192.168.20.X" style="width:135px;" />
+          <button id="btn-add-dns" class="pt-pill-btn primary">+ Añadir Registro A</button>
+        </div>
+      </div>
+      <table class="pt-table">
+        <thead>
+          <tr><th>Nombre de Dominio</th><th>Tipo</th><th>Dirección IPv4</th><th>Acción</th></tr>
+        </thead>
+        <tbody id="dns-records-tbody"></tbody>
+      </table>
+    </div>
+  `;
+
+  modalBody.querySelectorAll('button[data-srv-toggle]').forEach((btn) => {
+    btn.addEventListener('click', () => {
+      const k = btn.getAttribute('data-srv-toggle');
+      srv.services[k] = !srv.services[k];
+      renderServerServicesTab();
+    });
+  });
+
+  document.getElementById('btn-save-dhcp').addEventListener('click', (e) => {
+    dhcp.defaultGateway = document.getElementById('inp-dhcp-gw').value.trim();
+    dhcp.dnsServer = document.getElementById('inp-dhcp-dns').value.trim();
+    dhcp.startIp = document.getElementById('inp-dhcp-start').value.trim();
+    dhcp.subnetMask = document.getElementById('inp-dhcp-mask').value.trim();
+    e.target.textContent = 'Pool DHCP Actualizado';
+  });
+
+  const dnsTbody = document.getElementById('dns-records-tbody');
+  srv.dnsRecords.forEach((rec, idx) => {
+    const tr = document.createElement('tr');
+    tr.innerHTML = `
+      <td>${rec.domain}</td>
+      <td>${rec.type}</td>
+      <td>${rec.ip}</td>
+      <td><button class="pt-pill-btn" data-del-dns="${idx}">Eliminar</button></td>
+    `;
+    dnsTbody.appendChild(tr);
+  });
+
+  dnsTbody.querySelectorAll('button[data-del-dns]').forEach((btn) => {
+    btn.addEventListener('click', () => {
+      srv.dnsRecords.splice(Number(btn.getAttribute('data-del-dns')), 1);
+      renderServerServicesTab();
+    });
+  });
+
+  document.getElementById('btn-add-dns').addEventListener('click', () => {
+    const dom = document.getElementById('inp-dns-domain').value.trim();
+    const ip = document.getElementById('inp-dns-ip').value.trim();
+    if (dom && ip) {
+      srv.dnsRecords.push({ domain: dom, type: 'A', ip });
+      renderServerServicesTab();
+    }
+  });
+}
+
+function renderRouterConfigTab() {
+  activeGpsCanvas = null;
+  const rtr = NETWORK_SIM_STATE.router;
+
+  modalBody.innerHTML = `
+    <div class="pt-grid-2">
+      <div class="pt-card">
+        <div class="pt-card-header">
+          <span class="pt-card-title">Interfaz GigabitEthernet0/0 (WAN Fibra UNAB)</span>
+          <button id="btn-toggle-wan" class="pt-pill-btn ${rtr.wanUp ? 'active' : ''}">
+            Port Status: ${rtr.wanUp ? 'ON' : 'OFF'}
+          </button>
+        </div>
+        <div class="pt-form-row">
+          <label>IPv4 Address:</label>
+          <input id="inp-rtr-wan-ip" class="pt-input" value="${rtr.wanIp}" />
+        </div>
+        <div class="pt-form-row">
+          <label>Subnet Mask:</label>
+          <input id="inp-rtr-wan-mask" class="pt-input" value="${rtr.wanMask}" />
+        </div>
+      </div>
+
+      <div class="pt-card">
+        <div class="pt-card-header">
+          <span class="pt-card-title">Interfaz GigabitEthernet0/1 (Gateway LAN)</span>
+          <button id="btn-toggle-lan" class="pt-pill-btn ${rtr.lanUp ? 'active' : ''}">
+            Port Status: ${rtr.lanUp ? 'ON' : 'OFF'}
+          </button>
+        </div>
+        <div class="pt-form-row">
+          <label>IPv4 Gateway:</label>
+          <input id="inp-rtr-lan-ip" class="pt-input" value="${rtr.lanIp}" />
+        </div>
+        <div class="pt-form-row">
+          <label>Subnet Mask:</label>
+          <input id="inp-rtr-lan-mask" class="pt-input" value="${rtr.lanMask}" />
+        </div>
+      </div>
+    </div>
+
+    <div class="pt-card">
+      <div class="pt-card-header">
+        <span class="pt-card-title">Reglas de NAT / Port Forwarding (Telemetría 4G Buses UNAB)</span>
+        <button id="btn-save-rtr" class="pt-pill-btn primary">Guardar Cambios Router</button>
+      </div>
+      <table class="pt-table">
+        <thead>
+          <tr><th>Protocolo</th><th>Puerto Externo WAN</th><th>IP Interna Destino</th><th>Puerto Interno</th><th>Descripción</th></tr>
+        </thead>
+        <tbody>
+          <tr><td>UDP / TCP</td><td>5055</td><td>${NETWORK_SIM_STATE.server.ip}</td><td>5055</td><td>Tramas GPS Buses UNAB (Traccar Protocol)</td></tr>
+          <tr><td>TCP</td><td>443</td><td>${NETWORK_SIM_STATE.server.ip}</td><td>443</td><td>API HTTPS App Estudiantes UNAB</td></tr>
+        </tbody>
+      </table>
+    </div>
+  `;
+
+  document.getElementById('btn-toggle-wan').addEventListener('click', () => {
+    rtr.wanUp = !rtr.wanUp;
+    renderRouterConfigTab();
+  });
+  document.getElementById('btn-toggle-lan').addEventListener('click', () => {
+    rtr.lanUp = !rtr.lanUp;
+    renderRouterConfigTab();
+  });
+  document.getElementById('btn-save-rtr').addEventListener('click', (e) => {
+    rtr.wanIp = document.getElementById('inp-rtr-wan-ip').value.trim();
+    rtr.wanMask = document.getElementById('inp-rtr-wan-mask').value.trim();
+    rtr.lanIp = document.getElementById('inp-rtr-lan-ip').value.trim();
+    rtr.lanMask = document.getElementById('inp-rtr-lan-mask').value.trim();
+    e.target.textContent = 'Configuración Aplicada';
+  });
+}
+
+function renderSwitchPortsTab() {
+  activeGpsCanvas = null;
+
+  modalBody.innerHTML = `
+    <div class="pt-card">
+      <div class="pt-card-header">
+        <span class="pt-card-title">Switch Administrable 24 Puertos (192.168.20.2) & Patch Panel Cat6A</span>
+        <span class="pt-status-pill">IEEE 802.1Q VLANs Activas</span>
+      </div>
+      <table class="pt-table">
+        <thead>
+          <tr>
+            <th>Puerto Switch</th>
+            <th>Equipo Conectado</th>
+            <th>VLAN Asignada</th>
+            <th>Dirección IP</th>
+            <th>Estado Enlace</th>
+            <th>Control</th>
+          </tr>
+        </thead>
+        <tbody id="sw-ports-tbody"></tbody>
+      </table>
+    </div>
+  `;
+
+  const tbody = document.getElementById('sw-ports-tbody');
+  NETWORK_SIM_STATE.switchPorts.forEach((sp, idx) => {
+    const tr = document.createElement('tr');
+    tr.innerHTML = `
+      <td><b>${sp.port}</b></td>
+      <td>${sp.device}</td>
+      <td>${sp.vlan}</td>
+      <td>${sp.ip}</td>
+      <td><span class="pt-status-pill ${sp.up ? '' : 'off'}">${sp.up ? 'UP (1000Mbps)' : 'DOWN (Shutdown)'}</span></td>
+      <td>
+        <button class="pt-pill-btn ${sp.up ? 'active' : ''}" data-port-idx="${idx}">
+          ${sp.up ? 'Apagar Puerto' : 'Encender Puerto'}
+        </button>
+      </td>
+    `;
+    tbody.appendChild(tr);
+  });
+
+  tbody.querySelectorAll('button[data-port-idx]').forEach((btn) => {
+    btn.addEventListener('click', () => {
+      const idx = Number(btn.getAttribute('data-port-idx'));
+      NETWORK_SIM_STATE.switchPorts[idx].up = !NETWORK_SIM_STATE.switchPorts[idx].up;
+      renderSwitchPortsTab();
+    });
+  });
+}
+
+function renderRackCliTab() {
+  activeGpsCanvas = null;
+  const rtr = NETWORK_SIM_STATE.router;
+
+  modalBody.innerHTML = `
+    <div class="pt-quick-cmds">
+      <button class="pt-pill-btn" data-cli="show ip interface brief">show ip interface brief</button>
+      <button class="pt-pill-btn" data-cli="show vlan brief">show vlan brief</button>
+      <button class="pt-pill-btn" data-cli="show running-config">show running-config</button>
+      <button class="pt-pill-btn" data-cli="show ip route">show ip route</button>
+      <button class="pt-pill-btn" data-cli="show ip dhcp binding">show ip dhcp binding</button>
+      <button class="pt-pill-btn" data-cli="clear">clear</button>
+    </div>
+    <div class="pt-terminal">
+      <div id="cli-output" class="pt-terminal-output">Cisco IOS Software, UNAB-Transporte Router/Switch Core (Version 15.6(3)M)
+Copyright (c) Cisco Systems, Inc.
+Presiona un botón rápido o escribe "help" para ver los comandos de administración.
+</div>
+      <div class="pt-terminal-input-row">
+        <span class="pt-terminal-prompt">${rtr.hostname}#</span>
+        <input id="cli-input" class="pt-terminal-input" placeholder="Escribe comando IOS (ej. show ip interface brief, show vlan brief)..." autocomplete="off" />
+      </div>
+    </div>
+  `;
+
+  const out = document.getElementById('cli-output');
+  const inp = document.getElementById('cli-input');
+  inp.focus();
+
+  function runIosCommand(raw) {
+    const cmd = raw.trim().toLowerCase();
+    if (!cmd) return;
+    out.textContent += `\n${rtr.hostname}# ${raw.trim()}\n`;
+
+    if (cmd === 'clear' || cmd === 'cls') {
+      out.textContent = '';
+      return;
+    }
+    if (cmd === 'help' || cmd === '?') {
+      out.textContent += `Comandos EXEC privilegiados:\n  show ip interface brief    Estado de interfaces del Router y Switch\n  show vlan brief            Tabla de VLANs configuradas en el Switch\n  show running-config        Configuración activa en memoria RAM\n  show ip route              Tabla de enrutamiento IPv4\n  show ip dhcp binding       Asignaciones de IPs del pool DHCP\n  clear                      Limpia la terminal\n`;
+    } else if (cmd.includes('interface brief')) {
+      const rows = NETWORK_SIM_STATE.switchPorts
+        .map((p) => `${p.port.padEnd(22)}${p.ip.padEnd(17)}YES manual ${(p.up ? 'up' : 'administratively down').padEnd(22)}${p.up ? 'up' : 'down'}`)
+        .join('\n');
+      out.textContent += `Interface             IP-Address       OK? Method Status                Protocol\nGigabitEthernet0/0    ${rtr.wanIp.padEnd(17)}YES NVRAM  ${(rtr.wanUp ? 'up' : 'down').padEnd(22)}${rtr.wanUp ? 'up' : 'down'}\nGigabitEthernet0/1    ${rtr.lanIp.padEnd(17)}YES NVRAM  ${(rtr.lanUp ? 'up' : 'down').padEnd(22)}${rtr.lanUp ? 'up' : 'down'}\n${rows}\n`;
+    } else if (cmd.includes('vlan')) {
+      out.textContent += `VLAN Name                             Status    Ports\n---- -------------------------------- --------- -------------------------------\n1    default                          active    Gi0/7-24\n10   SERVIDORES_TRANSPORTE            active    Gi0/1, Gi0/2\n20   MONITOREO_GPS_BUSES              active    Gi0/3, Gi0/4, Gi0/6\n30   GESTION_RED_TI                   active    Gi0/5\n`;
+    } else if (cmd.includes('running-config')) {
+      out.textContent += `Building configuration...\nCurrent configuration : 1482 bytes\n!\nhostname ${rtr.hostname}\n!\nip dhcp pool ${NETWORK_SIM_STATE.server.dhcpConfig.poolName}\n network 192.168.20.0 255.255.255.0\n default-router ${rtr.lanIp}\n dns-server ${NETWORK_SIM_STATE.server.ip}\n!\ninterface GigabitEthernet0/0\n description ENLACE_WAN_FIBRA_UNAB\n ip address ${rtr.wanIp} ${rtr.wanMask}\n ip nat outside\n!\ninterface GigabitEthernet0/1\n description LAN_AREA_TRANSPORTE\n ip address ${rtr.lanIp} ${rtr.lanMask}\n ip nat inside\n!\nip nat inside source static udp ${NETWORK_SIM_STATE.server.ip} 5055 interface GigabitEthernet0/0 5055\n!\nend\n`;
+    } else if (cmd.includes('route')) {
+      out.textContent += `Codes: C - connected, S - static, O - OSPF, * - candidate default\n\nGateway of last resort is ${rtr.wanIp} to network 0.0.0.0\n\nC    192.168.20.0/24 is directly connected, GigabitEthernet0/1\nC    200.48.225.12/30 is directly connected, GigabitEthernet0/0\nS*   0.0.0.0/0 [1/0] via 200.48.225.13\n`;
+    } else if (cmd.includes('dhcp')) {
+      const pcs = Object.values(NETWORK_SIM_STATE.pcs);
+      out.textContent += `IP address       Client-ID/Hardware address   Lease expiration        Type\n` +
+        pcs.map((p) => `${p.ip.padEnd(17)}${p.mac.padEnd(29)}Infinite                ${p.mode}`).join('\n') + '\n';
+    } else {
+      out.textContent += `% Invalid input detected. Type "help" for available commands.\n`;
+    }
+    out.scrollTop = out.scrollHeight;
+  }
+
+  inp.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter') {
+      runIosCommand(inp.value);
+      inp.value = '';
+    }
+  });
+
+  modalBody.querySelectorAll('button[data-cli]').forEach((btn) => {
+    btn.addEventListener('click', () => {
+      runIosCommand(btn.getAttribute('data-cli'));
+      inp.focus();
+    });
+  });
+}
+
+// ============================================================================
+// RENDERIZADO PARA IMPRESORA EPSON, UPS 220V Y AIRE ACONDICIONADO CRAC
+// ============================================================================
+function renderPrinterConsole() {
+  activeGpsCanvas = null;
+  const prn = NETWORK_SIM_STATE.printer;
+
+  modalBody.innerHTML = `
+    <div class="pt-grid-2">
+      <div class="pt-card">
+        <div class="pt-card-header">
+          <span class="pt-card-title">Parámetros TCP/IP Epson EcoTank</span>
+          <span class="pt-status-pill">${isDeviceLinkUp('printer_net') ? 'ONLINE (9100)' : 'OFFLINE'}</span>
+        </div>
+        <div class="pt-form-row"><label>IPv4 Estática:</label><input id="inp-prn-ip" class="pt-input" value="${prn.ip}" /></div>
+        <div class="pt-form-row"><label>Máscara Subred:</label><input class="pt-input" value="${prn.mask}" disabled /></div>
+        <div class="pt-form-row"><label>Gateway:</label><input class="pt-input" value="${prn.gateway}" disabled /></div>
+        <button id="btn-save-prn" class="pt-pill-btn primary">Actualizar IP Impresora</button>
+      </div>
+      <div class="pt-card">
+        <div class="pt-card-header">
+          <span class="pt-card-title">Niveles de Tinta Sistema EcoTank</span>
+          <button id="btn-test-print" class="pt-pill-btn primary">Imprimir Página de Prueba</button>
+        </div>
+        <div class="pt-form-row"><label> Negro (BK 504):</label><span>${prn.ink.bk}%</span></div>
+        <div class="pt-form-row"><label> Cian (C 504):</label><span>${prn.ink.c}%</span></div>
+        <div class="pt-form-row"><label> Magenta (M 504):</label><span>${prn.ink.m}%</span></div>
+        <div class="pt-form-row"><label> Amarillo (Y 504):</label><span>${prn.ink.y}%</span></div>
+      </div>
+    </div>
+    <div class="pt-card">
+      <span class="pt-card-title">Cola de Impresión de Red ( Trabajos Recibidos desde Estaciones UNAB )</span>
+      <table class="pt-table">
+        <thead><tr><th>ID</th><th>Documento</th><th>Estación Origen</th><th>Páginas</th><th>Hora</th><th>Estado</th></tr></thead>
+        <tbody>
+          ${prn.jobs.map((j) => `<tr><td>#${j.id}</td><td>${j.doc}</td><td>${j.user}</td><td>${j.pages}</td><td>${j.time}</td><td><span class="pt-status-pill">${j.state}</span></td></tr>`).join('')}
+        </tbody>
+      </table>
+    </div>
+  `;
+
+  document.getElementById('btn-save-prn').addEventListener('click', () => {
+    prn.ip = document.getElementById('inp-prn-ip').value.trim();
+    EQUIPMENT_DATA.printer_net.specs['Dirección IP'] = `${prn.ip} (IP Estática)`;
+    if (activeInspectedKey === 'printer_net') updateInspectorUI('printer_net');
+  });
+
+  document.getElementById('btn-test-print').addEventListener('click', () => {
+    const now = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+    prn.jobs.unshift({
+      id: 100 + prn.jobs.length + 1,
+      doc: 'Test_Diagnostico_Red_Epson.pdf',
+      user: 'Panel Local',
+      pages: 1,
+      time: now,
+      state: 'Impreso OK'
+    });
+    renderPrinterConsole();
+  });
+}
+
+function renderPowerAndClimateConsole(dataKey) {
+  activeGpsCanvas = null;
+  if (dataKey === 'ups_power') {
+    const ups = NETWORK_SIM_STATE.ups;
+    const onBattery = ups.inputVoltage === 0;
+    modalBody.innerHTML = `
+      <div class="pt-card">
+        <div class="pt-card-header">
+          <span class="pt-card-title">Sistema UPS Online Doble Conversión 3000VA (3 Módulos)</span>
+          <button id="btn-sim-blackout" class="pt-pill-btn primary">
+            ${onBattery ? 'Restaurar Energía Comercial AC (220V)' : 'Simular Corte Eléctrico en Campus'}
+          </button>
+        </div>
+        <div class="pt-grid-2">
+          <div class="pt-form-row"><label>Modo de Operación:</label><span>${ups.mode}</span></div>
+          <div class="pt-form-row"><label>Voltaje Entrada AC:</label><span>${ups.inputVoltage} V</span></div>
+          <div class="pt-form-row"><label>Voltaje Salida Regulado:</label><span>${ups.outputVoltage} V / 60 Hz</span></div>
+          <div class="pt-form-row"><label>Carga del Rack Principal:</label><span>${ups.loadPercent}% (918 W)</span></div>
+          <div class="pt-form-row"><label>Nivel Banco de Baterías:</label><span>${ups.batteryPercent}%</span></div>
+        </div>
+      </div>
+    `;
+    document.getElementById('btn-sim-blackout').addEventListener('click', () => {
+      if (ups.inputVoltage > 0) {
+        ups.inputVoltage = 0;
+        ups.mode = 'Respaldo Batería Online (Inversor 220V Activo)';
+        ups.batteryPercent = 96;
+      } else {
+        ups.inputVoltage = 220;
+        ups.mode = 'AC Normal (Doble Conversión)';
+        ups.batteryPercent = 100;
+      }
+      renderPowerAndClimateConsole('ups_power');
+    });
+  } else {
+    const crac = NETWORK_SIM_STATE.crac;
+    modalBody.innerHTML = `
+      <div class="pt-card">
+        <div class="pt-card-header">
+          <span class="pt-card-title">Climatizador de Precisión EDApower CRAC</span>
+          <button id="btn-crac-pwr" class="pt-pill-btn ${crac.power ? 'active' : ''}">
+            Estado: ${crac.power ? 'ENCENDIDO' : 'APAGADO'}
+          </button>
+        </div>
+        <div class="pt-grid-2">
+          <div class="pt-form-row">
+            <label>Temperatura Objetivo (°C):</label>
+            <input id="inp-crac-temp" type="number" step="0.5" min="16" max="26" class="pt-input" value="${crac.targetTemp}" />
+          </div>
+          <div class="pt-form-row"><label>Temperatura Retorno Actual:</label><span>${crac.currentTemp} °C</span></div>
+          <div class="pt-form-row"><label>Humedad Relativa:</label><span>${crac.humidity}%</span></div>
+          <div class="pt-form-row"><label>Inyección Piso Técnico:</label><span>${crac.fanSpeed}</span></div>
+        </div>
+        <button id="btn-save-crac" class="pt-pill-btn primary">Aplicar Setpoint Térmico</button>
+      </div>
+    `;
+    document.getElementById('btn-crac-pwr').addEventListener('click', () => {
+      crac.power = !crac.power;
+      crac.currentTemp = crac.power ? crac.targetTemp : 27.5;
+      renderPowerAndClimateConsole('ac_unit');
+    });
+    document.getElementById('btn-save-crac').addEventListener('click', () => {
+      crac.targetTemp = Number(document.getElementById('inp-crac-temp').value) || 20.0;
+      crac.currentTemp = crac.targetTemp;
+      EQUIPMENT_DATA.ac_unit.specs['Temperatura Objetivo'] = `${crac.targetTemp.toFixed(1)} °C ± 1.0 °C`;
+      if (activeInspectedKey === 'ac_unit') updateInspectorUI('ac_unit');
+      renderPowerAndClimateConsole('ac_unit');
+    });
+  }
+}
+
+function openDeviceConsole(dataKey) {
+  if (!isConsoleSupported(dataKey)) return;
+  isDeviceModalOpen = true;
+  clearMovementKeys();
+  if (document.pointerLockElement) document.exitPointerLock();
+
+  const info = EQUIPMENT_DATA[dataKey];
+  modalDeviceBadge.textContent = info.category;
+  modalDeviceTitle.textContent = info.title;
+  deviceModal.classList.remove('hidden');
+
+  let tabs = [];
+  if (dataKey.startsWith('pc_')) {
+    tabs = [
+      { id: 'web', label: 'Sistema GPS UNAB (Web)', render: () => renderPcWebTab(dataKey) },
+      { id: 'ip', label: 'IP Configuration', render: () => renderPcIpConfigTab(dataKey) },
+      { id: 'cmd', label: 'Command Prompt (CMD)', render: () => renderPcCmdTab(dataKey) }
+    ];
+  } else if (['rack_main', 'server_gps', 'switch_core', 'router_gateway', 'patch_panel'].includes(dataKey)) {
+    tabs = [
+      { id: 'srv', label: 'Servidor: Services (DHCP / DNS / HTTP)', render: renderServerServicesTab },
+      { id: 'rtr', label: 'Router: Config & NAT', render: renderRouterConfigTab },
+      { id: 'sw', label: 'Switch: VLANs & Puertos', render: renderSwitchPortsTab },
+      { id: 'cli', label: 'CLI (Cisco IOS)', render: renderRackCliTab }
+    ];
+  } else if (dataKey === 'printer_net') {
+    tabs = [{ id: 'prn', label: 'Cola de Impresión & Red TCP/IP', render: renderPrinterConsole }];
+  } else {
+    tabs = [{ id: 'ctrl', label: 'Panel de Control & Telemetría', render: () => renderPowerAndClimateConsole(dataKey) }];
+  }
+
+  modalTabs.innerHTML = '';
+  tabs.forEach((t, i) => {
+    const btn = document.createElement('button');
+    btn.className = `modal-tab-btn ${i === 0 ? 'active' : ''}`;
+    btn.textContent = t.label;
+    btn.addEventListener('click', () => {
+      modalTabs.querySelectorAll('.modal-tab-btn').forEach((b) => b.classList.remove('active'));
+      btn.classList.add('active');
+      t.render();
+    });
+    modalTabs.appendChild(btn);
+  });
+
+  tabs[0].render();
+}
+
+function closeDeviceConsole() {
+  if (!isDeviceModalOpen) return;
+  isDeviceModalOpen = false;
+  activeGpsCanvas = null;
+  deviceModal.classList.add('hidden');
+}
+
+btnOpenConsole.addEventListener('click', () => {
+  if (activeInspectedKey) openDeviceConsole(activeInspectedKey);
+});
+
+btnCloseModal.addEventListener('click', closeDeviceConsole);
+
 document.addEventListener('mousemove', (e) => {
-  if (currentMode === 'fps' && isPointerLocked) {
+  if (currentMode === 'fps' && isPointerLocked && !isDeviceModalOpen) {
     const dx = Math.max(-60, Math.min(60, e.movementX || 0));
     const dy = Math.max(-60, Math.min(60, e.movementY || 0));
     const sensitivity = 0.0022;
@@ -1680,6 +2619,7 @@ document.addEventListener('mousemove', (e) => {
 });
 
 window.addEventListener('pointermove', (e) => {
+  if (isDeviceModalOpen) return;
   if (currentMode === 'fps' && isPointerLocked) {
     mouse.set(0, 0);
   } else {
@@ -1708,7 +2648,7 @@ window.addEventListener('pointermove', (e) => {
 });
 
 window.addEventListener('click', (e) => {
-  if (e.target.closest('header, aside')) return;
+  if (e.target.closest('header, aside, #device-modal')) return;
 
   if (currentMode === 'fps' && !isPointerLocked) {
     renderer.domElement.requestPointerLock();
@@ -1791,6 +2731,7 @@ function switchToCameraView(viewKey = 'iso') {
 }
 
 function activateFpsMode() {
+  closeDeviceConsole();
   cameraTransition = null;
   currentMode = 'fps';
   clearMovementKeys();
@@ -1814,8 +2755,8 @@ function activateFpsMode() {
 document.addEventListener('pointerlockchange', () => {
   isPointerLocked = document.pointerLockElement === renderer.domElement;
   if (isPointerLocked) {
-    fpsHint.innerHTML = '<b>W, A, S, D</b> caminar &bull; <b>Tecla E</b> cerrar ventana &bull; <b>Tecla T</b> techo &bull; <b>ESC</b> Vista General Isométrica';
-  } else if (currentMode === 'fps') {
+    fpsHint.innerHTML = '<b>W, A, S, D</b> caminar &bull; <b>Click / Tecla F</b> usar monitor o rack &bull; <b>Tecla E</b> cerrar ventana &bull; <b>ESC</b> Vista General';
+  } else if (currentMode === 'fps' && !isDeviceModalOpen) {
     switchToCameraView('iso');
   }
 });
@@ -1877,6 +2818,15 @@ btnToggleLabels.addEventListener('click', () => {
 });
 
 window.addEventListener('keydown', (e) => {
+  // Si el usuario está escribiendo dentro de un input (IP o Terminal CMD/CLI), no activar WASD ni atajos
+  if (e.target.tagName === 'INPUT') {
+    if (e.code === 'Escape') {
+      e.target.blur();
+      closeDeviceConsole();
+    }
+    return;
+  }
+
   switch (e.code) {
     case 'KeyW':
     case 'ArrowUp':
@@ -1901,13 +2851,32 @@ window.addEventListener('keydown', (e) => {
     case 'ShiftRight':
       moveState.down = true;
       break;
+    case 'KeyF': {
+      // Si ya hay un equipo inspeccionado o se apunta directamente a uno con la mira, abrir su consola
+      raycaster.setFromCamera(mouse, camera);
+      const hits = raycaster.intersectObjects(interactables, false);
+      if (hits.length > 0) {
+        const key = hits[0].object.userData.dataKey;
+        updateInspectorUI(key);
+        openDeviceConsole(key);
+      } else if (activeInspectedKey && !inspectorPanel.classList.contains('hidden')) {
+        openDeviceConsole(activeInspectedKey);
+      }
+      break;
+    }
     case 'KeyE':
-      inspectorPanel.classList.add('hidden');
-      viewsDropdownMenu.classList.add('hidden');
-      btnToggleViews.classList.remove('active');
+      if (isDeviceModalOpen) {
+        closeDeviceConsole();
+      } else {
+        inspectorPanel.classList.add('hidden');
+        viewsDropdownMenu.classList.add('hidden');
+        btnToggleViews.classList.remove('active');
+      }
       break;
     case 'Escape':
-      if (currentMode === 'fps' && !isPointerLocked) {
+      if (isDeviceModalOpen) {
+        closeDeviceConsole();
+      } else if (currentMode === 'fps' && !isPointerLocked) {
         switchToCameraView('iso');
       }
       break;
@@ -1954,6 +2923,87 @@ window.addEventListener('keyup', (e) => {
   }
 });
 
+// Dibuja el mapa GPS interactivo en vivo dentro del navegador de las PCs
+function drawLiveGpsCanvas(canvas, delta) {
+  const ctx = canvas.getContext('2d');
+  const w = canvas.width;
+  const h = canvas.height;
+
+  ctx.fillStyle = '#09131e';
+  ctx.fillRect(0, 0, w, h);
+
+  // Cuadrícula satelital
+  ctx.strokeStyle = 'rgba(255,255,255,0.05)';
+  ctx.lineWidth = 1;
+  for (let x = 0; x < w; x += 40) {
+    ctx.beginPath();
+    ctx.moveTo(x, 0);
+    ctx.lineTo(x, h);
+    ctx.stroke();
+  }
+  for (let y = 0; y < h; y += 40) {
+    ctx.beginPath();
+    ctx.moveTo(0, y);
+    ctx.lineTo(w, y);
+    ctx.stroke();
+  }
+
+  // Carretera Panamericana Norte y accesos a Campus UNAB
+  const routes = [
+    { y: 48, label: 'Paradero Paramonga / Pativilca' },
+    { y: 102, label: 'Paradero Supe / Puerto Supe' },
+    { y: 156, label: 'Plaza de Armas Barranca' }
+  ];
+
+  routes.forEach((r) => {
+    ctx.strokeStyle = '#1e293b';
+    ctx.lineWidth = 10;
+    ctx.beginPath();
+    ctx.moveTo(60, r.y);
+    ctx.lineTo(w - 110, r.y);
+    ctx.stroke();
+
+    ctx.strokeStyle = '#38bdf8';
+    ctx.lineWidth = 2;
+    ctx.setLineDash([8, 6]);
+    ctx.beginPath();
+    ctx.moveTo(60, r.y);
+    ctx.lineTo(w - 110, r.y);
+    ctx.stroke();
+    ctx.setLineDash([]);
+
+    ctx.fillStyle = '#94a3b8';
+    ctx.font = 'bold 11px sans-serif';
+    ctx.fillText(r.label, 65, r.y - 10);
+  });
+
+  // Nodo Destino: CAMPUS UNAB
+  ctx.fillStyle = '#ffffff';
+  ctx.fillRect(w - 105, 28, 88, 145);
+  ctx.fillStyle = '#09090b';
+  ctx.font = 'bold 11px sans-serif';
+  ctx.fillText('CAMPUS', w - 88, 95);
+  ctx.fillText('UNAB', w - 80, 112);
+
+  // Actualizar y dibujar cada Bus UNAB
+  NETWORK_SIM_STATE.buses.forEach((bus, i) => {
+    if (bus.status === 'EN RUTA') {
+      bus.progress = (bus.progress + delta * 0.08) % 1;
+    }
+    const ry = routes[i] ? routes[i].y : 100;
+    const bx = 70 + bus.progress * (w - 195);
+
+    ctx.fillStyle = bus.status === 'EN RUTA' ? '#ffffff' : '#71717a';
+    ctx.beginPath();
+    ctx.roundRect(bx - 26, ry - 9, 52, 18, 9);
+    ctx.fill();
+
+    ctx.fillStyle = '#09090b';
+    ctx.font = 'bold 10px monospace';
+    ctx.fillText(bus.id, bx - 18, ry + 4);
+  });
+}
+
 // ============================================================================
 // 12. BUCLE DE ANIMACIÓN PRINCIPAL
 // ============================================================================
@@ -1967,6 +3017,10 @@ function animate() {
   const delta = Math.min(clock.getDelta(), 0.1);
   const elapsed = clock.getElapsedTime();
 
+  if (activeGpsCanvas && isDeviceModalOpen) {
+    drawLiveGpsCanvas(activeGpsCanvas, delta);
+  }
+
   if (cameraTransition) {
     cameraTransition.alpha += delta * 2.2;
     const t = Math.min(cameraTransition.alpha, 1);
@@ -1978,7 +3032,7 @@ function animate() {
 
   if (currentMode === 'orbit') {
     orbitControls.update();
-  } else if (currentMode === 'fps') {
+  } else if (currentMode === 'fps' && !isDeviceModalOpen) {
     const lookSmoothing = Math.min(1, delta * 18);
     yaw += (targetYaw - yaw) * lookSmoothing;
     pitch += (targetPitch - pitch) * lookSmoothing;
@@ -2036,3 +3090,4 @@ window.addEventListener('resize', () => {
   renderer.setSize(window.innerWidth, window.innerHeight);
   labelRenderer.setSize(window.innerWidth, window.innerHeight);
 });
+

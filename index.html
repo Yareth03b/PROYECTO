@@ -72,13 +72,31 @@
     <h2 id="inspector-title">Equipo</h2>
     <p id="inspector-desc"></p>
     <div id="inspector-specs" class="specs-grid"></div>
+    <button id="btn-open-console" class="console-open-btn">
+      Abrir Sistema / Configurar (Tecla F)
+    </button>
   </aside>
+
+  <!-- Interactive Device Console Modal (Cisco Packet Tracer + UNAB GPS Live Console) -->
+  <div id="device-modal" class="device-modal-backdrop hidden">
+    <div class="device-modal">
+      <div class="device-modal-header">
+        <div class="device-modal-title-group">
+          <span id="modal-device-badge" class="badge">CONSOLA INTERACTIVA</span>
+          <h3 id="modal-device-title">Configuración de Equipo</h3>
+        </div>
+        <button id="btn-close-modal" class="close-btn close-pill" title="Cerrar consola (Tecla E)">E &times;</button>
+      </div>
+      <div id="modal-tabs" class="device-modal-tabs"></div>
+      <div id="modal-body" class="device-modal-body"></div>
+    </div>
+  </div>
 
   <!-- First Person Crosshair & Instructions Overlay -->
   <div id="fps-crosshair" class="fps-crosshair">
     <div class="crosshair-dot"></div>
     <div id="fps-hint" class="fps-hint">
-      Haz <b>Click en la pantalla</b> para mirar con el mouse &bull; <b>W, A, S, D</b> caminar &bull; <b>Tecla E</b> cerrar ventana &bull; <b>ESC</b> Vista General
+      Haz <b>Click</b> en un equipo &bull; <b>Tecla F</b> usar monitor/consola &bull; <b>Tecla E</b> cerrar &bull; <b>ESC</b> Vista General
     </div>
   </div>
 
