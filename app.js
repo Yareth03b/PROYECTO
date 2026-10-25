@@ -1720,6 +1720,8 @@ window.addEventListener('click', (e) => {
   if (hits.length > 0) {
     const key = hits[0].object.userData.dataKey;
     updateInspectorUI(key);
+  } else {
+    inspectorPanel.classList.add('hidden');
   }
 });
 
@@ -1812,7 +1814,7 @@ function activateFpsMode() {
 document.addEventListener('pointerlockchange', () => {
   isPointerLocked = document.pointerLockElement === renderer.domElement;
   if (isPointerLocked) {
-    fpsHint.innerHTML = '<b>W, A, S, D</b> caminar &bull; <b>Tecla T</b> ocultar/ver techo &bull; <b>ESC</b> ir a Vista General Isométrica';
+    fpsHint.innerHTML = '<b>W, A, S, D</b> caminar &bull; <b>Tecla E</b> cerrar ventana &bull; <b>Tecla T</b> techo &bull; <b>ESC</b> Vista General Isométrica';
   } else if (currentMode === 'fps') {
     switchToCameraView('iso');
   }
@@ -1898,6 +1900,11 @@ window.addEventListener('keydown', (e) => {
     case 'ShiftLeft':
     case 'ShiftRight':
       moveState.down = true;
+      break;
+    case 'KeyE':
+      inspectorPanel.classList.add('hidden');
+      viewsDropdownMenu.classList.add('hidden');
+      btnToggleViews.classList.remove('active');
       break;
     case 'Escape':
       if (currentMode === 'fps' && !isPointerLocked) {

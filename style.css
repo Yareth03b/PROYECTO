@@ -220,8 +220,8 @@ body, html {
 
 .close-btn {
   background: #141417;
-  border: 1px solid rgba(255, 255, 255, 0.08);
-  color: #d4d4d8;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  color: #e4e4e7;
   width: 26px;
   height: 26px;
   border-radius: 999px;
@@ -232,6 +232,14 @@ body, html {
   cursor: pointer;
   line-height: 1;
   transition: all 0.14s ease;
+}
+
+.close-pill {
+  width: auto;
+  padding: 0 10px;
+  gap: 4px;
+  font-size: 0.72rem;
+  font-weight: 700;
 }
 
 .close-btn:hover {
