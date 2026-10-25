@@ -451,7 +451,7 @@ function buildEnvironmentAndArchitecture() {
   doorPivots.push({ pivot: mainDoorBotPivot, openRot: -Math.PI * 0.42, closedRot: 0 });
   wallMeshes.push(mainDoorBotPivot);
 
-  // Falso Cielo Raso Acústico (Y = 3.15m)
+  // Falso Cielo Raso Acústico (Y = 3.16m)
   const ceilingTex = createAcousticCeilingTexture();
   const ceilingMat = new THREE.MeshStandardMaterial({
     map: ceilingTex,
@@ -459,24 +459,31 @@ function buildEnvironmentAndArchitecture() {
     side: THREE.DoubleSide
   });
 
-  const ceilingSlab = new THREE.Mesh(new THREE.BoxGeometry(15.8, 0.05, 10.8), ceilingMat);
-  ceilingSlab.position.set(0, 3.15, 0);
+  const ceilingSlab = new THREE.Mesh(new THREE.BoxGeometry(15.8, 0.04, 10.8), ceilingMat);
+  ceilingSlab.position.set(0, 3.16, 0);
   ceilingGroup.add(ceilingSlab);
 
+  // Perfiles de aluminio únicamente por la cara inferior del falso techo (sin superponerse con la placa)
   const gridRailMat = new THREE.MeshStandardMaterial({ color: 0xcbd5e1, metalness: 0.4, roughness: 0.3 });
   for (let gx = -7.0; gx <= 7.0; gx += 2.0) {
-    const beam = new THREE.Mesh(new THREE.BoxGeometry(0.05, 0.06, 10.8), gridRailMat);
-    beam.position.set(gx, 3.14, 0);
+    const beam = new THREE.Mesh(new THREE.BoxGeometry(0.05, 0.025, 10.8), gridRailMat);
+    beam.position.set(gx, 3.125, 0);
     ceilingGroup.add(beam);
   }
   for (let gz = -4.5; gz <= 4.5; gz += 1.5) {
-    const crossBeam = new THREE.Mesh(new THREE.BoxGeometry(15.8, 0.06, 0.05), gridRailMat);
-    crossBeam.position.set(0, 3.14, gz);
+    const crossBeam = new THREE.Mesh(new THREE.BoxGeometry(15.8, 0.022, 0.05), gridRailMat);
+    crossBeam.position.set(0, 3.122, gz);
     ceilingGroup.add(crossBeam);
   }
 
+  // Luminarias LED empotradas por debajo del techo con alturas bien separadas (cero Z-fighting / parpadeo)
   const lightFrameMat = new THREE.MeshStandardMaterial({ color: 0x94a3b8, metalness: 0.6, roughness: 0.25 });
-  const lightPanelMat = new THREE.MeshBasicMaterial({ color: 0xffffff });
+  const lightPanelMat = new THREE.MeshBasicMaterial({
+    color: 0xffffff,
+    polygonOffset: true,
+    polygonOffsetFactor: -1,
+    polygonOffsetUnits: -1
+  });
   const ceilingLightsCoords = [
     [-5.8, -2.25],
     [-5.8, 2.25],
@@ -486,10 +493,11 @@ function buildEnvironmentAndArchitecture() {
     [5.0, 2.25]
   ];
   ceilingLightsCoords.forEach(([lx, lz]) => {
-    const lFrame = new THREE.Mesh(new THREE.BoxGeometry(1.25, 0.07, 0.62), lightFrameMat);
-    lFrame.position.set(lx, 3.14, lz);
-    const lGlow = new THREE.Mesh(new THREE.BoxGeometry(1.15, 0.075, 0.52), lightPanelMat);
-    lGlow.position.set(lx, 3.135, lz);
+    const lFrame = new THREE.Mesh(new THREE.BoxGeometry(1.25, 0.03, 0.62), lightFrameMat);
+    lFrame.position.set(lx, 3.12, lz);
+    const lGlow = new THREE.Mesh(new THREE.PlaneGeometry(1.15, 0.52), lightPanelMat);
+    lGlow.rotation.x = Math.PI / 2; // Mira hacia abajo dentro de la oficina sin atravesar la parte superior del techo
+    lGlow.position.set(lx, 3.102, lz);
     ceilingGroup.add(lFrame, lGlow);
   });
 }
