@@ -1,6 +1,7 @@
 import * as THREE from 'three';
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
 import { CSS2DRenderer, CSS2DObject } from 'three/addons/renderers/CSS2DRenderer.js';
+import { GLTFExporter } from 'three/addons/exporters/GLTFExporter.js';
 import { EQUIPMENT_DATA, NETWORK_SIM_STATE } from './data.js';
 
 // ============================================================================
@@ -2785,6 +2786,37 @@ document.querySelectorAll('.preset-btn[data-view]').forEach((btn) => {
     switchToCameraView(viewName);
   });
 });
+
+// Exportar toda la escena 3D a formato .GLB para importar en Unity
+const btnExportGlb = document.getElementById('btn-export-glb');
+if (btnExportGlb) {
+  btnExportGlb.addEventListener('click', () => {
+    const originalText = btnExportGlb.textContent;
+    btnExportGlb.textContent = 'Exportando .GLB...';
+    const exporter = new GLTFExporter();
+    exporter.parse(
+      scene,
+      (result) => {
+        const blob = new Blob([result], { type: 'model/gltf-binary' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.style.display = 'none';
+        a.href = url;
+        a.download = 'unab-area-transporte.glb';
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+        btnExportGlb.textContent = originalText;
+      },
+      (err) => {
+        console.error('Error exportando GLB:', err);
+        btnExportGlb.textContent = originalText;
+      },
+      { binary: true }
+    );
+  });
+}
 
 // Toggle Flujo de Paquetes
 const btnTogglePackets = document.getElementById('btn-toggle-packets');
