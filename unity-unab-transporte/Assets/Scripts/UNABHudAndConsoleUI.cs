@@ -14,17 +14,16 @@ namespace UNAB.Transporte3D
         private Texture2D whiteBtnTex;
         private Texture2D cardBgTex;
         private Texture2D mapBgTex;
+        private Texture2D lineTex;
 
         private bool viewsDropdownOpen = false;
         private int activeModalTab = 0;
 
-        // Inputs temporales en la consola interactiva
         private string cmdInputText = "";
         private string cliInputText = "";
         private string newDnsDomain = "";
         private string newDnsIp = "";
         private string statusFeedback = "";
-        private Vector2 modalScroll = Vector2.zero;
         private Vector2 termScroll = Vector2.zero;
 
         private GUIStyle barStyle;
@@ -50,11 +49,12 @@ namespace UNAB.Transporte3D
         private void Start()
         {
             logoTex = Resources.Load<Texture2D>("logo-unab");
-            darkBarTex = MakeRoundedRectTex(64, 64, new Color(0.02f, 0.02f, 0.03f, 0.96f), new Color(1f, 1f, 1f, 0.12f));
-            darkBtnTex = MakeRoundedRectTex(64, 36, new Color(0.08f, 0.08f, 0.095f, 1f), new Color(1f, 1f, 1f, 0.06f));
-            whiteBtnTex = MakeRoundedRectTex(64, 36, Color.white, Color.white);
-            cardBgTex = MakeRoundedRectTex(64, 64, new Color(0.025f, 0.025f, 0.035f, 0.97f), new Color(1f, 1f, 1f, 0.14f));
-            mapBgTex = MakeSolidTex(new Color(0.04f, 0.08f, 0.13f, 1f));
+            darkBarTex = MakeSmoothCapsuleTex(256, 96, new Color(0.02f, 0.02f, 0.03f, 0.96f), new Color(1f, 1f, 1f, 0.14f), 46f);
+            darkBtnTex = MakeSmoothCapsuleTex(256, 80, new Color(0.085f, 0.088f, 0.105f, 1f), new Color(1f, 1f, 1f, 0.07f), 38f);
+            whiteBtnTex = MakeSmoothCapsuleTex(256, 80, Color.white, Color.white, 38f);
+            cardBgTex = MakeSmoothCapsuleTex(256, 256, new Color(0.024f, 0.024f, 0.035f, 0.97f), new Color(1f, 1f, 1f, 0.15f), 36f);
+            mapBgTex = MakeSolidTex(new Color(0.035f, 0.075f, 0.125f, 1f));
+            lineTex = MakeSolidTex(new Color(1f, 1f, 1f, 0.15f));
         }
 
         public void OnOpenConsoleForKey(string key)
@@ -67,31 +67,44 @@ namespace UNAB.Transporte3D
 
         private Texture2D MakeSolidTex(Color col)
         {
-            var t = new Texture2D(2, 2);
+            var t = new Texture2D(2, 2, TextureFormat.RGBA32, false);
             t.SetPixels(new[] { col, col, col, col });
             t.Apply();
             return t;
         }
 
-        private Texture2D MakeRoundedRectTex(int w, int h, Color fill, Color border)
+        // Genera texturas de alta resolucion con bordes redondeados antialiasing (SDF)
+        private Texture2D MakeSmoothCapsuleTex(int w, int h, Color fill, Color border, float radius)
         {
-            var tex = new Texture2D(w, h, TextureFormat.RGBA32, false);
-            float r = Mathf.Min(w, h) * 0.42f;
+            var tex = new Texture2D(w, h, TextureFormat.RGBA32, false)
+            {
+                filterMode = FilterMode.Bilinear,
+                wrapMode = TextureWrapMode.Clamp
+            };
+
+            float halfW = w * 0.5f;
+            float halfH = h * 0.5f;
+            float r = Mathf.Min(radius, Mathf.Min(halfW, halfH) - 2f);
+
+            Color[] pixels = new Color[w * h];
             for (int y = 0; y < h; y++)
             {
                 for (int x = 0; x < w; x++)
                 {
-                    float dx = Mathf.Max(r - x, 0f, x - (w - 1 - r));
-                    float dy = Mathf.Max(r - y, 0f, y - (h - 1 - r));
-                    float dist = Mathf.Sqrt(dx * dx + dy * dy);
-                    if (dist > r + 0.8f)
-                        tex.SetPixel(x, y, Color.clear);
-                    else if (dist > r - 1.2f)
-                        tex.SetPixel(x, y, border);
-                    else
-                        tex.SetPixel(x, y, fill);
+                    float px = Mathf.Abs(x + 0.5f - halfW) - (halfW - r - 1.5f);
+                    float py = Mathf.Abs(y + 0.5f - halfH) - (halfH - r - 1.5f);
+                    float ox = Mathf.Max(px, 0f);
+                    float oy = Mathf.Max(py, 0f);
+                    float dist = Mathf.Sqrt(ox * ox + oy * oy) + Mathf.Min(Mathf.Max(px, py), 0f) - r;
+
+                    float outerAlpha = Mathf.Clamp01(0.5f - dist);
+                    float borderBlend = Mathf.Clamp01(0.5f - (dist + 1.8f));
+                    Color c = Color.Lerp(border, fill, borderBlend);
+                    c.a *= outerAlpha;
+                    pixels[y * w + x] = c;
                 }
             }
+            tex.SetPixels(pixels);
             tex.Apply();
             return tex;
         }
@@ -104,7 +117,7 @@ namespace UNAB.Transporte3D
             barStyle = new GUIStyle(GUI.skin.box)
             {
                 normal = { background = darkBarTex },
-                border = new RectOffset(24, 24, 24, 24),
+                border = new RectOffset(48, 48, 44, 44),
                 padding = new RectOffset(18, 18, 8, 8)
             };
 
@@ -118,10 +131,10 @@ namespace UNAB.Transporte3D
 
             pillDarkStyle = new GUIStyle(GUI.skin.button)
             {
-                normal = { background = darkBtnTex, textColor = new Color(0.86f, 0.86f, 0.89f) },
+                normal = { background = darkBtnTex, textColor = new Color(0.88f, 0.88f, 0.91f) },
                 hover = { background = whiteBtnTex, textColor = Color.black },
                 active = { background = whiteBtnTex, textColor = Color.black },
-                border = new RectOffset(16, 16, 14, 14),
+                border = new RectOffset(40, 40, 36, 36),
                 fontSize = 12,
                 fontStyle = FontStyle.Bold,
                 alignment = TextAnchor.MiddleCenter,
@@ -137,7 +150,7 @@ namespace UNAB.Transporte3D
             floatingPillStyle = new GUIStyle(GUI.skin.box)
             {
                 normal = { background = darkBarTex, textColor = Color.white },
-                border = new RectOffset(16, 16, 14, 14),
+                border = new RectOffset(44, 44, 40, 40),
                 fontSize = 11,
                 fontStyle = FontStyle.Bold,
                 alignment = TextAnchor.MiddleCenter,
@@ -147,18 +160,18 @@ namespace UNAB.Transporte3D
             cardStyle = new GUIStyle(GUI.skin.box)
             {
                 normal = { background = cardBgTex },
-                border = new RectOffset(22, 22, 22, 22),
+                border = new RectOffset(40, 40, 40, 40),
                 padding = new RectOffset(18, 18, 16, 16)
             };
 
             badgeWhiteStyle = new GUIStyle(GUI.skin.box)
             {
                 normal = { background = whiteBtnTex, textColor = new Color(0.04f, 0.04f, 0.05f) },
-                border = new RectOffset(14, 14, 12, 12),
+                border = new RectOffset(36, 36, 32, 32),
                 fontSize = 10,
                 fontStyle = FontStyle.Bold,
                 alignment = TextAnchor.MiddleCenter,
-                padding = new RectOffset(10, 10, 4, 4)
+                padding = new RectOffset(12, 12, 4, 4)
             };
 
             titleWhiteStyle = new GUIStyle(GUI.skin.label)
@@ -173,7 +186,7 @@ namespace UNAB.Transporte3D
             {
                 fontSize = 12,
                 wordWrap = true,
-                normal = { textColor = new Color(0.66f, 0.66f, 0.71f) }
+                normal = { textColor = new Color(0.68f, 0.68f, 0.73f) }
             };
 
             specLabelStyle = new GUIStyle(GUI.skin.label)
@@ -193,8 +206,8 @@ namespace UNAB.Transporte3D
             terminalBoxStyle = new GUIStyle(GUI.skin.box)
             {
                 normal = { background = darkBtnTex, textColor = new Color(0.92f, 0.92f, 0.95f) },
-                border = new RectOffset(14, 14, 14, 14),
-                padding = new RectOffset(12, 12, 10, 10),
+                border = new RectOffset(36, 36, 32, 32),
+                padding = new RectOffset(14, 14, 10, 10),
                 fontSize = 12,
                 alignment = TextAnchor.UpperLeft,
                 wordWrap = true
@@ -204,10 +217,10 @@ namespace UNAB.Transporte3D
             {
                 normal = { background = darkBtnTex, textColor = Color.white },
                 focused = { background = darkBtnTex, textColor = Color.white },
-                border = new RectOffset(12, 12, 12, 12),
+                border = new RectOffset(32, 32, 28, 28),
                 fontSize = 12,
                 alignment = TextAnchor.MiddleLeft,
-                padding = new RectOffset(10, 10, 5, 5)
+                padding = new RectOffset(12, 12, 5, 5)
             };
         }
 
@@ -218,24 +231,53 @@ namespace UNAB.Transporte3D
             var sim = UNABNetworkSimulator.Instance;
             if (ctrl == null || sim == null) return;
 
-            // 1. ETIQUETAS FLOTANTES 3D (Mismo estilo de pildora negra)
+            // 1. ETIQUETAS FLOTANTES 3D SIN SUPERPOSICION (En espacio real de pantalla)
             if (ctrl.labelsVisible && !ctrl.isConsoleOpen && ctrl.mainCamera != null)
             {
+                List<Rect> drawnRects = new List<Rect>();
                 foreach (var lbl in ctrl.floatingLabels)
                 {
                     Vector3 screenPos = ctrl.mainCamera.WorldToScreenPoint(lbl.worldPosition);
-                    if (screenPos.z > 0.2f && screenPos.z < 28f)
+                    if (screenPos.z > 0.3f && screenPos.z < 26f)
                     {
                         GUIContent content = new GUIContent(lbl.text);
                         Vector2 size = floatingPillStyle.CalcSize(content);
-                        Rect r = new Rect(screenPos.x - size.x * 0.5f, Screen.height - screenPos.y - size.y * 0.5f, size.x + 8f, size.y + 2f);
-                        GUI.Box(r, content, floatingPillStyle);
+                        Rect r = new Rect(screenPos.x - size.x * 0.5f, Screen.height - screenPos.y - size.y * 0.5f, size.x + 10f, size.y + 4f);
+
+                        // Evitar que se encimen en vista isometrica lejana
+                        for (int pass = 0; pass < 3; pass++)
+                        {
+                            bool overlaps = false;
+                            foreach (var prev in drawnRects)
+                            {
+                                if (r.Overlaps(prev))
+                                {
+                                    r.y = prev.y - r.height - 3f;
+                                    overlaps = true;
+                                }
+                            }
+                            if (!overlaps) break;
+                        }
+
+                        if (r.y > 72f && r.yMax < Screen.height - 55f)
+                        {
+                            drawnRects.Add(r);
+                            GUI.Box(r, content, floatingPillStyle);
+                        }
                     }
                 }
             }
 
+            // Escalado responsivo automatico para que el menu superior NUNCA se monte aunque la ventana Game sea pequena
+            Matrix4x4 oldMatrix = GUI.matrix;
+            float refWidth = 1260f;
+            float uiScale = Mathf.Clamp(Screen.width / refWidth, 0.52f, 1.0f);
+            float vWidth = Screen.width / uiScale;
+            float vHeight = Screen.height / uiScale;
+            GUI.matrix = Matrix4x4.TRS(Vector3.zero, Quaternion.identity, new Vector3(uiScale, uiScale, 1f));
+
             // 2. MENU SUPERIOR TIPO CAPSULA NEGRA CON LOGO UNAB Y PILDORAS BLANCAS/GRISES
-            Rect navRect = new Rect(18f, 12f, Screen.width - 36f, 54f);
+            Rect navRect = new Rect(18f, 12f, vWidth - 36f, 54f);
             GUI.Box(navRect, GUIContent.none, barStyle);
 
             float lx = 34f;
@@ -244,45 +286,44 @@ namespace UNAB.Transporte3D
                 GUI.DrawTexture(new Rect(lx, 21f, 36f, 36f), logoTex, ScaleMode.ScaleToFit);
                 lx += 46f;
             }
-            GUI.Label(new Rect(lx, 21f, 175f, 36f), "AREA DE TRANSPORTE", brandTitleStyle);
-            lx += 182f;
-            GUI.DrawTexture(new Rect(lx, 28f, 1f, 22f), MakeSolidTex(new Color(1f, 1f, 1f, 0.16f)));
+            GUI.Label(new Rect(lx, 21f, 185f, 36f), "AREA DE TRANSPORTE", brandTitleStyle);
+            lx += 190f;
+            GUI.DrawTexture(new Rect(lx, 28f, 1f, 22f), lineTex);
 
-            // Botones derechos de la barra superior
-            float rx = Screen.width - 34f;
+            float rx = vWidth - 34f;
 
-            float wLabels = 122f;
+            float wLabels = 126f;
             rx -= wLabels;
             if (GUI.Button(new Rect(rx, 21f, wLabels, 36f), $"Etiquetas: {(ctrl.labelsVisible ? "ON" : "OFF")}", ctrl.labelsVisible ? pillWhiteStyle : pillDarkStyle))
                 ctrl.ToggleLabels();
 
             rx -= 8f;
-            float wWalls = 152f;
+            float wWalls = 158f;
             rx -= wWalls;
             if (GUI.Button(new Rect(rx, 21f, wWalls, 36f), $"Vista Muros: {(ctrl.wallsLowered ? "Bajos" : "Normal")}", ctrl.wallsLowered ? pillWhiteStyle : pillDarkStyle))
                 ctrl.ToggleWalls();
 
             rx -= 8f;
-            float wPackets = 148f;
+            float wPackets = 154f;
             rx -= wPackets;
             if (GUI.Button(new Rect(rx, 21f, wPackets, 36f), $"Flujo de Datos: {(ctrl.packetsEnabled ? "ON" : "OFF")}", ctrl.packetsEnabled ? pillWhiteStyle : pillDarkStyle))
                 ctrl.TogglePackets();
 
             rx -= 8f;
-            float wCeil = 106f;
+            float wCeil = 112f;
             rx -= wCeil;
             if (GUI.Button(new Rect(rx, 21f, wCeil, 36f), $"Techo: {(ctrl.ceilingVisible ? "ON" : "OFF")}", ctrl.ceilingVisible ? pillWhiteStyle : pillDarkStyle))
                 ctrl.ToggleCeiling();
 
             rx -= 8f;
-            float wViews = 124f;
+            float wViews = 132f;
             rx -= wViews;
             Rect viewsBtnRect = new Rect(rx, 21f, wViews, 36f);
             if (GUI.Button(viewsBtnRect, "Vistas Rapidas", viewsDropdownOpen ? pillWhiteStyle : pillDarkStyle))
                 viewsDropdownOpen = !viewsDropdownOpen;
 
             rx -= 8f;
-            float wFps = 172f;
+            float wFps = 180f;
             rx -= wFps;
             if (GUI.Button(new Rect(rx, 21f, wFps, 36f), "Modo Caminata (WASD)", ctrl.isFpsMode ? pillWhiteStyle : pillDarkStyle))
             {
@@ -290,70 +331,69 @@ namespace UNAB.Transporte3D
                 ctrl.ActivateFpsMode();
             }
 
-            // Desplegable de Vistas Rapidas con boton X
             if (viewsDropdownOpen)
             {
-                Rect dropRect = new Rect(viewsBtnRect.x, 74f, 248f, 232f);
+                Rect dropRect = new Rect(viewsBtnRect.x, 74f, 252f, 236f);
                 GUI.Box(dropRect, GUIContent.none, cardStyle);
                 GUI.Label(new Rect(dropRect.x + 16f, dropRect.y + 12f, 170f, 22f), "VISTAS DE CAMARA", specLabelStyle);
-                if (GUI.Button(new Rect(dropRect.xMax - 42f, dropRect.y + 10f, 28f, 24f), "X", pillDarkStyle))
+                if (GUI.Button(new Rect(dropRect.xMax - 44f, dropRect.y + 10f, 30f, 24f), "X", pillDarkStyle))
                     viewsDropdownOpen = false;
 
                 float by = dropRect.y + 42f;
-                if (GUI.Button(new Rect(dropRect.x + 14f, by, 220f, 32f), "Vista General Isometrica", pillDarkStyle))
+                if (GUI.Button(new Rect(dropRect.x + 14f, by, 224f, 32f), "Vista General Isometrica", pillDarkStyle))
                     ctrl.SwitchToCameraView("iso");
                 by += 36f;
-                if (GUI.Button(new Rect(dropRect.x + 14f, by, 220f, 32f), "Cuarto de Servidores (Rack)", pillDarkStyle))
+                if (GUI.Button(new Rect(dropRect.x + 14f, by, 224f, 32f), "Cuarto de Servidores (Rack)", pillDarkStyle))
                     ctrl.SwitchToCameraView("datacenter");
                 by += 36f;
-                if (GUI.Button(new Rect(dropRect.x + 14f, by, 220f, 32f), "Paso de Cableado / Techo", pillDarkStyle))
+                if (GUI.Button(new Rect(dropRect.x + 14f, by, 224f, 32f), "Paso de Cableado / Techo", pillDarkStyle))
                     ctrl.SwitchToCameraView("cabling");
                 by += 36f;
-                if (GUI.Button(new Rect(dropRect.x + 14f, by, 220f, 32f), "Monitores GPS Buses", pillDarkStyle))
+                if (GUI.Button(new Rect(dropRect.x + 14f, by, 224f, 32f), "Monitores GPS Buses", pillDarkStyle))
                     ctrl.SwitchToCameraView("monitoring");
                 by += 36f;
-                if (GUI.Button(new Rect(dropRect.x + 14f, by, 220f, 32f), "Abrir / Cerrar Puertas", pillDarkStyle))
+                if (GUI.Button(new Rect(dropRect.x + 14f, by, 224f, 32f), "Abrir / Cerrar Puertas", pillDarkStyle))
                     ctrl.ToggleDoors();
             }
 
-            // 3. MIRA CENTRAL Y PILDORA INFERIOR DE AYUDA EN MODO CAMINATA
+            // 3. MIRA CENTRAL Y PILDORA INFERIOR EN MODO CAMINATA
             if (ctrl.isFpsMode && !ctrl.isConsoleOpen)
             {
-                GUI.Box(new Rect(Screen.width * 0.5f - 4f, Screen.height * 0.5f - 4f, 8f, 8f), GUIContent.none, badgeWhiteStyle);
-                string hint = "W, A, S, D caminar  |  Click / Tecla F usar monitor o rack  |  Tecla E cerrar ventana  |  ESC Vista General";
-                Rect hintRect = new Rect(Screen.width * 0.5f - 340f, Screen.height - 48f, 680f, 34f);
+                GUI.Box(new Rect(vWidth * 0.5f - 5f, vHeight * 0.5f - 5f, 10f, 10f), GUIContent.none, badgeWhiteStyle);
+                string hint = "Haz Click o presiona WASD para caminar y mirar  |  Tecla F usar monitor/rack  |  Tecla E cerrar  |  ESC Vista General";
+                Rect hintRect = new Rect(vWidth * 0.5f - 370f, vHeight - 48f, 740f, 34f);
                 GUI.Box(hintRect, hint, floatingPillStyle);
             }
 
-            // 4. PANEL DE INSPECCION DERECHO (CON ATAJO E X Y BOTON TECLA F)
+            // 4. PANEL DE INSPECCION DERECHO
             if (!string.IsNullOrEmpty(ctrl.activeInspectedKey) && !ctrl.isConsoleOpen &&
                 sim.EquipmentDB.TryGetValue(ctrl.activeInspectedKey, out var info))
             {
-                Rect inspRect = new Rect(Screen.width - 352f, 80f, 334f, 360f);
+                Rect inspRect = new Rect(vWidth - 360f, 80f, 342f, 366f);
                 GUI.Box(inspRect, GUIContent.none, cardStyle);
 
                 GUIContent badgeContent = new GUIContent(info.category);
                 Vector2 bSize = badgeWhiteStyle.CalcSize(badgeContent);
-                GUI.Box(new Rect(inspRect.x + 18f, inspRect.y + 16f, bSize.x + 12f, 24f), badgeContent, badgeWhiteStyle);
+                GUI.Box(new Rect(inspRect.x + 18f, inspRect.y + 16f, bSize.x + 14f, 24f), badgeContent, badgeWhiteStyle);
 
-                if (GUI.Button(new Rect(inspRect.xMax - 62f, inspRect.y + 14f, 46f, 26f), "E X", pillDarkStyle))
+                if (GUI.Button(new Rect(inspRect.xMax - 64f, inspRect.y + 14f, 48f, 26f), "E X", pillDarkStyle))
                 {
                     ctrl.activeInspectedKey = "";
                 }
 
                 float cy = inspRect.y + 48f;
-                GUI.Label(new Rect(inspRect.x + 18f, cy, 298f, 42f), info.title, titleWhiteStyle);
+                GUI.Label(new Rect(inspRect.x + 18f, cy, 306f, 42f), info.title, titleWhiteStyle);
                 cy += 44f;
-                GUI.Label(new Rect(inspRect.x + 18f, cy, 298f, 64f), info.description, descMutedStyle);
+                GUI.Label(new Rect(inspRect.x + 18f, cy, 306f, 64f), info.description, descMutedStyle);
                 cy += 68f;
 
-                GUI.DrawTexture(new Rect(inspRect.x + 18f, cy, 298f, 1f), MakeSolidTex(new Color(1f, 1f, 1f, 0.1f)));
+                GUI.DrawTexture(new Rect(inspRect.x + 18f, cy, 306f, 1f), lineTex);
                 cy += 10f;
 
                 foreach (var sp in info.specs)
                 {
                     GUI.Label(new Rect(inspRect.x + 18f, cy, 130f, 22f), sp.label + ":", specLabelStyle);
-                    GUI.Label(new Rect(inspRect.x + 140f, cy, 176f, 22f), sp.value, specValueStyle);
+                    GUI.Label(new Rect(inspRect.x + 142f, cy, 182f, 22f), sp.value, specValueStyle);
                     cy += 24f;
                 }
 
@@ -362,46 +402,47 @@ namespace UNAB.Transporte3D
                     string btnLabel = ctrl.activeInspectedKey.StartsWith("pc_")
                         ? "Usar Monitor / Consola PC (Tecla F)"
                         : "Abrir Sistema / Configurar (Tecla F)";
-                    if (GUI.Button(new Rect(inspRect.x + 18f, inspRect.yMax - 48f, 298f, 34f), btnLabel, pillWhiteStyle))
+                    if (GUI.Button(new Rect(inspRect.x + 18f, inspRect.yMax - 48f, 306f, 34f), btnLabel, pillWhiteStyle))
                     {
                         ctrl.OpenDeviceConsole();
                     }
                 }
             }
 
-            // 5. MODAL INTERACTIVO ESTILO CISCO PACKET TRACER + SISTEMA GPS UNAB
+            // 5. MODAL INTERACTIVO ESTILO CISCO PACKET TRACER
             if (ctrl.isConsoleOpen && !string.IsNullOrEmpty(ctrl.activeInspectedKey))
             {
-                DrawInteractiveConsoleModal(ctrl, sim, ctrl.activeInspectedKey);
+                DrawInteractiveConsoleModal(ctrl, sim, ctrl.activeInspectedKey, vWidth, vHeight);
             }
+
+            GUI.matrix = oldMatrix;
         }
 
-        private void DrawInteractiveConsoleModal(UNABSceneController ctrl, UNABNetworkSimulator sim, string key)
+        private void DrawInteractiveConsoleModal(UNABSceneController ctrl, UNABNetworkSimulator sim, string key, float vWidth, float vHeight)
         {
-            GUI.DrawTexture(new Rect(0, 0, Screen.width, Screen.height), MakeSolidTex(new Color(0f, 0f, 0f, 0.65f)));
+            GUI.DrawTexture(new Rect(0, 0, vWidth, vHeight), MakeSolidTex(new Color(0f, 0f, 0f, 0.65f)));
 
-            float mw = Mathf.Min(860f, Screen.width - 40f);
-            float mh = Mathf.Min(580f, Screen.height - 60f);
-            Rect mRect = new Rect((Screen.width - mw) * 0.5f, (Screen.height - mh) * 0.5f, mw, mh);
+            float mw = Mathf.Min(860f, vWidth - 40f);
+            float mh = Mathf.Min(560f, vHeight - 60f);
+            Rect mRect = new Rect((vWidth - mw) * 0.5f, (vHeight - mh) * 0.5f, mw, mh);
             GUI.Box(mRect, GUIContent.none, cardStyle);
 
             if (!sim.EquipmentDB.TryGetValue(key, out var info)) return;
 
-            // Header
             GUIContent bCont = new GUIContent(info.category);
             Vector2 bSz = badgeWhiteStyle.CalcSize(bCont);
-            GUI.Box(new Rect(mRect.x + 22f, mRect.y + 18f, bSz.x + 12f, 24f), bCont, badgeWhiteStyle);
-            GUI.Label(new Rect(mRect.x + 32f + bSz.x, mRect.y + 17f, mw - 180f, 26f), info.title, titleWhiteStyle);
+            GUI.Box(new Rect(mRect.x + 22f, mRect.y + 18f, bSz.x + 14f, 24f), bCont, badgeWhiteStyle);
+            GUI.Label(new Rect(mRect.x + 34f + bSz.x, mRect.y + 17f, mw - 180f, 26f), info.title, titleWhiteStyle);
 
             if (GUI.Button(new Rect(mRect.xMax - 72f, mRect.y + 16f, 52f, 28f), "E X", pillDarkStyle))
             {
                 ctrl.isConsoleOpen = false;
+                if (ctrl.isFpsMode) ctrl.LockMouseCursor();
                 return;
             }
 
-            // Barra de Pestañas
             float ty = mRect.y + 54f;
-            GUI.DrawTexture(new Rect(mRect.x + 16f, ty - 4f, mw - 32f, 1f), MakeSolidTex(new Color(1f, 1f, 1f, 0.1f)));
+            GUI.DrawTexture(new Rect(mRect.x + 16f, ty - 4f, mw - 32f, 1f), lineTex);
 
             if (key.StartsWith("pc_"))
             {
@@ -475,11 +516,10 @@ namespace UNAB.Transporte3D
                 return;
             }
 
-            // Mapa GPS en vivo
-            Rect mapRect = new Rect(area.x, area.y + 40f, area.width, 175f);
+            Rect mapRect = new Rect(area.x, area.y + 40f, area.width, 165f);
             GUI.DrawTexture(mapRect, mapBgTex);
 
-            float[] routeYs = { mapRect.y + 38f, mapRect.y + 88f, mapRect.y + 138f };
+            float[] routeYs = { mapRect.y + 36f, mapRect.y + 84f, mapRect.y + 132f };
             string[] routeNames = { "Ruta Norte: Paramonga / Pativilca", "Ruta Sur: Supe / Puerto Supe", "Ruta Centro: Plaza de Armas Barranca" };
 
             for (int i = 0; i < 3; i++)
@@ -488,11 +528,9 @@ namespace UNAB.Transporte3D
                 GUI.Label(new Rect(mapRect.x + 28f, routeYs[i] - 20f, 260f, 20f), routeNames[i], specLabelStyle);
             }
 
-            // Nodo Campus UNAB
-            Rect campusRect = new Rect(mapRect.xMax - 108f, mapRect.y + 18f, 92f, 140f);
+            Rect campusRect = new Rect(mapRect.xMax - 108f, mapRect.y + 16f, 92f, 132f);
             GUI.Box(campusRect, "CAMPUS\nUNAB", badgeWhiteStyle);
 
-            // Buses moviéndose en tiempo real
             for (int i = 0; i < sim.buses.Count; i++)
             {
                 var bus = sim.buses[i];
@@ -501,7 +539,6 @@ namespace UNAB.Transporte3D
                 GUI.Box(busPill, bus.id, bus.status == "EN RUTA" ? badgeWhiteStyle : pillDarkStyle);
             }
 
-            // Tabla inferior de despacho e impresión
             float ty = mapRect.yMax + 12f;
             GUI.Label(new Rect(area.x, ty, 360f, 24f), "CONTROL DE FLOTA UNAB EN TIEMPO REAL", titleWhiteStyle);
             if (GUI.Button(new Rect(area.xMax - 275f, ty - 2f, 275f, 28f), $"Imprimir Reporte en Epson ({sim.printerIp})", pillWhiteStyle))
@@ -645,7 +682,7 @@ namespace UNAB.Transporte3D
             DrawLabeledField(area.x + colW + 20f, ref ry, "DNS Server:", ref sim.dhcpDns, true);
             DrawLabeledField(area.x + colW + 20f, ref ry, "Start IP Pool:", ref sim.dhcpStartIp, true);
 
-            float dy = area.y + 190f;
+            float dy = area.y + 185f;
             GUI.Label(new Rect(area.x, dy, 280f, 26f), "REGISTROS DNS (ZONA UNAB)", titleWhiteStyle);
             newDnsDomain = GUI.TextField(new Rect(area.x + 285f, dy, 190f, 28f), string.IsNullOrEmpty(newDnsDomain) ? "intranet.unab.edu.pe" : newDnsDomain, textFieldStyle);
             newDnsIp = GUI.TextField(new Rect(area.x + 485f, dy, 140f, 28f), string.IsNullOrEmpty(newDnsIp) ? "192.168.20.10" : newDnsIp, textFieldStyle);

@@ -42,6 +42,7 @@ namespace UNAB.Transporte3D
         public List<DoorHingeRef> doorHinges = new List<DoorHingeRef>();
         public List<DataPacketRoute> packetRoutes = new List<DataPacketRoute>();
         public List<FloatingLabelRef> floatingLabels = new List<FloatingLabelRef>();
+        public List<Renderer> blinkingLedRenderers = new List<Renderer>();
 
         [Header("Interactive State")]
         public bool isFpsMode = true;
@@ -63,10 +64,10 @@ namespace UNAB.Transporte3D
         private Vector3 fpsVelocity = Vector3.zero;
 
         // Orbit Camera state
-        private Vector3 orbitTarget = new Vector3(0f, 0.8f, 0f);
-        private float orbitDistance = 23f;
-        private float orbitYaw = 0f;
-        private float orbitPitch = 45f;
+        private Vector3 orbitTarget = new Vector3(0f, 0.9f, 0f);
+        private float orbitDistance = 22f;
+        private float orbitYaw = 15f;
+        private float orbitPitch = 42f;
 
         // Smooth camera transition
         private bool transitioning = false;
@@ -103,18 +104,28 @@ namespace UNAB.Transporte3D
             targetYaw = yaw;
             targetPitch = pitch;
 
+            LockMouseCursor();
+        }
+
+        public void LockMouseCursor()
+        {
             Cursor.lockState = CursorLockMode.Locked;
             Cursor.visible = false;
+        }
+
+        public void UnlockMouseCursor()
+        {
+            Cursor.lockState = CursorLockMode.None;
+            Cursor.visible = true;
         }
 
         public void SwitchToCameraView(string viewName)
         {
             isFpsMode = false;
-            Cursor.lockState = CursorLockMode.None;
-            Cursor.visible = true;
+            UnlockMouseCursor();
             SetCeilingState(false);
 
-            Vector3 endPos = new Vector3(0f, 17f, -16f);
+            Vector3 endPos = new Vector3(0f, 16.5f, -15.5f);
             Vector3 endLook = new Vector3(0f, 0.8f, 0f);
 
             if (viewName == "datacenter")
@@ -219,6 +230,7 @@ namespace UNAB.Transporte3D
                 if (isConsoleOpen)
                 {
                     isConsoleOpen = false;
+                    if (isFpsMode) LockMouseCursor();
                 }
                 else
                 {
@@ -231,6 +243,7 @@ namespace UNAB.Transporte3D
                 if (isConsoleOpen)
                 {
                     isConsoleOpen = false;
+                    if (isFpsMode) LockMouseCursor();
                 }
                 else if (isFpsMode)
                 {
@@ -260,8 +273,7 @@ namespace UNAB.Transporte3D
         {
             if (string.IsNullOrEmpty(activeInspectedKey) || activeInspectedKey == "structured_cabling") return;
             isConsoleOpen = true;
-            Cursor.lockState = CursorLockMode.None;
-            Cursor.visible = true;
+            UnlockMouseCursor();
             if (UNABHudAndConsoleUI.Instance != null)
             {
                 UNABHudAndConsoleUI.Instance.OnOpenConsoleForKey(activeInspectedKey);
@@ -270,26 +282,34 @@ namespace UNAB.Transporte3D
 
         private void UpdateFpsMovement(float dt)
         {
-            if (Cursor.lockState == CursorLockMode.Locked)
-            {
-                Vector2 mouseDelta = GetMouseDelta();
-                float dx = Mathf.Clamp(mouseDelta.x, -45f, 45f);
-                float dy = Mathf.Clamp(mouseDelta.y, -45f, 45f);
-                targetYaw += dx * 0.14f;
-                targetPitch = Mathf.Clamp(targetPitch - dy * 0.14f, -78f, 78f);
-            }
-
-            float smoothLook = Mathf.Min(1f, dt * 18f);
-            yaw = Mathf.Lerp(yaw, targetYaw, smoothLook);
-            pitch = Mathf.Lerp(pitch, targetPitch, smoothLook);
-            mainCamera.transform.rotation = Quaternion.Euler(pitch, yaw, 0f);
-
             float moveZ = (IsKeyPressed(KeyCode.W) || IsKeyPressed(KeyCode.UpArrow) ? 1f : 0f)
                         - (IsKeyPressed(KeyCode.S) || IsKeyPressed(KeyCode.DownArrow) ? 1f : 0f);
             float moveX = (IsKeyPressed(KeyCode.D) || IsKeyPressed(KeyCode.RightArrow) ? 1f : 0f)
                         - (IsKeyPressed(KeyCode.A) || IsKeyPressed(KeyCode.LeftArrow) ? 1f : 0f);
             float moveY = (IsKeyPressed(KeyCode.Space) ? 1f : 0f)
                         - (IsKeyPressed(KeyCode.LeftShift) || IsKeyPressed(KeyCode.RightShift) ? 1f : 0f);
+
+            // Si el usuario presiona WASD en el Editor y el cursor aun no estaba bloqueado, bloquearlo automaticamente
+            if ((Mathf.Abs(moveZ) > 0.01f || Mathf.Abs(moveX) > 0.01f) && Cursor.lockState != CursorLockMode.Locked)
+            {
+                LockMouseCursor();
+            }
+
+            // Rotar camara si el cursor esta bloqueado O si mantiene presionado clic izquierdo/derecho en la escena
+            bool canRotate = (Cursor.lockState == CursorLockMode.Locked) || IsMouseButtonPressed(0) || IsMouseButtonPressed(1);
+            if (canRotate)
+            {
+                Vector2 mouseDelta = GetMouseDelta();
+                float dx = Mathf.Clamp(mouseDelta.x, -50f, 50f);
+                float dy = Mathf.Clamp(mouseDelta.y, -50f, 50f);
+                targetYaw += dx * 0.18f;
+                targetPitch = Mathf.Clamp(targetPitch - dy * 0.18f, -78f, 78f);
+            }
+
+            float smoothLook = Mathf.Min(1f, dt * 20f);
+            yaw = Mathf.Lerp(yaw, targetYaw, smoothLook);
+            pitch = Mathf.Lerp(pitch, targetPitch, smoothLook);
+            mainCamera.transform.rotation = Quaternion.Euler(pitch, yaw, 0f);
 
             Vector3 fwd = Quaternion.Euler(0f, yaw, 0f) * Vector3.forward;
             Vector3 right = Quaternion.Euler(0f, yaw, 0f) * Vector3.right;
@@ -310,13 +330,13 @@ namespace UNAB.Transporte3D
         private void UpdateOrbitMovement()
         {
             Vector2 mousePos = GetMousePosition();
-            if (mousePos.y > Screen.height - 75f) return; // Evitar arrastrar sobre el menu superior
+            if (mousePos.y > Screen.height - 65f) return;
 
             if (IsMouseButtonPressed(0))
             {
                 Vector2 delta = GetMouseDelta();
-                orbitYaw += delta.x * 0.22f;
-                orbitPitch = Mathf.Clamp(orbitPitch - delta.y * 0.22f, 10f, 85f);
+                orbitYaw += delta.x * 0.25f;
+                orbitPitch = Mathf.Clamp(orbitPitch - delta.y * 0.25f, 10f, 85f);
             }
             else if (IsMouseButtonPressed(1))
             {
@@ -343,9 +363,7 @@ namespace UNAB.Transporte3D
             if (mainCamera == null) return;
 
             Vector2 mousePos = GetMousePosition();
-            // Ignorar clics en la barra superior o en el inspector derecho
-            if (mousePos.y > Screen.height - 75f) return;
-            if (!string.IsNullOrEmpty(activeInspectedKey) && mousePos.x > Screen.width - 360f && mousePos.y > Screen.height - 460f) return;
+            if (mousePos.y > Screen.height - 65f) return;
 
             Ray ray = (isFpsMode && Cursor.lockState == CursorLockMode.Locked)
                 ? mainCamera.ViewportPointToRay(new Vector3(0.5f, 0.5f, 0f))
@@ -365,9 +383,7 @@ namespace UNAB.Transporte3D
             {
                 if (isFpsMode && Cursor.lockState != CursorLockMode.Locked)
                 {
-                    Cursor.lockState = CursorLockMode.Locked;
-                    Cursor.visible = false;
-                    return;
+                    LockMouseCursor();
                 }
 
                 if (!string.IsNullOrEmpty(hoveredKey))
@@ -379,7 +395,6 @@ namespace UNAB.Transporte3D
 
         private void UpdateAnimations(float dt)
         {
-            // Animacion de puertas
             foreach (var d in doorHinges)
             {
                 if (d.pivot == null) continue;
@@ -389,7 +404,6 @@ namespace UNAB.Transporte3D
                 d.pivot.localEulerAngles = new Vector3(0f, currentY, 0f);
             }
 
-            // Animacion de paquetes de datos por los cables Cat6A
             if (packetsEnabled)
             {
                 foreach (var r in packetRoutes)
@@ -422,9 +436,6 @@ namespace UNAB.Transporte3D
             return pts[pts.Length - 1];
         }
 
-        // ============================================================================
-        // COMPATIBILIDAD DUAL INPUT SYSTEM (NEW INPUT SYSTEM & LEGACY INPUT MANAGER)
-        // ============================================================================
         public static bool IsKeyPressed(KeyCode key)
         {
 #if ENABLE_INPUT_SYSTEM
@@ -445,10 +456,8 @@ namespace UNAB.Transporte3D
                     case KeyCode.RightShift: return Keyboard.current.rightShiftKey.isPressed;
                 }
             }
-            return false;
-#else
-            return Input.GetKey(key);
 #endif
+            return false;
         }
 
         public static bool WasKeyPressedThisFrame(KeyCode key)
@@ -467,28 +476,27 @@ namespace UNAB.Transporte3D
                     case KeyCode.Escape: return Keyboard.current.escapeKey.wasPressedThisFrame;
                 }
             }
-            return false;
-#else
-            return Input.GetKeyDown(key);
 #endif
+            return false;
         }
 
         public static Vector2 GetMouseDelta()
         {
 #if ENABLE_INPUT_SYSTEM
-            return Mouse.current != null ? Mouse.current.delta.ReadValue() : Vector2.zero;
-#else
-            return new Vector2(Input.GetAxisRaw("Mouse X") * 10f, Input.GetAxisRaw("Mouse Y") * 10f);
+            if (Mouse.current != null)
+            {
+                return Mouse.current.delta.ReadValue();
+            }
 #endif
+            return Vector2.zero;
         }
 
         public static Vector2 GetMousePosition()
         {
 #if ENABLE_INPUT_SYSTEM
-            return Mouse.current != null ? Mouse.current.position.ReadValue() : Vector2.zero;
-#else
-            return Input.mousePosition;
+            if (Mouse.current != null) return Mouse.current.position.ReadValue();
 #endif
+            return Vector2.zero;
         }
 
         public static bool IsMouseButtonPressed(int button)
@@ -497,7 +505,7 @@ namespace UNAB.Transporte3D
             if (Mouse.current == null) return false;
             return button == 0 ? Mouse.current.leftButton.isPressed : Mouse.current.rightButton.isPressed;
 #else
-            return Input.GetMouseButton(button);
+            return false;
 #endif
         }
 
@@ -507,17 +515,16 @@ namespace UNAB.Transporte3D
             if (Mouse.current == null) return false;
             return button == 0 ? Mouse.current.leftButton.wasPressedThisFrame : Mouse.current.rightButton.wasPressedThisFrame;
 #else
-            return Input.GetMouseButtonDown(button);
+            return false;
 #endif
         }
 
         public static float GetMouseScrollY()
         {
 #if ENABLE_INPUT_SYSTEM
-            return Mouse.current != null ? Mouse.current.scroll.ReadValue().y * 0.01f : 0f;
-#else
-            return Input.mouseScrollDelta.y;
+            if (Mouse.current != null) return Mouse.current.scroll.ReadValue().y * 0.01f;
 #endif
+            return 0f;
         }
     }
 }
