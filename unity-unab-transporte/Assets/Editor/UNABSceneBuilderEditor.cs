@@ -6,12 +6,41 @@ using UnityEngine.Rendering;
 
 namespace UNAB.Transporte3D.EditorTools
 {
+    [InitializeOnLoad]
     public static class UNABSceneBuilderEditor
     {
         private static Shader activeShader;
 
+        static UNABSceneBuilderEditor()
+        {
+            EditorApplication.delayCall += TryAutoUpgradeScene;
+            EditorApplication.playModeStateChanged += OnPlayModeChanged;
+        }
+
+        private static void OnPlayModeChanged(PlayModeStateChange state)
+        {
+            if (state == PlayModeStateChange.EnteredEditMode)
+            {
+                TryAutoUpgradeScene();
+            }
+        }
+
+        private static void TryAutoUpgradeScene()
+        {
+            if (EditorApplication.isPlayingOrWillChangePlaymode) return;
+            if (GameObject.Find("UNAB_Transporte_Root") != null && GameObject.Find("UNAB_HD_V3_Marker") == null)
+            {
+                BuildCompleteSceneInternal(false);
+            }
+        }
+
         [MenuItem("UNAB Transporte/Construir Escena 3D Completa (1-Click)", false, 1)]
         public static void BuildCompleteScene()
+        {
+            BuildCompleteSceneInternal(true);
+        }
+
+        private static void BuildCompleteSceneInternal(bool showDialog)
         {
             // Configurar Anti-Aliasing 4x MSAA para eliminar bordes dentados
             QualitySettings.antiAliasing = 4;
@@ -25,6 +54,9 @@ namespace UNAB.Transporte3D.EditorTools
 
             GameObject root = new GameObject("UNAB_Transporte_Root");
             Undo.RegisterCreatedObjectUndo(root, "Build UNAB Transporte 3D Scene");
+
+            GameObject marker = new GameObject("UNAB_HD_V3_Marker");
+            marker.transform.SetParent(root.transform);
 
             var sim = root.AddComponent<UNABNetworkSimulator>();
             sim.InitializeDatabase();
@@ -73,10 +105,13 @@ namespace UNAB.Transporte3D.EditorTools
 
             Selection.activeGameObject = root;
             SceneView.RepaintAll();
-            EditorUtility.DisplayDialog(
-                "UNAB - Area de Transporte 3D (Alta Calidad)",
-                "¡Escena 3D de alta calidad actualizada!\n\nTIP PARA VERLO NITIDO: En la pestaña 'Game', baja la barra 'Scale' de 1.5x a 1x (o activa 'Play Maximized' al lado de Play Focused).\n\nPresiona PLAY (▶) para recorrer con WASD y mirar con el raton.",
-                "¡Listo!");
+            if (showDialog)
+            {
+                EditorUtility.DisplayDialog(
+                    "UNAB - Area de Transporte 3D (Alta Calidad)",
+                    "¡Escena 3D y Menu Superior actualizados!\n\nPresiona PLAY (▶) para recorrer con WASD y mirar con el raton.",
+                    "¡Listo!");
+            }
         }
 
         private static Material CreatePbrMat(string name, Color color, float metallic = 0.05f, float smoothness = 0.5f, Texture2D tex = null, Vector2? tileScale = null, bool transparent = false, Color? emission = null)
