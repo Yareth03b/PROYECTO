@@ -243,6 +243,22 @@ namespace UNAB.Transporte3D
                 ("Canalizacion Pared", "Canaleta PVC blanca 60x40 mm con Faceplates RJ45"),
                 ("Certificacion", "ANSI/TIA-568-C.2 (< 90m enlace permanente)"));
 
+            AddEquipment("unab_bus_01", "FLOTA DE TRANSPORTE UNIVERSITARIO UNAB",
+                "Bus Institucional UNAB #03 (Placa EUB-105 - Modulo GPS/LTE Activo)",
+                "Unidad de transporte estudiantil de la Universidad Nacional de Barranca equipada con transceptor GPS/GNSS y modem celular 4G LTE que reporta telemetria en tiempo real al Servidor Central (192.168.20.10).",
+                ("Ruta Asignada", "Ruta Centro: Plaza de Armas Barranca - Campus UNAB"),
+                ("Telemetria GPS", "Enlace 4G LTE -> Gateway WAN 200.48.225.14 -> SRV-UNAB (192.168.20.10)"),
+                ("Capacidad", "45 Pasajeros Sentados (Estudiantes / Docentes UNAB)"),
+                ("Estado Actual", "Estacionado en Exterior Campus UNAB (Transmision GPS Online)"));
+
+            AddEquipment("portico_unab", "CAMPUS UNIVERSIDAD NACIONAL DE BARRANCA",
+                "Portico Principal de Ingreso y Mural Monumental de Caral",
+                "Fachada institucional de la Universidad Nacional de Barranca (UNAB) con portico trapezoidal en piedra laja negra, Pabellon Central donde se ubica el Area de Transporte y el Mural de la Ciudad Sagrada de Caral.",
+                ("Ubicacion", "Av. Toribio de Luzuriaga / Campus Principal UNAB - Barranca"),
+                ("Pabellon Central", "1er Piso: Area de Transporte y Centro de Datos (Data Center)"),
+                ("Patrimonio Cultural", "Mural Ciudad Sagrada de Caral - Primera Civilizacion de America"),
+                ("Conectividad Campus", "Fibra Optica Monomodo + Red LAN Cat6A (192.168.20.0/24)"));
+
             dnsRecords = new List<DnsRecord>
             {
                 new DnsRecord { domain = "gps.unab.edu.pe", type = "A", ip = "192.168.20.10" },

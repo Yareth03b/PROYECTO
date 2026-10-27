@@ -216,6 +216,7 @@ namespace UNAB.Transporte3D
             }
 
             // Calculo dinamico del ancho requerido por el menu superior para adaptarlo a cualquier ventana de Unity
+            string lblExtInt = ctrl.IsPlayerOutsideCampus() ? "Ir al Interior (Transporte)" : "Ir a Fachada UNAB";
             string lblFps = ctrl.isFpsMode
                 ? (ctrl.isThirdPerson ? "Caminata: 3ra Persona (V)" : "Caminata: 1ra Persona (V)")
                 : "Modo Caminata (WASD)";
@@ -225,19 +226,20 @@ namespace UNAB.Transporte3D
             string lblWall = $"Vista Muros: {(ctrl.wallsLowered ? "Bajos" : "Normal")}";
             string lblTags = $"Etiquetas: {(ctrl.labelsVisible ? "ON" : "OFF")}";
 
-            float wFps = btnLabelStyle.CalcSize(new GUIContent(lblFps)).x + 24f;
-            float wViews = btnLabelStyle.CalcSize(new GUIContent(lblViews)).x + 24f;
-            float wCeil = btnLabelStyle.CalcSize(new GUIContent(lblCeil)).x + 24f;
-            float wPack = btnLabelStyle.CalcSize(new GUIContent(lblPack)).x + 24f;
-            float wWall = btnLabelStyle.CalcSize(new GUIContent(lblWall)).x + 24f;
-            float wTags = btnLabelStyle.CalcSize(new GUIContent(lblTags)).x + 24f;
+            float wExtInt = btnLabelStyle.CalcSize(new GUIContent(lblExtInt)).x + 22f;
+            float wFps = btnLabelStyle.CalcSize(new GUIContent(lblFps)).x + 22f;
+            float wViews = btnLabelStyle.CalcSize(new GUIContent(lblViews)).x + 22f;
+            float wCeil = btnLabelStyle.CalcSize(new GUIContent(lblCeil)).x + 22f;
+            float wPack = btnLabelStyle.CalcSize(new GUIContent(lblPack)).x + 22f;
+            float wWall = btnLabelStyle.CalcSize(new GUIContent(lblWall)).x + 22f;
+            float wTags = btnLabelStyle.CalcSize(new GUIContent(lblTags)).x + 22f;
 
             float brandSectionW = 240f;
-            float buttonsTotalW = wFps + wViews + wCeil + wPack + wWall + wTags + (5f * 6f) + 16f;
+            float buttonsTotalW = wExtInt + wFps + wViews + wCeil + wPack + wWall + wTags + (6f * 6f) + 16f;
             float minMenuWidth = brandSectionW + buttonsTotalW + 36f;
 
             Matrix4x4 oldMatrix = GUI.matrix;
-            float uiScale = Mathf.Clamp(Screen.width / Mathf.Max(1120f, minMenuWidth), 0.35f, 1.0f);
+            float uiScale = Mathf.Clamp(Screen.width / Mathf.Max(1180f, minMenuWidth), 0.35f, 1.0f);
             float vWidth = Screen.width / uiScale;
             float vHeight = Screen.height / uiScale;
             GUI.matrix = Matrix4x4.TRS(Vector3.zero, Quaternion.identity, new Vector3(uiScale, uiScale, 1f));
@@ -294,33 +296,46 @@ namespace UNAB.Transporte3D
                 else ctrl.ActivateFpsMode();
             }
 
+            rx -= (gap + wExtInt);
+            if (DrawPillButton(new Rect(rx, btnY, wExtInt, btnH), lblExtInt, !ctrl.IsPlayerOutsideCampus()))
+            {
+                viewsDropdownOpen = false;
+                ctrl.ToggleExteriorInteriorWalk();
+            }
+
             // Menu desplegable de Vistas Rapidas
             if (viewsDropdownOpen)
             {
-                Rect dropRect = new Rect(viewsBtnRect.x, navRect.yMax + 6f, 242f, 258f);
+                Rect dropRect = new Rect(viewsBtnRect.x, navRect.yMax + 6f, 248f, 328f);
                 DrawRoundedRect(dropRect, ColCardBg, ColCardBorder, 16f, 1.2f);
                 GUI.Label(new Rect(dropRect.x + 14f, dropRect.y + 10f, 160f, 20f), "VISTAS DE CÁMARA", specLabelStyle);
                 if (DrawPillButton(new Rect(dropRect.xMax - 38f, dropRect.y + 8f, 26f, 22f), "X", false))
                     viewsDropdownOpen = false;
 
                 float by = dropRect.y + 36f;
-                if (DrawPillButton(new Rect(dropRect.x + 12f, by, 218f, 30f), "Alternar 1ra / 3ra Persona (V)", ctrl.isThirdPerson))
+                if (DrawPillButton(new Rect(dropRect.x + 12f, by, 224f, 30f), "Caminar en Fachada UNAB", ctrl.IsPlayerOutsideCampus()))
+                { ctrl.TeleportPlayerTo(new Vector3(26.5f, 0f, 2.2f), -90f, 6f); viewsDropdownOpen = false; }
+                by += 35f;
+                if (DrawPillButton(new Rect(dropRect.x + 12f, by, 224f, 30f), "Caminar en Área Transporte", !ctrl.IsPlayerOutsideCampus()))
+                { ctrl.TeleportPlayerTo(new Vector3(2.2f, 0f, -0.4f), 0f, 12f); viewsDropdownOpen = false; }
+                by += 35f;
+                if (DrawPillButton(new Rect(dropRect.x + 12f, by, 224f, 30f), "Vista Panorámica Fachada UNAB", false))
+                { ctrl.SwitchToCameraView("fachada"); viewsDropdownOpen = false; }
+                by += 35f;
+                if (DrawPillButton(new Rect(dropRect.x + 12f, by, 224f, 30f), "Alternar 1ra / 3ra Persona (V)", ctrl.isThirdPerson))
                 { ctrl.ToggleThirdPerson(); viewsDropdownOpen = false; }
                 by += 35f;
-                if (DrawPillButton(new Rect(dropRect.x + 12f, by, 218f, 30f), "Vista General Isométrica", false))
+                if (DrawPillButton(new Rect(dropRect.x + 12f, by, 224f, 30f), "Vista Aérea Interior (Sin Techo)", false))
                 { ctrl.SwitchToCameraView("iso"); viewsDropdownOpen = false; }
                 by += 35f;
-                if (DrawPillButton(new Rect(dropRect.x + 12f, by, 218f, 30f), "Cuarto de Servidores (Rack)", false))
+                if (DrawPillButton(new Rect(dropRect.x + 12f, by, 224f, 30f), "Cuarto de Servidores (Rack)", false))
                 { ctrl.SwitchToCameraView("datacenter"); viewsDropdownOpen = false; }
                 by += 35f;
-                if (DrawPillButton(new Rect(dropRect.x + 12f, by, 218f, 30f), "Paso de Cableado / Techo", false))
+                if (DrawPillButton(new Rect(dropRect.x + 12f, by, 224f, 30f), "Paso de Cableado / Techo", false))
                 { ctrl.SwitchToCameraView("cabling"); viewsDropdownOpen = false; }
                 by += 35f;
-                if (DrawPillButton(new Rect(dropRect.x + 12f, by, 218f, 30f), "Monitores GPS Buses", false))
+                if (DrawPillButton(new Rect(dropRect.x + 12f, by, 224f, 30f), "Monitores GPS Buses", false))
                 { ctrl.SwitchToCameraView("monitoring"); viewsDropdownOpen = false; }
-                by += 35f;
-                if (DrawPillButton(new Rect(dropRect.x + 12f, by, 218f, 30f), "Abrir / Cerrar Puertas", false))
-                { ctrl.ToggleDoors(); viewsDropdownOpen = false; }
             }
 
             // 3. MIRA CENTRAL FINA Y PILDORA INFERIOR EN MODO CAMINATA
@@ -371,7 +386,9 @@ namespace UNAB.Transporte3D
                     cy += 23f;
                 }
 
-                if (ctrl.activeInspectedKey != "structured_cabling")
+                if (ctrl.activeInspectedKey != "structured_cabling" &&
+                    ctrl.activeInspectedKey != "portico_unab" &&
+                    ctrl.activeInspectedKey != "unab_bus_01")
                 {
                     string btnLabel = ctrl.activeInspectedKey.StartsWith("pc_")
                         ? "Usar Monitor / Consola PC (Tecla F)"
@@ -396,22 +413,38 @@ namespace UNAB.Transporte3D
         {
             List<Rect> drawnRects = new List<Rect>();
             Vector3 camPos = ctrl.mainCamera.transform.position;
+            bool camOutside = camPos.x > 8.2f || Mathf.Abs(camPos.z) > 6.0f;
 
             foreach (var lbl in ctrl.floatingLabels)
             {
-                // En Modo Caminata, no mostrar etiquetas que estan al otro lado del muro divisorio
+                bool lblOutside = lbl.worldPosition.x > 8.05f || Mathf.Abs(lbl.worldPosition.z) > 5.8f;
+
                 if (ctrl.isFpsMode)
                 {
+                    if (camOutside != lblOutside) continue;
                     float dist = Vector3.Distance(camPos, lbl.worldPosition);
-                    if (dist > 8.5f) continue;
-                    bool camInOffice = camPos.x > -3.0f;
-                    bool camInServer = camPos.x < -3.4f;
-                    if (camInOffice && lbl.worldPosition.x < -3.3f) continue;
-                    if (camInServer && lbl.worldPosition.x > -3.1f) continue;
+                    if (camOutside)
+                    {
+                        if (dist > 32.0f) continue;
+                    }
+                    else
+                    {
+                        if (dist > 8.5f) continue;
+                        bool camInOffice = camPos.x > -3.0f;
+                        bool camInServer = camPos.x < -3.4f;
+                        if (camInOffice && lbl.worldPosition.x < -3.3f) continue;
+                        if (camInServer && lbl.worldPosition.x > -3.1f) continue;
+                    }
+                }
+                else
+                {
+                    // En vista orbital interior (sin techo), ocultar etiquetas lejanas de la avenida para no saturar
+                    if (!ctrl.ceilingVisible && lbl.worldPosition.x > 14f) continue;
                 }
 
                 Vector3 screenPos = ctrl.mainCamera.WorldToScreenPoint(lbl.worldPosition);
-                if (screenPos.z > 0.4f && screenPos.z < 26f)
+                float maxZ = camOutside ? 45f : 26f;
+                if (screenPos.z > 0.4f && screenPos.z < maxZ)
                 {
                     GUIContent content = new GUIContent(lbl.text);
                     Vector2 textSize = floatingTextStyle.CalcSize(content);

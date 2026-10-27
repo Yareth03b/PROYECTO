@@ -28,7 +28,7 @@ namespace UNAB.Transporte3D.EditorTools
         private static void TryAutoUpgradeScene()
         {
             if (EditorApplication.isPlayingOrWillChangePlaymode) return;
-            if (GameObject.Find("UNAB_Transporte_Root") != null && GameObject.Find("UNAB_HD_V7_UltraRealistic") == null)
+            if (GameObject.Find("UNAB_Transporte_Root") != null && GameObject.Find("UNAB_HD_V8_CampusFacade") == null)
             {
                 BuildCompleteSceneInternal(false);
             }
@@ -55,7 +55,7 @@ namespace UNAB.Transporte3D.EditorTools
             GameObject root = new GameObject("UNAB_Transporte_Root");
             Undo.RegisterCreatedObjectUndo(root, "Build UNAB Transporte 3D Scene");
 
-            GameObject marker = new GameObject("UNAB_HD_V7_UltraRealistic");
+            GameObject marker = new GameObject("UNAB_HD_V8_CampusFacade");
             marker.transform.SetParent(root.transform);
 
             var sim = root.AddComponent<UNABNetworkSimulator>();
@@ -72,10 +72,10 @@ namespace UNAB.Transporte3D.EditorTools
                 mainCam = camObj.AddComponent<Camera>();
                 camObj.AddComponent<AudioListener>();
             }
-            mainCam.clearFlags = CameraClearFlags.SolidColor;
-            mainCam.backgroundColor = new Color(0.055f, 0.09f, 0.16f);
+            mainCam.clearFlags = CameraClearFlags.Skybox;
+            mainCam.backgroundColor = new Color(0.38f, 0.68f, 0.96f);
             mainCam.nearClipPlane = 0.1f;
-            mainCam.farClipPlane = 180f;
+            mainCam.farClipPlane = 240f;
             mainCam.fieldOfView = 50f;
             mainCam.allowMSAA = true;
             mainCam.allowHDR = true;
@@ -99,6 +99,7 @@ namespace UNAB.Transporte3D.EditorTools
             SetupLightingAndReflections(root.transform);
             BuildEnvironmentAndWalls(root.transform, ctrl);
             BuildSuspendedCeiling(root.transform, ctrl);
+            BuildUNABCampusAndFacade(root.transform, ctrl);
             BuildDataCenterRoom(root.transform, ctrl);
             BuildMonitoringOffice(root.transform, ctrl);
             BuildStructuredCabling(root.transform, ctrl);
@@ -109,8 +110,8 @@ namespace UNAB.Transporte3D.EditorTools
             if (showDialog)
             {
                 EditorUtility.DisplayDialog(
-                    "UNAB - Area de Transporte 3D (Con Personaje 3D)",
-                    "¡Escena 3D, Menu Superior y Personaje Caminante actualizados!\n\nPresiona PLAY (▶) para caminar con WASD en 3ra Persona o presiona la tecla V para alternar entre 1ra y 3ra Persona.",
+                    "UNAB - Campus, Fachada Principal y Area de Transporte 3D",
+                    "¡Campus de la Universidad Nacional de Barranca (Portico Principal, Mural de Caral, Torre Azul UNAB, Bus Institucional y Area de Transporte) construido!\n\nPresiona PLAY (▶) para caminar desde la fachada exterior hacia el Area de Transporte.",
                     "¡Listo!");
             }
         }
@@ -198,6 +199,31 @@ namespace UNAB.Transporte3D.EditorTools
             return go;
         }
 
+        private static GameObject AddQuad(Transform parent, string name, Vector3 pos, Vector3 scale, Vector3 eulerAngles, Material mat)
+        {
+            GameObject go = GameObject.CreatePrimitive(PrimitiveType.Quad);
+            go.name = name;
+            go.transform.SetParent(parent, false);
+            go.transform.localPosition = pos;
+            go.transform.localScale = scale;
+            go.transform.localEulerAngles = eulerAngles;
+            go.GetComponent<MeshRenderer>().sharedMaterial = mat;
+            var c = go.GetComponent<Collider>();
+            if (c != null) Object.DestroyImmediate(c);
+            return go;
+        }
+
+        private static Texture2D LoadResourceTex(string resName, bool repeat = false)
+        {
+            Texture2D tex = Resources.Load<Texture2D>(resName);
+            if (tex != null)
+            {
+                tex.anisoLevel = 8;
+                tex.wrapMode = repeat ? TextureWrapMode.Repeat : TextureWrapMode.Clamp;
+            }
+            return tex;
+        }
+
         private static void TagInteractable(GameObject go, string key)
         {
             var tag = go.AddComponent<UNABInteractableTag>();
@@ -279,32 +305,8 @@ namespace UNAB.Transporte3D.EditorTools
             GameObject env = new GameObject("Architecture_And_Walls");
             env.transform.SetParent(root, false);
 
-            Material grassMat = CreatePbrMat("Grass", new Color(0.39f, 0.63f, 0.06f), 0f, 0.15f);
-            AddBox(env.transform, "Exterior_Grass", new Vector3(0f, -0.08f, 0f), new Vector3(48f, 0.08f, 38f), grassMat, false);
-
-            // Camino exterior de piedras y arbustos decorativos
-            Material stoneMat = CreatePbrMat("SteppingStones", new Color(0.66f, 0.64f, 0.62f), 0.05f, 0.25f);
-            for (float z = -5.0f; z <= 5.0f; z += 0.85f)
-            {
-                for (float x = 9.4f; x <= 10.8f; x += 0.7f)
-                {
-                    AddCylinder(env.transform, "Stone", new Vector3(x, -0.03f, z), new Vector3(0.58f, 0.03f, 0.58f), stoneMat);
-                }
-            }
-
-            Material bushMat = CreatePbrMat("BushGreen", new Color(0.25f, 0.39f, 0.08f), 0f, 0.25f);
-            Vector2[] bushCoords = { new Vector2(-10.2f, 3.2f), new Vector2(-10.2f, -4.8f), new Vector2(-6.5f, -7.2f), new Vector2(10.2f, 3.6f), new Vector2(10.2f, -3.6f) };
-            foreach (var bc in bushCoords)
-            {
-                GameObject bg = new GameObject("Bush");
-                bg.transform.SetParent(env.transform, false);
-                bg.transform.localPosition = new Vector3(bc.x, 0f, bc.y);
-                AddSphere(bg.transform, "Main", new Vector3(0f, 0.45f, 0f), Vector3.one * 1.2f, bushMat);
-                for (int i = 0; i < 4; i++)
-                {
-                    AddSphere(bg.transform, "Sub", new Vector3(Mathf.Cos(i * 1.5f) * 0.35f, 0.28f, Mathf.Sin(i * 1.5f) * 0.35f), Vector3.one * 0.75f, bushMat);
-                }
-            }
+            Material grassMat = CreatePbrMat("Grass", new Color(0.35f, 0.58f, 0.12f), 0f, 0.15f);
+            AddBox(env.transform, "Exterior_Grass", new Vector3(4f, -0.10f, 0f), new Vector3(84f, 0.08f, 80f), grassMat, false);
 
             Material dcFloorMat = CreatePbrMat("RaisedFloor_DC", Color.white, 0.35f, 0.62f, MakeRaisedFloorTex(), new Vector2(5f, 11f));
             AddBox(env.transform, "DataCenter_RaisedFloor", new Vector3(-5.6f, 0.08f, 0f), new Vector3(4.8f, 0.16f, 11.0f), dcFloorMat);
@@ -462,6 +464,356 @@ namespace UNAB.Transporte3D.EditorTools
                 AddBox(ceil.transform, "LED_Frame", new Vector3(lx, 3.112f, lz), new Vector3(1.18f, 0.016f, 0.58f), gridMat, false);
                 AddBox(ceil.transform, "LED_Diffuser", new Vector3(lx, 3.101f, lz), new Vector3(1.10f, 0.01f, 0.50f), ledMat, false);
             }
+        }
+
+        // ==========================================================================================================
+        // CAMPUS Y FACHADA EXTERIOR DE LA UNIVERSIDAD NACIONAL DE BARRANCA (PORTICO, MURAL DE CARAL, TORRE Y BUS)
+        // ==========================================================================================================
+        private static void BuildUNABCampusAndFacade(Transform root, UNABSceneController ctrl)
+        {
+            GameObject campus = new GameObject("UNAB_Campus_And_Facade");
+            campus.transform.SetParent(root, false);
+
+            // Texturas fotograficas y arquitectonicas desde Assets/Resources/
+            Texture2D slateTex = LoadResourceTex("piedra-laja-unab", true);
+            Texture2D porticoHdrTex = LoadResourceTex("portico-unab-header", false);
+            Texture2D towerUnabTex = LoadResourceTex("torre-unab-vertical", false);
+            Texture2D caralMuralTex = LoadResourceTex("mural-caral", false);
+            Texture2D caralRelievesTex = LoadResourceTex("relieves-caral", false);
+            Texture2D caralPlacaTex = LoadResourceTex("placa-caral-texto", false);
+
+            Material slateMat = CreatePbrMat("UNAB_SlateStone", Color.white, 0.12f, 0.38f, slateTex, new Vector2(4f, 4f));
+            Material slatePillarMat = CreatePbrMat("UNAB_SlatePillar", Color.white, 0.12f, 0.42f, slateTex, new Vector2(2f, 3f));
+            Material porticoHdrMat = CreatePbrMat("UNAB_PorticoHeader", Color.white, 0.25f, 0.55f, porticoHdrTex);
+            Material towerBlueMat = CreatePbrMat("UNAB_BlueTower", new Color(0.05f, 0.20f, 0.72f), 0.15f, 0.65f);
+            Material towerSignMat = CreatePbrMat("UNAB_TowerSign", Color.white, 0.15f, 0.65f, towerUnabTex);
+            Material caralMuralMat = CreatePbrMat("UNAB_CaralMural", Color.white, 0.04f, 0.28f, caralMuralTex);
+            Material caralRelievesMat = CreatePbrMat("UNAB_CaralRelieves", Color.white, 0.05f, 0.30f, caralRelievesTex);
+            Material caralPlacaMat = CreatePbrMat("UNAB_CaralPlaca", Color.white, 0.05f, 0.32f, caralPlacaTex);
+
+            Material concreteLightMat = CreatePbrMat("CampusConcrete", new Color(0.84f, 0.85f, 0.83f), 0.04f, 0.30f);
+            Material sidewalkMat = CreatePbrMat("SidewalkConcrete", new Color(0.75f, 0.76f, 0.74f), 0.04f, 0.32f);
+            Material asphaltMat = CreatePbrMat("AvenueAsphalt", new Color(0.16f, 0.17f, 0.19f), 0.06f, 0.28f);
+            Material yellowCurbMat = CreatePbrMat("TrafficYellowCurb", new Color(0.95f, 0.74f, 0.05f), 0.08f, 0.48f);
+            Material ochreWallMat = CreatePbrMat("PerimeterOchre", new Color(0.92f, 0.72f, 0.22f), 0.04f, 0.35f);
+            Material beigeWallMat = CreatePbrMat("CaralWallBeige", new Color(0.87f, 0.84f, 0.76f), 0.04f, 0.32f);
+            Material whiteConcreteMat = CreatePbrMat("PavilionWhite", new Color(0.96f, 0.97f, 0.98f), 0.04f, 0.48f);
+            Material cyanAccentMat = CreatePbrMat("UNAB_CyanAccent", new Color(0.02f, 0.62f, 0.90f), 0.20f, 0.65f);
+            Material fenceGrayMat = CreatePbrMat("FenceSteelGray", new Color(0.46f, 0.49f, 0.53f), 0.65f, 0.55f);
+            Material gold3DMat = CreatePbrMat("GoldLetters3D", new Color(0.88f, 0.73f, 0.38f), 0.82f, 0.78f);
+            Material glassReflectMat = CreatePbrMat("CampusCurtainGlass", new Color(0.45f, 0.76f, 0.96f, 0.78f), 0.80f, 0.94f, MakeReflectiveGlassTex(), Vector2.one, true, new Color(0.02f, 0.12f, 0.22f));
+            Material darkMullionMat = CreatePbrMat("DarkMullion", new Color(0.10f, 0.12f, 0.15f), 0.5f, 0.65f);
+            Material trunkMat = CreatePbrMat("TreeTrunkBrown", new Color(0.36f, 0.24f, 0.14f), 0.02f, 0.2f);
+            Material foliageMat = CreatePbrMat("TreeFoliageGreen", new Color(0.18f, 0.46f, 0.14f), 0.02f, 0.28f);
+            Material warmLightMat = CreatePbrMat("SpotlightWarm", Color.white, 0f, 0.9f, null, null, false, new Color(1.0f, 0.95f, 0.82f) * 2.2f);
+
+            // 1. EXPLANADA / PATIO INTERIOR DEL CAMPUS UNAB Y AVENIDA EXTERIOR
+            AddBox(campus.transform, "Campus_Courtyard_Floor", new Vector3(4.5f, -0.03f, 0f), new Vector3(30.0f, 0.06f, 62.0f), concreteLightMat, false);
+            // Camino peatonal principal desde el Portico (x=19.5) hasta la entrada del Area de Transporte (x=8.0)
+            AddBox(campus.transform, "Walkway_To_Transporte", new Vector3(13.8f, 0.005f, 0f), new Vector3(11.4f, 0.02f, 5.2f), sidewalkMat, false);
+            AddBox(campus.transform, "Walkway_Curb_L", new Vector3(13.8f, 0.03f, -2.65f), new Vector3(11.2f, 0.06f, 0.14f), yellowCurbMat, false);
+            AddBox(campus.transform, "Walkway_Curb_R", new Vector3(13.8f, 0.03f, 2.65f), new Vector3(11.2f, 0.06f, 0.14f), yellowCurbMat, false);
+
+            // Vereda exterior, sardinel amarillo y Avenida asfaltada frente a la UNAB (como en la Foto 1)
+            AddBox(campus.transform, "Exterior_Sidewalk", new Vector3(20.8f, 0.02f, 1.0f), new Vector3(2.8f, 0.08f, 66.0f), sidewalkMat, false);
+            AddBox(campus.transform, "Exterior_YellowCurb", new Vector3(22.18f, 0.04f, 1.0f), new Vector3(0.16f, 0.10f, 66.0f), yellowCurbMat, false);
+            AddBox(campus.transform, "Exterior_Avenue_Asphalt", new Vector3(28.5f, -0.02f, 1.0f), new Vector3(13.0f, 0.06f, 68.0f), asphaltMat, false);
+            // Lineas blancas de la pista (continua lateral y segmentada central)
+            AddBox(campus.transform, "Road_Line_Edge1", new Vector3(22.55f, 0.015f, 1.0f), new Vector3(0.12f, 0.01f, 66.0f), whiteConcreteMat, false);
+            AddBox(campus.transform, "Road_Line_Edge2", new Vector3(34.20f, 0.015f, 1.0f), new Vector3(0.12f, 0.01f, 66.0f), whiteConcreteMat, false);
+            for (float rz = -28f; rz <= 30f; rz += 3.6f)
+            {
+                AddBox(campus.transform, "Road_Line_CenterDash", new Vector3(28.4f, 0.015f, rz), new Vector3(0.14f, 0.01f, 1.8f), whiteConcreteMat, false);
+            }
+
+            // 2. PABELLON CENTRAL UNAB (PISOS SUPERIORES SOBRE NUESTRA AREA DE TRANSPORTE + TORRE AZUL VERTICAL "U N A B")
+            // Letrero institucional sobre la puerta doble del 1er piso (Area de Transporte y Centro de Datos)
+            GameObject entranceCanopy = new GameObject("Canopy_Area_Transporte");
+            entranceCanopy.transform.SetParent(campus.transform, false);
+            entranceCanopy.transform.localPosition = new Vector3(8.16f, 3.18f, 0f);
+            AddBox(entranceCanopy.transform, "Canopy_Slab", new Vector3(0.35f, -0.18f, 0f), new Vector3(0.9f, 0.10f, 4.4f), whiteConcreteMat, false);
+            AddBox(entranceCanopy.transform, "Sign_Backing", new Vector3(0.08f, 0.18f, 0f), new Vector3(0.12f, 0.48f, 4.2f), slatePillarMat, false);
+            AddBox(entranceCanopy.transform, "Sign_CyanStrip", new Vector3(0.145f, -0.02f, 0f), new Vector3(0.02f, 0.06f, 4.2f), cyanAccentMat, false);
+            AddLabel(ctrl, "Pabellon Central (1er Piso): Area de Transporte y Data Center", new Vector3(8.35f, 3.45f, 0f));
+
+            // La iconica Torre Azul Real Vertical "U N A B" en la esquina frontal izquierda del Pabellon Central
+            GameObject blueTower = new GameObject("Torre_Azul_UNAB");
+            blueTower.transform.SetParent(campus.transform, false);
+            blueTower.transform.localPosition = new Vector3(7.15f, 0f, -6.55f);
+            AddBox(blueTower.transform, "Tower_Core", new Vector3(0f, 5.75f, 0f), new Vector3(2.3f, 11.5f, 1.9f), towerBlueMat, false);
+            // Textura vertical U N A B mirando hacia el Portico Principal (+X) y hacia el patio
+            AddQuad(blueTower.transform, "UNAB_Vertical_Front", new Vector3(1.16f, 6.2f, 0f), new Vector3(1.85f, 9.2f, 1f), new Vector3(0f, -90f, 0f), towerSignMat);
+            AddQuad(blueTower.transform, "UNAB_Vertical_Side", new Vector3(0f, 6.2f, 0.96f), new Vector3(2.15f, 9.2f, 1f), new Vector3(0f, 180f, 0f), towerSignMat);
+
+            // Pisos 2 y 3 del Pabellon Central (Emparentados a ctrl.ceilingGroup para que al apagar Techo en vista interior se oculten limpiamente)
+            if (ctrl.ceilingGroup != null)
+            {
+                GameObject upperFloors = new GameObject("Pabellon_Central_UpperFloors");
+                upperFloors.transform.SetParent(ctrl.ceilingGroup.transform, false);
+
+                AddBox(upperFloors.transform, "Slab_Floor2", new Vector3(0f, 3.72f, 0f), new Vector3(16.4f, 0.22f, 11.4f), whiteConcreteMat, false);
+                AddBox(upperFloors.transform, "Slab_Floor3", new Vector3(0f, 6.95f, 0f), new Vector3(16.4f, 0.22f, 11.4f), whiteConcreteMat, false);
+                AddBox(upperFloors.transform, "Slab_Roof", new Vector3(0f, 10.15f, 0f), new Vector3(16.6f, 0.26f, 11.6f), whiteConcreteMat, false);
+
+                // Muro cortina de vidrio azul reflectivo en los pisos 2 y 3
+                AddBox(upperFloors.transform, "UpperGlass_Front", new Vector3(7.92f, 6.95f, 0f), new Vector3(0.12f, 6.2f, 10.8f), glassReflectMat, false);
+                AddBox(upperFloors.transform, "UpperGlass_North", new Vector3(0f, 6.95f, 5.42f), new Vector3(15.6f, 6.2f, 0.12f), glassReflectMat, false);
+                AddBox(upperFloors.transform, "UpperGlass_South", new Vector3(0f, 6.95f, -5.42f), new Vector3(15.6f, 6.2f, 0.12f), glassReflectMat, false);
+                AddBox(upperFloors.transform, "UpperWall_Back", new Vector3(-7.95f, 6.95f, 0f), new Vector3(0.24f, 6.2f, 11.2f), whiteConcreteMat, false);
+
+                // Columnas blancas y celosias horizontales tipicas del Pabellon UNAB (Fotos 1, 4 y 5)
+                for (float cz = -5.4f; cz <= 5.4f; cz += 2.7f)
+                {
+                    AddBox(upperFloors.transform, "WhiteCol_Front", new Vector3(8.08f, 6.95f, cz), new Vector3(0.28f, 6.5f, 0.28f), whiteConcreteMat, false);
+                    // Pergola superior en la azotea
+                    AddBox(upperFloors.transform, "RoofPergola_Col", new Vector3(8.08f, 10.85f, cz), new Vector3(0.22f, 1.2f, 0.22f), whiteConcreteMat, false);
+                }
+                AddBox(upperFloors.transform, "RoofPergola_Beam", new Vector3(8.08f, 11.45f, 0f), new Vector3(0.28f, 0.20f, 11.2f), whiteConcreteMat, false);
+                for (float cx = -7.5f; cx <= 7.5f; cx += 3.0f)
+                {
+                    AddBox(upperFloors.transform, "WhiteCol_North", new Vector3(cx, 6.95f, 5.55f), new Vector3(0.26f, 6.5f, 0.26f), whiteConcreteMat, false);
+                    AddBox(upperFloors.transform, "WhiteCol_South", new Vector3(cx, 6.95f, -5.55f), new Vector3(0.26f, 6.5f, 0.26f), whiteConcreteMat, false);
+                }
+            }
+
+            // 3. PABELLON IZQUIERDO DE PIEDRA LAJA OSCURA Y MARCO CELESTE (FOTOS 2 Y 3)
+            GameObject leftPavilion = new GameObject("Pabellon_PiedraLaja_Izquierdo");
+            leftPavilion.transform.SetParent(campus.transform, false);
+            leftPavilion.transform.localPosition = new Vector3(15.2f, 0f, -13.2f);
+            AddBox(leftPavilion.transform, "Slate_MainVolume", new Vector3(0f, 5.1f, 0f), new Vector3(7.6f, 10.2f, 11.2f), slateMat, false);
+            // Fachada acristalada hacia el patio con el borde celeste caracteristico de la Foto 3
+            AddBox(leftPavilion.transform, "Glass_InnerFace", new Vector3(-0.2f, 5.0f, 5.65f), new Vector3(6.4f, 8.8f, 0.12f), glassReflectMat, false);
+            AddBox(leftPavilion.transform, "CyanFrame_Top", new Vector3(0f, 9.6f, 5.68f), new Vector3(7.0f, 0.28f, 0.18f), cyanAccentMat, false);
+            AddBox(leftPavilion.transform, "CyanFrame_Right", new Vector3(3.4f, 5.0f, 5.68f), new Vector3(0.28f, 9.4f, 0.18f), cyanAccentMat, false);
+
+            // 4. AUDITORIO DETRAS DEL MURAL DE CARAL (TECHO A DOS AGUAS - FOTO 1) Y PABELLON DERECHO (FOTOS 2 Y 5)
+            GameObject rightAudit = new GameObject("Auditorio_Y_Pabellon_Derecho");
+            rightAudit.transform.SetParent(campus.transform, false);
+            // Nave del auditorio detras del mural de Caral (z = +11.4 a +25.4)
+            AddBox(rightAudit.transform, "Auditorium_Body", new Vector3(12.2f, 2.2f, 18.4f), new Vector3(13.5f, 4.4f, 13.8f), whiteConcreteMat, false);
+            Material roofBeigeMat = CreatePbrMat("AuditoriumRoof", new Color(0.78f, 0.72f, 0.66f), 0.15f, 0.35f);
+            AddBox(rightAudit.transform, "GableRoof_Slope1", new Vector3(12.2f, 4.85f, 15.0f), new Vector3(13.6f, 0.18f, 7.2f), roofBeigeMat, false)
+                .transform.localEulerAngles = new Vector3(12f, 0f, 0f);
+            AddBox(rightAudit.transform, "GableRoof_Slope2", new Vector3(12.2f, 4.85f, 21.8f), new Vector3(13.6f, 0.18f, 7.2f), roofBeigeMat, false)
+                .transform.localEulerAngles = new Vector3(-12f, 0f, 0f);
+
+            // Pabellon moderno derecho con portico elevado (visible a la derecha en las Fotos 2 y 5)
+            AddBox(rightAudit.transform, "ModernRight_Building", new Vector3(4.5f, 5.4f, 17.5f), new Vector3(10.5f, 10.8f, 12.0f), whiteConcreteMat, false);
+            AddBox(rightAudit.transform, "ModernRight_Glass", new Vector3(9.8f, 5.4f, 17.5f), new Vector3(0.14f, 8.6f, 9.8f), glassReflectMat, false);
+
+            // 5. EL GRAN PORTICO PRINCIPAL DE INGRESO ("UNIVERSIDAD NACIONAL DE BARRANCA" - FOTOS 2, 3 Y 4)
+            GameObject portico = new GameObject("Portico_Principal_UNAB");
+            portico.transform.SetParent(campus.transform, false);
+            portico.transform.localPosition = new Vector3(19.5f, 0f, 0f);
+
+            // Pilares trapezoidales inclinados en piedra laja negra a izquierda (z=-6.2) y derecha (z=+6.2)
+            AddBox(portico.transform, "Pilar_Izquierdo_Base", new Vector3(0f, 0.16f, -6.25f), new Vector3(1.55f, 0.32f, 1.55f), yellowCurbMat, false);
+            GameObject pilarIzq = AddBox(portico.transform, "Pilar_Izquierdo_Piedra", new Vector3(0f, 2.75f, -6.15f), new Vector3(1.38f, 5.3f, 1.25f), slatePillarMat, false);
+            pilarIzq.transform.localEulerAngles = new Vector3(-7f, 0f, 0f);
+
+            AddBox(portico.transform, "Pilar_Derecho_Base", new Vector3(0f, 0.16f, 6.25f), new Vector3(1.55f, 0.32f, 1.55f), yellowCurbMat, false);
+            GameObject pilarDer = AddBox(portico.transform, "Pilar_Derecho_Piedra", new Vector3(0f, 2.75f, 6.15f), new Vector3(1.38f, 5.3f, 1.25f), slatePillarMat, false);
+            pilarDer.transform.localEulerAngles = new Vector3(7f, 0f, 0f);
+
+            // Viga superior monumental revestida en piedra laja negra
+            AddBox(portico.transform, "Viga_Superior_Piedra", new Vector3(0f, 4.95f, 0f), new Vector3(1.42f, 1.32f, 13.8f), slateMat, false);
+            // Plafon blanco inferior con dicroicos LED empotrados (como en las Fotos 2 y 3)
+            AddBox(portico.transform, "Plafon_Blanco_Soffit", new Vector3(0f, 4.28f, 0f), new Vector3(1.34f, 0.04f, 11.4f), whiteConcreteMat, false);
+            for (float lz = -4.5f; lz <= 4.5f; lz += 1.8f)
+            {
+                AddCylinder(portico.transform, "Downlight_LED", new Vector3(0f, 4.25f, lz), new Vector3(0.16f, 0.01f, 0.16f), warmLightMat, false);
+            }
+
+            // Friso frontal con letras doradas "UNIVERSIDAD NACIONAL DE BARRANCA" y Escudo 3D UNAB
+            AddQuad(portico.transform, "Friso_Letras_UNAB", new Vector3(0.72f, 4.95f, 0f), new Vector3(12.8f, 1.24f, 1f), new Vector3(0f, -90f, 0f), porticoHdrMat);
+            // Volumen 3D adicional para el Escudo de la UNAB a la derecha del friso
+            AddBox(portico.transform, "Escudo_UNAB_3D_Box", new Vector3(0.75f, 4.95f, 4.82f), new Vector3(0.10f, 0.82f, 0.18f), cyanAccentMat, false);
+            AddBox(portico.transform, "Escudo_UNAB_3D_Main", new Vector3(0.74f, 4.95f, 5.12f), new Vector3(0.08f, 0.82f, 0.42f), towerBlueMat, false);
+
+            // 2 Reflectores LED superiores con brazo metalico sobre la viga (Fotos 2 y 3)
+            float[] floodZ = { -2.8f, 2.8f };
+            foreach (float fz in floodZ)
+            {
+                AddCylinder(portico.transform, "Floodlight_Mast", new Vector3(0.2f, 5.95f, fz), new Vector3(0.04f, 0.35f, 0.04f), darkMullionMat, false);
+                AddCylinder(portico.transform, "Floodlight_Arm", new Vector3(0.55f, 6.25f, fz), new Vector3(0.03f, 0.38f, 0.03f), darkMullionMat, false)
+                    .transform.localEulerAngles = new Vector3(0f, 0f, 90f);
+                AddBox(portico.transform, "Floodlight_Lamp", new Vector3(0.88f, 6.22f, fz), new Vector3(0.18f, 0.06f, 0.28f), warmLightMat, false);
+            }
+
+            // Muro amarillo central con jardinera y arbustos + Rejas metalicas grises con portones abiertos
+            AddBox(portico.transform, "Central_YellowWall", new Vector3(0f, 1.15f, 0f), new Vector3(0.28f, 2.30f, 2.10f), ochreWallMat, false);
+            AddBox(portico.transform, "Central_PlanterBox", new Vector3(0.38f, 0.22f, 0f), new Vector3(0.55f, 0.44f, 2.15f), yellowCurbMat, false);
+            for (int b = -1; b <= 1; b++)
+            {
+                AddSphere(portico.transform, "Planter_Bush", new Vector3(0.42f, 0.72f, b * 0.58f), new Vector3(0.65f, 0.78f, 0.68f), foliageMat);
+            }
+
+            // Funcion auxiliar para construir panos de reja metalica gris con barrotes verticales
+            void BuildFencePanel(Transform parent, Vector3 pos, float widthZ, float rotY = 0f)
+            {
+                GameObject fp = new GameObject("Fence_Panel");
+                fp.transform.SetParent(parent, false);
+                fp.transform.localPosition = pos;
+                fp.transform.localEulerAngles = new Vector3(0f, rotY, 0f);
+
+                AddBox(fp.transform, "Rail_Top", new Vector3(0f, 2.45f, 0f), new Vector3(0.06f, 0.06f, widthZ), fenceGrayMat, false);
+                AddBox(fp.transform, "Rail_Mid", new Vector3(0f, 1.25f, 0f), new Vector3(0.06f, 0.05f, widthZ), fenceGrayMat, false);
+                AddBox(fp.transform, "Rail_Bot", new Vector3(0f, 0.18f, 0f), new Vector3(0.06f, 0.06f, widthZ), fenceGrayMat, false);
+                int bars = Mathf.Max(3, Mathf.FloorToInt(widthZ / 0.18f));
+                for (int i = 0; i <= bars; i++)
+                {
+                    float bz = -widthZ * 0.5f + ((float)i / bars) * widthZ;
+                    AddBox(fp.transform, "Bar_V", new Vector3(0f, 1.35f, bz), new Vector3(0.035f, 2.50f, 0.035f), fenceGrayMat, false);
+                }
+            }
+
+            // Rejas laterales fijas y hojas abiertas hacia el interior para permitir el paso libre del personaje
+            BuildFencePanel(portico.transform, new Vector3(0f, 0f, -4.45f), 2.1f);
+            BuildFencePanel(portico.transform, new Vector3(0f, 0f, 4.45f), 2.1f);
+            // Hojas de porton abiertas a 82 grados hacia adentro
+            BuildFencePanel(portico.transform, new Vector3(-0.95f, 0f, -3.35f), 1.9f, 82f);
+            BuildFencePanel(portico.transform, new Vector3(-0.95f, 0f, 3.35f), 1.9f, -82f);
+
+            // Vallas amarillas de control peatonal en los extremos (Foto 2)
+            float[] barrierZ = { -4.6f, 4.6f };
+            foreach (float bz in barrierZ)
+            {
+                AddBox(portico.transform, "YellowBarrier_Top", new Vector3(1.15f, 0.92f, bz), new Vector3(0.05f, 0.05f, 1.85f), yellowCurbMat, false);
+                AddBox(portico.transform, "YellowBarrier_Bot", new Vector3(1.15f, 0.25f, bz), new Vector3(0.05f, 0.05f, 1.85f), yellowCurbMat, false);
+                for (float vx = -0.8f; vx <= 0.8f; vx += 0.32f)
+                    AddBox(portico.transform, "YellowBarrier_Bar", new Vector3(1.15f, 0.58f, bz + vx), new Vector3(0.03f, 0.65f, 0.03f), yellowCurbMat, false);
+            }
+
+            TagInteractable(portico, "portico_unab");
+            AddLabel(ctrl, "Portico Principal - Universidad Nacional de Barranca", new Vector3(20.2f, 5.75f, 0f));
+
+            // 6. MURO PERIMETRICO CON LOS 4 RELIEVES Y EL GRAN MURAL DE CARAL (FOTO 1)
+            GameObject caralWall = new GameObject("Muro_Monumental_Caral");
+            caralWall.transform.SetParent(campus.transform, false);
+            caralWall.transform.localPosition = new Vector3(19.5f, 0f, 0f);
+
+            // Tramo 1 (z = +6.9 a +11.4): Muro de los 4 paneles verticales con relieves de Caral
+            AddBox(caralWall.transform, "Wall_Relieves_Body", new Vector3(0f, 1.45f, 9.15f), new Vector3(0.32f, 2.90f, 4.5f), beigeWallMat, false);
+            AddQuad(caralWall.transform, "Quad_4_Relieves_Caral", new Vector3(0.18f, 1.45f, 9.15f), new Vector3(4.2f, 2.45f, 1f), new Vector3(0f, -90f, 0f), caralRelievesMat);
+
+            // Tramo 2 (z = +11.4 a +25.4): Muro alto con la foto real del Gran Mural de la Ciudad Sagrada de Caral
+            AddBox(caralWall.transform, "Wall_CaralMural_Body", new Vector3(0f, 2.35f, 18.4f), new Vector3(0.38f, 4.70f, 14.0f), beigeWallMat, false);
+            AddQuad(caralWall.transform, "Quad_Mural_Ciudad_Sagrada_Caral", new Vector3(0.21f, 2.38f, 18.4f), new Vector3(13.8f, 4.35f, 1f), new Vector3(0f, -90f, 0f), caralMuralMat);
+
+            // Tramo 3 (z = +25.4 a +30.2): Muro con la inscripcion "CARAL Primera Civilizacion de America"
+            AddBox(caralWall.transform, "Wall_CaralText_Body", new Vector3(0f, 1.45f, 27.8f), new Vector3(0.32f, 2.90f, 4.8f), beigeWallMat, false);
+            AddQuad(caralWall.transform, "Quad_Placa_Texto_Caral", new Vector3(0.18f, 1.35f, 27.6f), new Vector3(4.1f, 2.1f, 1f), new Vector3(0f, -90f, 0f), caralPlacaMat);
+
+            // Muro perimetrico izquierdo con rejas (z = -6.9 a -24.0)
+            AddBox(caralWall.transform, "Wall_LeftPerimeter_Low", new Vector3(0f, 0.55f, -15.5f), new Vector3(0.30f, 1.10f, 17.0f), ochreWallMat, false);
+            BuildFencePanel(caralWall.transform, new Vector3(0f, 0.9f, -11.0f), 7.5f);
+            BuildFencePanel(caralWall.transform, new Vector3(0f, 0.9f, -19.5f), 7.5f);
+
+            TagInteractable(caralWall, "portico_unab");
+            AddLabel(ctrl, "Mural Ciudad Sagrada de Caral - Patrimonio UNAB", new Vector3(20.1f, 4.85f, 18.4f));
+
+            // Arboles ornamentales en alcorques de sardinel amarillo y postes de luz curvados en la vereda (Foto 1)
+            float[] treeZ = { -8.2f, 7.8f, 22.8f };
+            foreach (float tz in treeZ)
+            {
+                GameObject treePit = new GameObject($"Sidewalk_Tree_{tz}");
+                treePit.transform.SetParent(campus.transform, false);
+                treePit.transform.localPosition = new Vector3(21.45f, 0.06f, tz);
+                AddBox(treePit.transform, "YellowCurbPit", new Vector3(0f, 0.06f, 0f), new Vector3(1.15f, 0.14f, 1.45f), yellowCurbMat, false);
+                AddBox(treePit.transform, "Soil", new Vector3(0f, 0.08f, 0f), new Vector3(0.95f, 0.15f, 1.25f), trunkMat, false);
+                AddCylinder(treePit.transform, "Trunk", new Vector3(0f, 1.15f, 0f), new Vector3(0.16f, 1.05f, 0.16f), trunkMat, false);
+                AddSphere(treePit.transform, "Canopy_Main", new Vector3(0f, 2.35f, 0f), new Vector3(1.55f, 1.35f, 1.55f), foliageMat);
+                AddSphere(treePit.transform, "Canopy_Sub1", new Vector3(0.35f, 2.15f, 0.35f), new Vector3(1.10f, 1.05f, 1.10f), foliageMat);
+                AddSphere(treePit.transform, "Canopy_Sub2", new Vector3(-0.35f, 2.20f, -0.30f), new Vector3(1.15f, 1.05f, 1.15f), foliageMat);
+            }
+
+            float[] poleZ = { -9.8f, 10.5f, 24.5f };
+            foreach (float pz in poleZ)
+            {
+                GameObject pole = new GameObject($"StreetLamp_{pz}");
+                pole.transform.SetParent(campus.transform, false);
+                pole.transform.localPosition = new Vector3(21.75f, 0f, pz);
+                AddCylinder(pole.transform, "Pole_Vertical", new Vector3(0f, 2.6f, 0f), new Vector3(0.11f, 2.6f, 0.11f), whiteConcreteMat, false);
+                AddCylinder(pole.transform, "Pole_Arm", new Vector3(0.55f, 5.25f, 0f), new Vector3(0.08f, 0.65f, 0.08f), whiteConcreteMat, false)
+                    .transform.localEulerAngles = new Vector3(0f, 0f, -72f);
+                AddBox(pole.transform, "LED_Luminaria", new Vector3(1.15f, 5.42f, 0f), new Vector3(0.48f, 0.08f, 0.24f), warmLightMat, false);
+            }
+
+            // 7. EL BUS INSTITUCIONAL DE LA UNAB EN 3D ESTACIONADO EN LA AVENIDA (FOTO 5)
+            BuildUNABInstitutionalBus(campus.transform, ctrl, new Vector3(24.2f, 0.01f, 15.5f));
+        }
+
+        private static void BuildUNABInstitutionalBus(Transform parent, UNABSceneController ctrl, Vector3 pos)
+        {
+            GameObject bus = new GameObject("Bus_Institucional_UNAB_03");
+            bus.transform.SetParent(parent, false);
+            bus.transform.localPosition = pos;
+            // Mirando hacia -Z (en direccion al Portico Principal de la UNAB, tal como en la Foto 5)
+            bus.transform.localEulerAngles = new Vector3(0f, 180f, 0f);
+
+            Material busBlueMat = CreatePbrMat("BusUNAB_Blue", new Color(0.02f, 0.36f, 0.78f), 0.35f, 0.78f);
+            Material busCyanMat = CreatePbrMat("BusUNAB_Cyan", new Color(0.05f, 0.68f, 0.95f), 0.30f, 0.75f);
+            Material busWhiteMat = CreatePbrMat("BusUNAB_White", new Color(0.96f, 0.97f, 0.99f), 0.25f, 0.78f);
+            Material busGlassMat = CreatePbrMat("BusTintedGlass", new Color(0.06f, 0.12f, 0.18f), 0.85f, 0.95f);
+            Material tireMat = CreatePbrMat("BusTireRubber", new Color(0.08f, 0.08f, 0.09f), 0.05f, 0.25f);
+            Material rimMat = CreatePbrMat("BusWheelRim", new Color(0.75f, 0.78f, 0.82f), 0.85f, 0.78f);
+            Material headlightMat = CreatePbrMat("BusHeadlight", Color.white, 0f, 0.95f, null, null, false, new Color(0.95f, 0.98f, 1.0f) * 2.5f);
+            Material taillightMat = CreatePbrMat("BusTaillight", new Color(0.95f, 0.1f, 0.1f), 0f, 0.9f, null, null, false, new Color(1.0f, 0.12f, 0.08f) * 2.0f);
+            Material gpsBeaconMat = CreatePbrMat("BusGpsBeacon", new Color(0.05f, 0.92f, 0.98f), 0f, 0.9f, null, null, false, new Color(0.05f, 0.88f, 1.0f) * 2.8f);
+
+            // Carroceria principal (8.2m largo en Z, 2.42m ancho en X, 2.85m alto)
+            AddBox(bus.transform, "Body_LowerBlue", new Vector3(0f, 0.88f, 0f), new Vector3(2.42f, 0.96f, 8.20f), busBlueMat, true);
+            AddBox(bus.transform, "Body_MidCyanStripe", new Vector3(0f, 1.42f, 0f), new Vector3(2.44f, 0.16f, 8.22f), busCyanMat, false);
+            AddBox(bus.transform, "Body_UpperWhite", new Vector3(0f, 2.15f, 0f), new Vector3(2.40f, 1.32f, 8.16f), busWhiteMat, false);
+            AddBox(bus.transform, "Roof_Cap", new Vector3(0f, 2.84f, 0f), new Vector3(2.26f, 0.10f, 7.90f), busWhiteMat, false);
+            AddBox(bus.transform, "Roof_BlueStripe", new Vector3(0f, 2.74f, 0f), new Vector3(2.41f, 0.14f, 8.18f), busBlueMat, false);
+
+            // Parabrisas panoramico delantero (+Z local) y medallon trasero (-Z local)
+            AddBox(bus.transform, "Windshield_Front", new Vector3(0f, 2.02f, 4.06f), new Vector3(2.18f, 1.08f, 0.08f), busGlassMat, false);
+            AddBox(bus.transform, "Destination_Display", new Vector3(0f, 2.64f, 4.07f), new Vector3(1.65f, 0.22f, 0.08f), tireMat, false);
+            AddBox(bus.transform, "Rear_Window", new Vector3(0f, 2.08f, -4.06f), new Vector3(2.05f, 0.85f, 0.08f), busGlassMat, false);
+
+            // Ventanas panoramicas laterales con parantes negros
+            AddBox(bus.transform, "SideGlass_Left", new Vector3(-1.21f, 2.05f, -0.1f), new Vector3(0.04f, 0.92f, 7.2f), busGlassMat, false);
+            AddBox(bus.transform, "SideGlass_Right", new Vector3(1.21f, 2.05f, -0.1f), new Vector3(0.04f, 0.92f, 7.2f), busGlassMat, false);
+            for (float wz = -3.1f; wz <= 3.1f; wz += 1.05f)
+            {
+                AddBox(bus.transform, "Pillar_L", new Vector3(-1.22f, 2.05f, wz), new Vector3(0.05f, 0.94f, 0.08f), tireMat, false);
+                AddBox(bus.transform, "Pillar_R", new Vector3(1.22f, 2.05f, wz), new Vector3(0.05f, 0.94f, 0.08f), tireMat, false);
+            }
+
+            // Parachoques, faros LED delanteros, luces traseras y espejos retrovisores
+            AddBox(bus.transform, "Bumper_Front", new Vector3(0f, 0.42f, 4.14f), new Vector3(2.44f, 0.24f, 0.16f), rimMat, false);
+            AddBox(bus.transform, "Bumper_Rear", new Vector3(0f, 0.42f, -4.14f), new Vector3(2.44f, 0.24f, 0.16f), rimMat, false);
+            AddBox(bus.transform, "Headlight_L", new Vector3(-0.88f, 0.72f, 4.11f), new Vector3(0.36f, 0.18f, 0.06f), headlightMat, false);
+            AddBox(bus.transform, "Headlight_R", new Vector3(0.88f, 0.72f, 4.11f), new Vector3(0.36f, 0.18f, 0.06f), headlightMat, false);
+            AddBox(bus.transform, "Taillight_L", new Vector3(-0.92f, 0.78f, -4.11f), new Vector3(0.28f, 0.32f, 0.06f), taillightMat, false);
+            AddBox(bus.transform, "Taillight_R", new Vector3(0.92f, 0.78f, -4.11f), new Vector3(0.28f, 0.32f, 0.06f), taillightMat, false);
+            AddBox(bus.transform, "Mirror_L", new Vector3(-1.34f, 1.95f, 3.95f), new Vector3(0.12f, 0.34f, 0.18f), tireMat, false);
+            AddBox(bus.transform, "Mirror_R", new Vector3(1.34f, 1.95f, 3.95f), new Vector3(0.12f, 0.34f, 0.18f), tireMat, false);
+
+            // Ruedas con llantas de caucho y aros cromados
+            float[] wheelZ = { -2.45f, 2.45f };
+            float[] wheelX = { -1.14f, 1.14f };
+            foreach (float wz in wheelZ)
+            {
+                foreach (float wx in wheelX)
+                {
+                    GameObject tire = AddCylinder(bus.transform, "Bus_Tire", new Vector3(wx, 0.44f, wz), new Vector3(0.88f, 0.16f, 0.88f), tireMat, false);
+                    tire.transform.localEulerAngles = new Vector3(0f, 0f, 90f);
+                    GameObject rim = AddCylinder(bus.transform, "Bus_Rim", new Vector3(wx + Mathf.Sign(wx) * 0.02f, 0.44f, wz), new Vector3(0.52f, 0.17f, 0.52f), rimMat, false);
+                    rim.transform.localEulerAngles = new Vector3(0f, 0f, 90f);
+                }
+            }
+
+            // Unidad de Aire Acondicionado de Techo + Domo Transceptor GPS/LTE conectado al Data Center
+            AddBox(bus.transform, "Roof_AC_Unit", new Vector3(0f, 2.96f, -0.4f), new Vector3(1.45f, 0.22f, 2.4f), busWhiteMat, false);
+            AddCylinder(bus.transform, "GPS_Radome_Base", new Vector3(0f, 2.94f, 2.6f), new Vector3(0.36f, 0.06f, 0.36f), busWhiteMat, false);
+            GameObject gpsLed = AddSphere(bus.transform, "GPS_Active_Beacon", new Vector3(0f, 3.06f, 2.6f), new Vector3(0.18f, 0.18f, 0.18f), gpsBeaconMat);
+            ctrl.blinkingLedRenderers.Add(gpsLed.GetComponent<Renderer>());
+
+            TagInteractable(bus, "unab_bus_01");
+            AddLabel(ctrl, "Bus Institucional UNAB #03 (Modulo GPS Activo)", new Vector3(pos.x, 3.45f, pos.z));
         }
 
         private static void BuildDataCenterRoom(Transform root, UNABSceneController ctrl)
@@ -1350,12 +1702,13 @@ namespace UNAB.Transporte3D.EditorTools
         {
             GameObject playerRoot = new GameObject("PlayerAvatar_UNAB");
             playerRoot.transform.SetParent(root);
-            playerRoot.transform.localPosition = new Vector3(2.2f, 0f, -0.4f);
+            // Inicia en la avenida exterior frente al Portico Principal de la UNAB mirando hacia el campus (-X)
+            playerRoot.transform.localPosition = new Vector3(26.5f, 0f, 2.2f);
 
             GameObject visuals = new GameObject("AvatarVisuals");
             visuals.transform.SetParent(playerRoot.transform);
             visuals.transform.localPosition = Vector3.zero;
-            visuals.transform.localEulerAngles = Vector3.zero;
+            visuals.transform.localEulerAngles = new Vector3(0f, -90f, 0f);
 
             Material skinMat = CreatePbrMat("AvatarSkin", new Color(0.92f, 0.76f, 0.64f), 0.02f, 0.35f);
             Material hairMat = CreatePbrMat("AvatarHair", new Color(0.10f, 0.08f, 0.07f), 0.05f, 0.4f);

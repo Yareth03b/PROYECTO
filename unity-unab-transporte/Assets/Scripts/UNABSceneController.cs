@@ -66,14 +66,14 @@ namespace UNAB.Transporte3D
         public string activeInspectedKey = "";
         public string hoveredKey = "";
 
-        // Player & Walk Camera state (Inicia mirando hacia los escritorios de monitoreo)
-        private float yaw = 0f;
-        private float pitch = 14f;
-        private float targetYaw = 0f;
-        private float targetPitch = 14f;
+        // Player & Walk Camera state (Inicia en el exterior frente al Portico Principal de la UNAB mirando hacia el campus)
+        private float yaw = -90f;
+        private float pitch = 8f;
+        private float targetYaw = -90f;
+        private float targetPitch = 8f;
         private Vector3 playerVelocity = Vector3.zero;
         private float walkCycle = 0f;
-        private float thirdPersonDist = 2.1f;
+        private float thirdPersonDist = 2.2f;
 
         // Orbit Camera state
         private Vector3 orbitTarget = new Vector3(0f, 0.9f, 0f);
@@ -97,11 +97,58 @@ namespace UNAB.Transporte3D
 
         private void Start()
         {
+            if (playerRoot != null && playerRoot.position.x > 15f)
+            {
+                yaw = targetYaw = -90f;
+                pitch = targetPitch = 6f;
+            }
             if (playerVisuals != null)
             {
                 playerVisuals.rotation = Quaternion.Euler(0f, yaw, 0f);
             }
             ActivateFpsMode();
+        }
+
+        public bool IsPlayerOutsideCampus()
+        {
+            if (playerRoot == null) return false;
+            return playerRoot.position.x > 8.2f || Mathf.Abs(playerRoot.position.z) > 5.8f;
+        }
+
+        public void TeleportPlayerTo(Vector3 pos, float lookYaw, float lookPitch = 8f)
+        {
+            isConsoleOpen = false;
+            transitioning = false;
+            isFpsMode = true;
+            SetCeilingState(true);
+
+            if (playerRoot != null)
+            {
+                playerRoot.position = new Vector3(pos.x, 0f, pos.z);
+            }
+            playerVelocity = Vector3.zero;
+            yaw = targetYaw = lookYaw;
+            pitch = targetPitch = lookPitch;
+            if (playerVisuals != null)
+            {
+                playerVisuals.rotation = Quaternion.Euler(0f, yaw, 0f);
+            }
+            UpdateAvatarVisibility();
+            LockMouseCursor();
+        }
+
+        public void ToggleExteriorInteriorWalk()
+        {
+            if (IsPlayerOutsideCampus())
+            {
+                // Teletransportar al interior (Oficina de Monitoreo / Area de Transporte)
+                TeleportPlayerTo(new Vector3(2.2f, 0f, -0.4f), 0f, 12f);
+            }
+            else
+            {
+                // Teletransportar al exterior frente al Portico Principal de la UNAB y Mural de Caral
+                TeleportPlayerTo(new Vector3(26.5f, 0f, 2.2f), -90f, 6f);
+            }
         }
 
         public void ActivateFpsMode()
@@ -164,13 +211,18 @@ namespace UNAB.Transporte3D
         {
             isFpsMode = false;
             UnlockMouseCursor();
-            SetCeilingState(false);
+            SetCeilingState(viewName == "fachada");
             UpdateAvatarVisibility();
 
             Vector3 endPos = new Vector3(0f, 16.5f, -15.5f);
             Vector3 endLook = new Vector3(0f, 0.8f, 0f);
 
-            if (viewName == "datacenter")
+            if (viewName == "fachada")
+            {
+                endPos = new Vector3(33.5f, 6.2f, 7.5f);
+                endLook = new Vector3(17.5f, 3.0f, 2.5f);
+            }
+            else if (viewName == "datacenter")
             {
                 endPos = new Vector3(-3.6f, 2.3f, -2.2f);
                 endLook = new Vector3(-6.75f, 1.35f, -0.45f);
@@ -374,9 +426,9 @@ namespace UNAB.Transporte3D
             Vector3 currentPos = playerRoot != null ? playerRoot.position : new Vector3(mainCamera.transform.position.x, 0f, mainCamera.transform.position.z);
             Vector3 nextPos = currentPos + playerVelocity * dt;
 
-            // Movimiento 100% libre por toda la oficina, cuarto de servidores y jardin exterior (sin paredes invisibles)
-            nextPos.x = Mathf.Clamp(nextPos.x, -12.5f, 12.5f);
-            nextPos.z = Mathf.Clamp(nextPos.z, -10.5f, 10.5f);
+            // Movimiento 100% libre por toda la avenida exterior, portico UNAB, mural de Caral, patio del campus y oficinas interiores
+            nextPos.x = Mathf.Clamp(nextPos.x, -24.0f, 35.0f);
+            nextPos.z = Mathf.Clamp(nextPos.z, -32.0f, 32.0f);
             nextPos.y = 0f;
 
             if (playerRoot != null)
@@ -477,7 +529,7 @@ namespace UNAB.Transporte3D
             float scroll = GetMouseScrollY();
             if (Mathf.Abs(scroll) > 0.001f)
             {
-                orbitDistance = Mathf.Clamp(orbitDistance - scroll * 1.6f, 2.5f, 42f);
+                orbitDistance = Mathf.Clamp(orbitDistance - scroll * 1.8f, 2.5f, 85f);
             }
 
             Quaternion rot = Quaternion.Euler(orbitPitch, orbitYaw, 0f);
