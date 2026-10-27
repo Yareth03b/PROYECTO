@@ -28,7 +28,7 @@ namespace UNAB.Transporte3D.EditorTools
         private static void TryAutoUpgradeScene()
         {
             if (EditorApplication.isPlayingOrWillChangePlaymode) return;
-            if (GameObject.Find("UNAB_Transporte_Root") != null && GameObject.Find("UNAB_HD_V5_SmoothAvatar") == null)
+            if (GameObject.Find("UNAB_Transporte_Root") != null && GameObject.Find("UNAB_HD_V6_RealCat6A") == null)
             {
                 BuildCompleteSceneInternal(false);
             }
@@ -55,7 +55,7 @@ namespace UNAB.Transporte3D.EditorTools
             GameObject root = new GameObject("UNAB_Transporte_Root");
             Undo.RegisterCreatedObjectUndo(root, "Build UNAB Transporte 3D Scene");
 
-            GameObject marker = new GameObject("UNAB_HD_V5_SmoothAvatar");
+            GameObject marker = new GameObject("UNAB_HD_V6_RealCat6A");
             marker.transform.SetParent(root.transform);
 
             var sim = root.AddComponent<UNABNetworkSimulator>();
@@ -468,15 +468,16 @@ namespace UNAB.Transporte3D.EditorTools
             Material cracMeshLogoMat = CreatePbrMat("CracMeshLogo", Color.white, 0.5f, 0.5f, MakeCracMeshTex(true));
             Material cracMeshPlainMat = CreatePbrMat("CracMeshPlain", Color.white, 0.5f, 0.5f, MakeCracMeshTex(false));
 
-            // 1. RACK PRINCIPAL 42U DETALLADO (CON PUERTA ABIERTA, CABLES CAT6A, RAILS, SERVIDORES Y ROUTER)
+            // 1. RACK PRINCIPAL 42U DETALLADO (MIRANDO AL CENTRO DE LA SALA +X, CON PEINE DE CABLES CAT6A, BOTAS RJ45, SERVIDORES Y ROUTER)
             GameObject rack = new GameObject("Rack_Main_42U");
             rack.transform.SetParent(dc.transform, false);
             rack.transform.localPosition = new Vector3(-6.75f, 0.16f, -0.45f);
-            rack.transform.localEulerAngles = new Vector3(0f, -90f, 0f);
+            rack.transform.localEulerAngles = new Vector3(0f, 90f, 0f);
 
             AddBox(rack.transform, "Rack_Collider", new Vector3(0f, 1.15f, 0f), new Vector3(0.98f, 2.3f, 1.0f), CreatePbrMat("Inv", Color.clear, 0, 0, null, null, true));
             AddBox(rack.transform, "Base", new Vector3(0f, 0.08f, 0f), new Vector3(0.92f, 0.08f, 0.96f), darkMetal, false);
             AddBox(rack.transform, "Roof", new Vector3(0f, 2.24f, 0f), new Vector3(0.92f, 0.07f, 0.96f), darkMetal, false);
+            AddBox(rack.transform, "TopCableGrommet", new Vector3(-0.26f, 2.28f, -0.18f), new Vector3(0.24f, 0.04f, 0.18f), chassisGray, false);
             AddBox(rack.transform, "YellowTopTag", new Vector3(0f, 2.24f, 0.485f), new Vector3(0.32f, 0.032f, 0.01f), yellowLabelMat, false);
             AddBox(rack.transform, "BackDoor", new Vector3(0f, 1.16f, -0.46f), new Vector3(0.88f, 2.12f, 0.03f), darkMetal, false);
 
@@ -492,29 +493,42 @@ namespace UNAB.Transporte3D.EditorTools
             AddBox(rack.transform, "LED_Strip_L", new Vector3(-0.40f, 1.16f, 0.44f), new Vector3(0.018f, 2.02f, 0.018f), blueLedMat, false);
             AddBox(rack.transform, "LED_Strip_R", new Vector3(0.40f, 1.16f, 0.44f), new Vector3(0.018f, 2.02f, 0.018f), blueLedMat, false);
 
-            // Puerta frontal perforada abierta a 70 grados
+            // Organizador Vertical de Cables Cat6A dentro del Rack (Peine vertical con mazo de cables subiendo al techo del rack)
+            AddBox(rack.transform, "VerticalCableManager_L", new Vector3(-0.35f, 1.45f, 0.22f), new Vector3(0.06f, 1.55f, 0.08f), darkMetal, false);
+            for (int c = 0; c < 5; c++)
+            {
+                float cx = -0.365f + (c % 3) * 0.015f;
+                float cz = -0.18f + (c / 3) * 0.018f;
+                AddCylinder(rack.transform, "InternalTrunkCat6", new Vector3(cx, 1.82f, cz), new Vector3(0.016f, 0.52f, 0.016f), utpBlueMat);
+            }
+
+            // Puerta frontal perforada abierta a 75 grados
             GameObject rackDoor = new GameObject("OpenFrontDoor");
             rackDoor.transform.SetParent(rack.transform, false);
             rackDoor.transform.localPosition = new Vector3(-0.45f, 1.16f, 0.47f);
-            rackDoor.transform.localEulerAngles = new Vector3(0f, 70f, 0f);
+            rackDoor.transform.localEulerAngles = new Vector3(0f, 75f, 0f);
             AddBox(rackDoor.transform, "DoorFrame", new Vector3(0.44f, 0f, 0f), new Vector3(0.88f, 2.10f, 0.025f), CreatePbrMat("RackGlass", new Color(0.1f, 0.14f, 0.2f, 0.42f), 0.6f, 0.9f, null, null, true), false);
 
-            // 2 Patch Panels + 2 Switches Gigabit con peines de cables Cat6A y botas amarillas
+            // 2 Patch Panels Cat6A + 2 Switches Gigabit con Patch Cords cilindricos curvados y capuchones RJ45 amarillos
             float[] ppHeights = { 2.02f, 1.62f };
             float[] swHeights = { 1.82f, 1.42f };
             for (int b = 0; b < 2; b++)
             {
                 float py = ppHeights[b];
                 float sy = swHeights[b];
-                AddBox(rack.transform, "PatchPanel_24P", new Vector3(0f, py, 0.34f), new Vector3(0.78f, 0.09f, 0.12f), darkMetal, false);
-                AddBox(rack.transform, "Switch_24P", new Vector3(0f, sy, 0.12f), new Vector3(0.78f, 0.09f, 0.48f), chassisGray, false);
+                AddBox(rack.transform, "PatchPanel_24P", new Vector3(0f, py, 0.34f), new Vector3(0.78f, 0.085f, 0.12f), darkMetal, false);
+                AddBox(rack.transform, "Switch_24P", new Vector3(0f, sy, 0.12f), new Vector3(0.78f, 0.085f, 0.48f), chassisGray, false);
+                AddBox(rack.transform, "HorizontalOrganizer", new Vector3(0f, (py + sy) * 0.5f, 0.38f), new Vector3(0.78f, 0.035f, 0.05f), darkMetal, false);
 
                 for (int p = 0; p < 12; p++)
                 {
                     float px = -0.32f + p * 0.058f;
-                    AddBox(rack.transform, "BootY", new Vector3(px, py, 0.405f), new Vector3(0.016f, 0.016f, 0.02f), yellowLabelMat, false);
-                    AddBox(rack.transform, "PatchCord", new Vector3(px, (py + sy) * 0.5f, 0.42f), new Vector3(0.012f, Mathf.Abs(py - sy), 0.012f), utpBlueMat, false);
-                    AddBox(rack.transform, "PortLED", new Vector3(px, sy + 0.025f, 0.365f), new Vector3(0.012f, 0.012f, 0.01f), greenLedMat, false);
+                    // Capuchones protectores RJ45 amarillos en Patch Panel y Switch
+                    AddBox(rack.transform, "BootPP", new Vector3(px, py - 0.01f, 0.406f), new Vector3(0.014f, 0.014f, 0.024f), yellowLabelMat, false);
+                    AddBox(rack.transform, "BootSW", new Vector3(px, sy + 0.01f, 0.372f), new Vector3(0.014f, 0.014f, 0.024f), yellowLabelMat, false);
+                    // Arco cilindrico del Patch Cord Cat6A
+                    AddCylinder(rack.transform, "PatchCordArc", new Vector3(px, (py + sy) * 0.5f, 0.425f + (p % 2) * 0.008f), new Vector3(0.011f, Mathf.Abs(py - sy) * 0.52f, 0.011f), utpBlueMat);
+                    AddBox(rack.transform, "PortLED", new Vector3(px, sy + 0.026f, 0.365f), new Vector3(0.012f, 0.012f, 0.01f), greenLedMat, false);
                 }
             }
 
@@ -716,67 +730,236 @@ namespace UNAB.Transporte3D.EditorTools
             GameObject cab = new GameObject("Structured_Cabling_Cat6A");
             cab.transform.SetParent(root, false);
 
-            Material trayMat = CreatePbrMat("LadderTray", new Color(0.28f, 0.33f, 0.40f), 0.75f, 0.6f);
-            Material pvcMat = CreatePbrMat("WallTrunkingPVC", new Color(0.84f, 0.87f, 0.91f), 0.1f, 0.55f);
-            Material cableMat = CreatePbrMat("CableCat6A", new Color(0.02f, 0.52f, 0.78f), 0.1f, 0.65f, null, null, false, new Color(0.01f, 0.25f, 0.42f));
-            Material packetMat = CreatePbrMat("DataPacket", new Color(0.22f, 0.74f, 0.98f), 0f, 0.9f, null, null, false, new Color(0.22f, 0.74f, 0.98f) * 2.5f);
+            Material trayMat = CreatePbrMat("LadderTrayGalvanized", new Color(0.54f, 0.58f, 0.64f), 0.82f, 0.68f);
+            Material velcroMat = CreatePbrMat("VelcroBlack", new Color(0.08f, 0.08f, 0.10f), 0.1f, 0.3f);
+            Material pvcMat = CreatePbrMat("WallTrunkingPVC", new Color(0.92f, 0.94f, 0.96f), 0.08f, 0.60f);
+            Material faceplateMat = CreatePbrMat("FaceplateWhite", new Color(0.97f, 0.98f, 0.99f), 0.05f, 0.65f);
+            Material cat6BlueMat = CreatePbrMat("Cat6A_PanduitBlue", new Color(0.04f, 0.46f, 0.82f), 0.12f, 0.62f);
+            Material cat6CyanMat = CreatePbrMat("Cat6A_LightBlue", new Color(0.10f, 0.58f, 0.90f), 0.12f, 0.62f);
+            Material fiberYellowMat = CreatePbrMat("FiberOS2_Yellow", new Color(0.96f, 0.78f, 0.08f), 0.15f, 0.68f);
+            Material rj45PlugMat = CreatePbrMat("RJ45_Polycarbonate", new Color(0.85f, 0.92f, 0.98f, 0.85f), 0.2f, 0.9f, null, null, true);
+            Material packetMat = CreatePbrMat("DataPacket", new Color(0.22f, 0.78f, 0.99f), 0f, 0.95f, null, null, false, new Color(0.22f, 0.78f, 0.99f) * 2.6f);
 
-            AddBox(cab.transform, "Tray_West", new Vector3(-7.65f, 3.32f, 0.3f), new Vector3(0.38f, 0.04f, 9.7f), trayMat, false);
-            AddBox(cab.transform, "Tray_North", new Vector3(-0.55f, 3.32f, 5.15f), new Vector3(14.2f, 0.04f, 0.38f), trayMat, false);
-            AddBox(cab.transform, "Tray_Partition", new Vector3(-3.02f, 3.32f, 0f), new Vector3(0.36f, 0.04f, 10.3f), trayMat, false);
-            AddBox(cab.transform, "Tray_South", new Vector3(0.6f, 3.32f, -5.15f), new Vector3(7.3f, 0.04f, 0.36f), trayMat, false);
+            // Helper para crear un cilindro entre dos puntos 3D exactos (para cables redondos Cat6A y patch cords curvados)
+            void AddCylBetween(Transform parent, string name, Vector3 a, Vector3 b, float diameter, Material mat)
+            {
+                float dist = Vector3.Distance(a, b);
+                if (dist < 0.001f) return;
+                Vector3 mid = (a + b) * 0.5f;
+                GameObject cyl = AddCylinder(parent, name, mid, new Vector3(diameter, dist * 0.5f, diameter), mat, false);
+                cyl.transform.up = (b - a).normalized;
+            }
 
-            AddBox(cab.transform, "Trunk_RackWall", new Vector3(-7.83f, 1.85f, -0.45f), new Vector3(0.08f, 2.95f, 0.26f), pvcMat, false);
-            AddBox(cab.transform, "Drop_PC1", new Vector3(1.8f, 1.88f, 5.34f), new Vector3(0.10f, 2.90f, 0.06f), pvcMat, false);
-            AddBox(cab.transform, "Drop_PC2", new Vector3(6.35f, 1.88f, 5.34f), new Vector3(0.10f, 2.90f, 0.06f), pvcMat, false);
-            AddBox(cab.transform, "Drop_Printer", new Vector3(-3.04f, 1.88f, 0.8f), new Vector3(0.06f, 2.90f, 0.10f), pvcMat, false);
-            AddBox(cab.transform, "Drop_PCAdmin", new Vector3(3.15f, 1.88f, -5.34f), new Vector3(0.10f, 2.90f, 0.06f), pvcMat, false);
+            // Helper para construir Bandeja Portacables Tipo Escalera Galvanizada + Mazo peinado de 5 cables cilindricos Cat6A + Cintillos Velcro
+            void BuildLadderTray(string name, Vector3 start, Vector3 end, int numCables)
+            {
+                GameObject tg = new GameObject(name);
+                tg.transform.SetParent(cab.transform, false);
 
+                Vector3 dir = (end - start).normalized;
+                float len = Vector3.Distance(start, end);
+                Vector3 mid = (start + end) * 0.5f;
+                Vector3 right = Vector3.Cross(Vector3.up, dir).normalized;
+                float trayW = 0.26f;
+
+                // Perfiles laterales C de acero galvanizado
+                AddCylBetween(tg.transform, "SideRail_L", start - right * (trayW * 0.5f), end - right * (trayW * 0.5f), 0.024f, trayMat);
+                AddCylBetween(tg.transform, "SideRail_R", start + right * (trayW * 0.5f), end + right * (trayW * 0.5f), 0.024f, trayMat);
+
+                // Peldanos transversales cada 28cm + Soportes roscados al techo cada 1.4m
+                int rungs = Mathf.Max(2, Mathf.FloorToInt(len / 0.28f));
+                for (int i = 0; i <= rungs; i++)
+                {
+                    Vector3 p = Vector3.Lerp(start, end, (float)i / rungs);
+                    AddCylBetween(tg.transform, "Rung", p - right * (trayW * 0.5f), p + right * (trayW * 0.5f), 0.014f, trayMat);
+
+                    if (i % 5 == 0)
+                    {
+                        AddCylBetween(tg.transform, "HangerL", p - right * (trayW * 0.5f), p - right * (trayW * 0.5f) + Vector3.up * 0.22f, 0.010f, trayMat);
+                        AddCylBetween(tg.transform, "HangerR", p + right * (trayW * 0.5f), p + right * (trayW * 0.5f) + Vector3.up * 0.22f, 0.010f, trayMat);
+                    }
+                }
+
+                // Mazo peinado de cables cilindricos Cat6A sobre los peldanos
+                for (int c = 0; c < numCables; c++)
+                {
+                    float offset = (c - (numCables - 1) * 0.5f) * 0.024f;
+                    Vector3 cStart = start + right * offset + Vector3.up * 0.016f;
+                    Vector3 cEnd = end + right * offset + Vector3.up * 0.016f;
+                    Material cMat = (c == numCables - 1 && numCables >= 5) ? fiberYellowMat : (c % 2 == 0 ? cat6BlueMat : cat6CyanMat);
+                    AddCylBetween(tg.transform, $"Cat6A_Strand_{c}", cStart, cEnd, 0.018f, cMat);
+                }
+
+                // Cintillos Velcro negros organizadores cada 55cm
+                int ties = Mathf.Max(2, Mathf.FloorToInt(len / 0.55f));
+                for (int t = 1; t < ties; t++)
+                {
+                    Vector3 tp = Vector3.Lerp(start, end, (float)t / ties) + Vector3.up * 0.016f;
+                    GameObject tie = AddBox(tg.transform, "VelcroTie", tp, new Vector3(numCables * 0.026f + 0.02f, 0.026f, 0.018f), velcroMat, false);
+                    tie.transform.rotation = Quaternion.LookRotation(dir, Vector3.up);
+                }
+            }
+
+            // Helper para construir Roseta Doble RJ45 Cat6A de Pared (Faceplate)
+            void BuildWallFaceplateRJ45(Vector3 pos, Vector3 normal, string labelName)
+            {
+                GameObject fp = new GameObject($"Faceplate_RJ45_{labelName}");
+                fp.transform.SetParent(cab.transform, false);
+                fp.transform.localPosition = pos;
+                fp.transform.rotation = Quaternion.LookRotation(normal, Vector3.up);
+
+                AddBox(fp.transform, "BoxBase", new Vector3(0f, 0f, 0.012f), new Vector3(0.086f, 0.086f, 0.024f), faceplateMat, false);
+                AddBox(fp.transform, "LabelSlot", new Vector3(0f, 0.026f, 0.025f), new Vector3(0.052f, 0.012f, 0.004f), cat6CyanMat, false);
+                // 2 Jacks modulares RJ45 Cat6A (Azul Datos / Amarillo Voz-Respaldo)
+                AddBox(fp.transform, "Keystone_Data1", new Vector3(-0.016f, -0.005f, 0.025f), new Vector3(0.018f, 0.022f, 0.006f), cat6BlueMat, false);
+                AddBox(fp.transform, "Keystone_Data2", new Vector3(0.016f, -0.005f, 0.025f), new Vector3(0.018f, 0.022f, 0.006f), fiberYellowMat, false);
+            }
+
+            // Helper para construir un Patch Cord Cat6A flexible curvado con conectores RJ45 y capuchones protectores
+            void BuildCurvedPatchCord(string name, Vector3 startPlug, Vector3 endPlug, float sag, out Vector3 midPoint)
+            {
+                GameObject pc = new GameObject(name);
+                pc.transform.SetParent(cab.transform, false);
+
+                // Capuchones RJ45 amarillos + conector policarbonato en ambos extremos
+                Vector3 dirStart = (endPlug - startPlug).normalized;
+                AddCylBetween(pc.transform, "Boot_Start", startPlug, startPlug + dirStart * 0.032f, 0.018f, fiberYellowMat);
+                AddCylBetween(pc.transform, "Plug_Start", startPlug - dirStart * 0.012f, startPlug, 0.014f, rj45PlugMat);
+
+                AddCylBetween(pc.transform, "Boot_End", endPlug - dirStart * 0.032f, endPlug, 0.018f, fiberYellowMat);
+                AddCylBetween(pc.transform, "Plug_End", endPlug, endPlug + dirStart * 0.012f, 0.014f, rj45PlugMat);
+
+                int segs = 10;
+                Vector3 prev = startPlug;
+                midPoint = (startPlug + endPlug) * 0.5f + Vector3.down * sag;
+                for (int s = 1; s <= segs; s++)
+                {
+                    float t = (float)s / segs;
+                    Vector3 cur = Vector3.Lerp(startPlug, endPlug, t);
+                    cur.y -= Mathf.Sin(t * Mathf.PI) * sag;
+                    AddCylBetween(pc.transform, $"CordSeg_{s}", prev, cur, 0.013f, cat6BlueMat);
+                    prev = cur;
+                }
+            }
+
+            float trayY = 2.94f; // Suspendida bajo el falso techo para verse nitida tanto adentro como desde arriba
+
+            // 1. BAJANTE VERTICAL DEL RACK 42U A LA BANDEJA AEREA (Saliendo del pasacables superior del Rack, sin barras flotantes)
+            Vector3 rackTopGrommet = new Vector3(-6.92f, 2.38f, -0.19f);
+            Vector3 rackOverhead = new Vector3(-6.92f, trayY, -0.19f);
+            Vector3 westTrayJoin = new Vector3(-7.62f, trayY, -0.19f);
+
+            for (int c = 0; c < 6; c++)
+            {
+                float ox = (c % 3 - 1) * 0.022f;
+                float oz = (c / 3 - 0.5f) * 0.022f;
+                AddCylBetween(cab.transform, $"RackRiserCat6_{c}",
+                    rackTopGrommet + new Vector3(ox, 0f, oz),
+                    rackOverhead + new Vector3(ox, 0.02f, oz),
+                    0.018f, c == 5 ? fiberYellowMat : cat6BlueMat);
+            }
+            for (int ty = 0; ty < 3; ty++)
+            {
+                AddBox(cab.transform, "RiserVelcro", new Vector3(-6.92f, 2.50f + ty * 0.18f, -0.19f), new Vector3(0.08f, 0.02f, 0.06f), velcroMat, false);
+            }
+
+            // 2. BANDEJAS PORTACABLES TIPO ESCALERA 100% ORTOGONALES (Cero diagonales en el techo)
+            BuildLadderTray("LadderTray_RackBridge", rackOverhead, westTrayJoin, 6);
+            BuildLadderTray("LadderTray_West_DC", new Vector3(-7.62f, trayY, -0.55f), new Vector3(-7.62f, trayY, 5.12f), 6);
+            BuildLadderTray("LadderTray_North_Main", new Vector3(-7.62f, trayY, 5.12f), new Vector3(6.55f, trayY, 5.12f), 5);
+            BuildLadderTray("LadderTray_Office_Partition", new Vector3(-2.96f, trayY, 5.12f), new Vector3(-2.96f, trayY, -5.12f), 4);
+            BuildLadderTray("LadderTray_South_Admin", new Vector3(-2.96f, trayY, -5.12f), new Vector3(3.50f, trayY, -5.12f), 3);
+
+            // Pasamuros cortafuego en el muro divisorio (x = -3.20)
+            AddBox(cab.transform, "Firestop_Sleeve_North", new Vector3(-3.20f, trayY + 0.01f, 5.12f), new Vector3(0.32f, 0.09f, 0.32f), velcroMat, false);
+
+            // 3. CANALETAS PVC EN MUROS SOLIDOS + ROSETAS RJ45 + PATCH CORDS CAT6A CURVADOS A CADA EQUIPO
+
+            // --- PUNTO DE RED 1: PC MONITOREO #1 (Muro Norte solido en x = 1.60, z = 5.36) ---
+            AddBox(cab.transform, "PVC_Raceway_PC1", new Vector3(1.60f, 1.68f, 5.36f), new Vector3(0.055f, 2.52f, 0.032f), pvcMat, false);
+            BuildWallFaceplateRJ45(new Vector3(1.60f, 0.42f, 5.35f), Vector3.back, "PT01_PC1");
+            Vector3 pc1WallPlug = new Vector3(1.60f, 0.41f, 5.31f);
+            Vector3 pc1TowerPlug = new Vector3(1.60f, 0.38f, 4.14f);
+            BuildCurvedPatchCord("PatchCord_Cat6A_PC1", pc1WallPlug, pc1TowerPlug, 0.14f, out Vector3 pc1Mid);
+
+            // --- PUNTO DE RED 2: PC MONITOREO #2 (Baja por columna solida x = 6.52 para NO cruzar la ventana, y corre por zocalo a x = 6.15) ---
+            AddBox(cab.transform, "PVC_Raceway_PC2_Vert", new Vector3(6.52f, 1.63f, 5.36f), new Vector3(0.055f, 2.62f, 0.032f), pvcMat, false);
+            AddBox(cab.transform, "PVC_Raceway_PC2_Horiz", new Vector3(6.33f, 0.32f, 5.36f), new Vector3(0.42f, 0.045f, 0.032f), pvcMat, false);
+            BuildWallFaceplateRJ45(new Vector3(6.15f, 0.32f, 5.35f), Vector3.back, "PT02_PC2");
+            Vector3 pc2WallPlug = new Vector3(6.15f, 0.31f, 5.31f);
+            Vector3 pc2TowerPlug = new Vector3(6.15f, 0.38f, 4.14f);
+            BuildCurvedPatchCord("PatchCord_Cat6A_PC2", pc2WallPlug, pc2TowerPlug, 0.12f, out Vector3 pc2Mid);
+
+            // --- PUNTO DE RED 3: IMPRESORA EPSON ECOTANK (Baja por muro solido x = -3.06, z = 1.82 fuera del vidrio, y va por zocalo bajo la ventana hasta z = -0.65) ---
+            AddBox(cab.transform, "PVC_Raceway_Prn_Vert", new Vector3(-3.06f, 1.62f, 1.82f), new Vector3(0.032f, 2.64f, 0.055f), pvcMat, false);
+            AddBox(cab.transform, "PVC_Raceway_Prn_Baseboard", new Vector3(-3.06f, 0.30f, 0.58f), new Vector3(0.032f, 0.045f, 2.52f), pvcMat, false);
+            BuildWallFaceplateRJ45(new Vector3(-3.05f, 0.32f, -0.65f), Vector3.right, "PT03_PRINTER");
+            Vector3 prnWallPlug = new Vector3(-3.01f, 0.32f, -0.65f);
+            Vector3 prnPortPlug = new Vector3(-2.04f, 0.86f, -0.65f);
+            BuildCurvedPatchCord("PatchCord_Cat6A_Printer", prnWallPlug, prnPortPlug, 0.12f, out Vector3 prnMid);
+
+            // --- PUNTO DE RED 4: PC ADMINISTRACION DE RED (Muro Sur solido en x = 3.35, z = -5.36) ---
+            AddBox(cab.transform, "PVC_Raceway_Admin_Vert", new Vector3(3.35f, 1.68f, -5.36f), new Vector3(0.055f, 2.52f, 0.032f), pvcMat, false);
+            BuildWallFaceplateRJ45(new Vector3(3.35f, 0.42f, -5.35f), Vector3.forward, "PT04_ADMIN");
+            Vector3 admWallPlug = new Vector3(3.35f, 0.41f, -5.31f);
+            Vector3 admTowerPlug = new Vector3(3.35f, 0.38f, -4.40f);
+            BuildCurvedPatchCord("PatchCord_Cat6A_Admin", admWallPlug, admTowerPlug, 0.13f, out Vector3 admMid);
+
+            // 4. RUTAS ORTOGONALES DE PAQUETES DE DATOS EN TIEMPO REAL (Siguiendo exactamente las bandejas y canaletas)
             Vector3[][] routes =
             {
+                // Ruta 1 -> PC Monitoreo #1
                 new[] {
-                    new Vector3(-7.35f, 1.8f, -0.38f), new Vector3(-7.8f, 1.8f, -0.38f), new Vector3(-7.8f, 3.35f, -0.38f),
-                    new Vector3(-7.68f, 3.35f, 5.12f), new Vector3(1.8f, 3.35f, 5.12f), new Vector3(1.8f, 0.45f, 5.32f), new Vector3(1.8f, 0.45f, 3.95f)
+                    rackTopGrommet, rackOverhead, westTrayJoin,
+                    new Vector3(-7.62f, trayY + 0.02f, 5.12f),
+                    new Vector3(1.60f, trayY + 0.02f, 5.12f),
+                    new Vector3(1.60f, trayY + 0.02f, 5.34f),
+                    pc1WallPlug, pc1Mid, pc1TowerPlug
                 },
+                // Ruta 2 -> PC Monitoreo #2
                 new[] {
-                    new Vector3(-7.35f, 1.8f, -0.42f), new Vector3(-7.8f, 1.8f, -0.42f), new Vector3(-7.8f, 3.36f, -0.42f),
-                    new Vector3(-7.62f, 3.36f, 5.18f), new Vector3(6.35f, 3.36f, 5.18f), new Vector3(6.35f, 0.45f, 5.32f), new Vector3(6.35f, 0.45f, 3.95f)
+                    rackTopGrommet, rackOverhead, westTrayJoin,
+                    new Vector3(-7.62f, trayY + 0.02f, 5.12f),
+                    new Vector3(6.52f, trayY + 0.02f, 5.12f),
+                    new Vector3(6.52f, 0.32f, 5.34f),
+                    pc2WallPlug, pc2Mid, pc2TowerPlug
                 },
+                // Ruta 3 -> Impresora Epson EcoTank en Red
                 new[] {
-                    new Vector3(-7.35f, 1.65f, -0.45f), new Vector3(-7.8f, 1.65f, -0.45f), new Vector3(-7.8f, 3.35f, -0.45f),
-                    new Vector3(-7.8f, 3.35f, 0.9f), new Vector3(-3.02f, 3.35f, 0.9f), new Vector3(-3.02f, 0.45f, 0.8f), new Vector3(-1.75f, 0.85f, -0.65f)
+                    rackTopGrommet, rackOverhead, westTrayJoin,
+                    new Vector3(-7.62f, trayY + 0.02f, 5.12f),
+                    new Vector3(-2.96f, trayY + 0.02f, 5.12f),
+                    new Vector3(-2.96f, trayY + 0.02f, 1.82f),
+                    new Vector3(-3.04f, 0.30f, 1.82f),
+                    prnWallPlug, prnMid, prnPortPlug
                 },
+                // Ruta 4 -> PC Administracion de Red
                 new[] {
-                    new Vector3(-7.35f, 1.65f, -0.50f), new Vector3(-7.8f, 1.65f, -0.50f), new Vector3(-7.8f, 3.35f, -0.50f),
-                    new Vector3(-3.0f, 3.35f, 0.9f), new Vector3(-3.0f, 3.35f, -5.15f), new Vector3(3.15f, 3.35f, -5.15f), new Vector3(3.15f, 0.45f, -5.32f), new Vector3(3.15f, 0.45f, -4.25f)
+                    rackTopGrommet, rackOverhead, westTrayJoin,
+                    new Vector3(-7.62f, trayY + 0.02f, 5.12f),
+                    new Vector3(-2.96f, trayY + 0.02f, 5.12f),
+                    new Vector3(-2.96f, trayY + 0.02f, -5.12f),
+                    new Vector3(3.35f, trayY + 0.02f, -5.12f),
+                    new Vector3(3.35f, 0.42f, -5.34f),
+                    admWallPlug, admMid, admTowerPlug
                 }
             };
 
             for (int r = 0; r < routes.Length; r++)
             {
                 var pts = routes[r];
-                for (int i = 0; i < pts.Length - 1; i++)
-                {
-                    Vector3 a = pts[i];
-                    Vector3 b = pts[i + 1];
-                    Vector3 mid = (a + b) * 0.5f;
-                    float len = Vector3.Distance(a, b);
-                    GameObject seg = AddBox(cab.transform, $"Cat6A_Seg_{r}_{i}", mid, new Vector3(0.032f, 0.032f, len), cableMat, false);
-                    seg.transform.LookAt(b);
-                }
-
-                GameObject pkt = AddSphere(cab.transform, $"DataPacket_{r}", pts[0], Vector3.one * 0.11f, packetMat);
+                GameObject pkt = AddSphere(cab.transform, $"DataPacket_{r}", pts[0], Vector3.one * 0.095f, packetMat);
                 ctrl.packetRoutes.Add(new DataPacketRoute
                 {
                     packetMesh = pkt.transform,
                     waypoints = pts,
-                    progress = (r * 0.22f) % 1f,
-                    speed = 0.16f + (r % 2) * 0.04f
+                    progress = (r * 0.24f) % 1f,
+                    speed = 0.17f + (r % 2) * 0.03f
                 });
             }
 
             TagInteractable(cab, "structured_cabling");
-            AddLabel(ctrl, "Canaletas de Pared + Bandejas de Techo (Cat6A)", new Vector3(-7.6f, 3.55f, -0.45f));
+            AddLabel(ctrl, "Bandejas Tipo Escalera + Cableado Cat6A", new Vector3(-6.92f, 3.05f, -0.19f));
         }
 
         // ============================================================================
