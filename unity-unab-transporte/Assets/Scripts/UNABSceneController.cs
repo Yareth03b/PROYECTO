@@ -146,8 +146,8 @@ namespace UNAB.Transporte3D
             }
             else
             {
-                // Teletransportar al exterior frente al Portico Principal de la UNAB y Mural de Caral
-                TeleportPlayerTo(new Vector3(26.5f, 0f, 2.2f), -90f, 6f);
+                // Teletransportar al exterior frente al Gran Portico Principal de la UNAB y Mural de Caral
+                TeleportPlayerTo(new Vector3(36.5f, 0f, 3.5f), -90f, 6f);
             }
         }
 
@@ -219,8 +219,8 @@ namespace UNAB.Transporte3D
 
             if (viewName == "fachada")
             {
-                endPos = new Vector3(33.5f, 6.2f, 7.5f);
-                endLook = new Vector3(17.5f, 3.0f, 2.5f);
+                endPos = new Vector3(48.0f, 11.5f, 14.0f);
+                endLook = new Vector3(22.0f, 5.2f, 6.0f);
             }
             else if (viewName == "datacenter")
             {
@@ -427,8 +427,8 @@ namespace UNAB.Transporte3D
             Vector3 nextPos = currentPos + playerVelocity * dt;
 
             // Movimiento 100% libre por toda la avenida exterior, portico UNAB, mural de Caral, patio del campus y oficinas interiores
-            nextPos.x = Mathf.Clamp(nextPos.x, -24.0f, 35.0f);
-            nextPos.z = Mathf.Clamp(nextPos.z, -32.0f, 32.0f);
+            nextPos.x = Mathf.Clamp(nextPos.x, -28.0f, 52.0f);
+            nextPos.z = Mathf.Clamp(nextPos.z, -56.0f, 58.0f);
             nextPos.y = 0f;
 
             if (playerRoot != null)
@@ -529,7 +529,7 @@ namespace UNAB.Transporte3D
             float scroll = GetMouseScrollY();
             if (Mathf.Abs(scroll) > 0.001f)
             {
-                orbitDistance = Mathf.Clamp(orbitDistance - scroll * 1.8f, 2.5f, 85f);
+                orbitDistance = Mathf.Clamp(orbitDistance - scroll * 2.2f, 2.5f, 120f);
             }
 
             Quaternion rot = Quaternion.Euler(orbitPitch, orbitYaw, 0f);

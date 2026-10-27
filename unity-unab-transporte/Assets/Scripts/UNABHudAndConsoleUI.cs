@@ -314,7 +314,7 @@ namespace UNAB.Transporte3D
 
                 float by = dropRect.y + 36f;
                 if (DrawPillButton(new Rect(dropRect.x + 12f, by, 224f, 30f), "Caminar en Fachada UNAB", ctrl.IsPlayerOutsideCampus()))
-                { ctrl.TeleportPlayerTo(new Vector3(26.5f, 0f, 2.2f), -90f, 6f); viewsDropdownOpen = false; }
+                { ctrl.TeleportPlayerTo(new Vector3(36.5f, 0f, 3.5f), -90f, 4f); viewsDropdownOpen = false; }
                 by += 35f;
                 if (DrawPillButton(new Rect(dropRect.x + 12f, by, 224f, 30f), "Caminar en Área Transporte", !ctrl.IsPlayerOutsideCampus()))
                 { ctrl.TeleportPlayerTo(new Vector3(2.2f, 0f, -0.4f), 0f, 12f); viewsDropdownOpen = false; }
@@ -425,7 +425,7 @@ namespace UNAB.Transporte3D
                     float dist = Vector3.Distance(camPos, lbl.worldPosition);
                     if (camOutside)
                     {
-                        if (dist > 32.0f) continue;
+                        if (dist > 62.0f) continue;
                     }
                     else
                     {
@@ -443,7 +443,7 @@ namespace UNAB.Transporte3D
                 }
 
                 Vector3 screenPos = ctrl.mainCamera.WorldToScreenPoint(lbl.worldPosition);
-                float maxZ = camOutside ? 45f : 26f;
+                float maxZ = camOutside ? 75f : 26f;
                 if (screenPos.z > 0.4f && screenPos.z < maxZ)
                 {
                     GUIContent content = new GUIContent(lbl.text);
