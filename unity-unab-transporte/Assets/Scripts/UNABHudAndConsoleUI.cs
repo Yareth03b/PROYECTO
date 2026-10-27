@@ -216,7 +216,9 @@ namespace UNAB.Transporte3D
             }
 
             // Calculo dinamico del ancho requerido por el menu superior para adaptarlo a cualquier ventana de Unity
-            string lblFps = "Modo Caminata (WASD)";
+            string lblFps = ctrl.isFpsMode
+                ? (ctrl.isThirdPerson ? "Caminata: 3ra Persona (V)" : "Caminata: 1ra Persona (V)")
+                : "Modo Caminata (WASD)";
             string lblViews = "Vistas Rápidas ▾";
             string lblCeil = $"Techo: {(ctrl.ceilingVisible ? "ON" : "OFF")}";
             string lblPack = $"Flujo de Datos: {(ctrl.packetsEnabled ? "ON" : "OFF")}";
@@ -288,32 +290,36 @@ namespace UNAB.Transporte3D
             if (DrawPillButton(new Rect(rx, btnY, wFps, btnH), lblFps, ctrl.isFpsMode))
             {
                 viewsDropdownOpen = false;
-                ctrl.ActivateFpsMode();
+                if (ctrl.isFpsMode) ctrl.ToggleThirdPerson();
+                else ctrl.ActivateFpsMode();
             }
 
             // Menu desplegable de Vistas Rapidas
             if (viewsDropdownOpen)
             {
-                Rect dropRect = new Rect(viewsBtnRect.x, navRect.yMax + 6f, 236f, 222f);
+                Rect dropRect = new Rect(viewsBtnRect.x, navRect.yMax + 6f, 242f, 258f);
                 DrawRoundedRect(dropRect, ColCardBg, ColCardBorder, 16f, 1.2f);
                 GUI.Label(new Rect(dropRect.x + 14f, dropRect.y + 10f, 160f, 20f), "VISTAS DE CÁMARA", specLabelStyle);
                 if (DrawPillButton(new Rect(dropRect.xMax - 38f, dropRect.y + 8f, 26f, 22f), "X", false))
                     viewsDropdownOpen = false;
 
                 float by = dropRect.y + 36f;
-                if (DrawPillButton(new Rect(dropRect.x + 12f, by, 212f, 30f), "Vista General Isométrica", false))
+                if (DrawPillButton(new Rect(dropRect.x + 12f, by, 218f, 30f), "Alternar 1ra / 3ra Persona (V)", ctrl.isThirdPerson))
+                { ctrl.ToggleThirdPerson(); viewsDropdownOpen = false; }
+                by += 35f;
+                if (DrawPillButton(new Rect(dropRect.x + 12f, by, 218f, 30f), "Vista General Isométrica", false))
                 { ctrl.SwitchToCameraView("iso"); viewsDropdownOpen = false; }
                 by += 35f;
-                if (DrawPillButton(new Rect(dropRect.x + 12f, by, 212f, 30f), "Cuarto de Servidores (Rack)", false))
+                if (DrawPillButton(new Rect(dropRect.x + 12f, by, 218f, 30f), "Cuarto de Servidores (Rack)", false))
                 { ctrl.SwitchToCameraView("datacenter"); viewsDropdownOpen = false; }
                 by += 35f;
-                if (DrawPillButton(new Rect(dropRect.x + 12f, by, 212f, 30f), "Paso de Cableado / Techo", false))
+                if (DrawPillButton(new Rect(dropRect.x + 12f, by, 218f, 30f), "Paso de Cableado / Techo", false))
                 { ctrl.SwitchToCameraView("cabling"); viewsDropdownOpen = false; }
                 by += 35f;
-                if (DrawPillButton(new Rect(dropRect.x + 12f, by, 212f, 30f), "Monitores GPS Buses", false))
+                if (DrawPillButton(new Rect(dropRect.x + 12f, by, 218f, 30f), "Monitores GPS Buses", false))
                 { ctrl.SwitchToCameraView("monitoring"); viewsDropdownOpen = false; }
                 by += 35f;
-                if (DrawPillButton(new Rect(dropRect.x + 12f, by, 212f, 30f), "Abrir / Cerrar Puertas", false))
+                if (DrawPillButton(new Rect(dropRect.x + 12f, by, 218f, 30f), "Abrir / Cerrar Puertas", false))
                 { ctrl.ToggleDoors(); viewsDropdownOpen = false; }
             }
 
@@ -324,7 +330,7 @@ namespace UNAB.Transporte3D
                 DrawRoundedRect(new Rect(vWidth * 0.5f - 4f, vHeight * 0.5f - 4f, 8f, 8f), new Color(0f, 0f, 0f, 0.55f), Color.clear, 4f, 0f);
                 DrawRoundedRect(new Rect(vWidth * 0.5f - 2.5f, vHeight * 0.5f - 2.5f, 5f, 5f), Color.white, Color.clear, 2.5f, 0f);
 
-                string hint = "WASD: Caminar   |   Ratón: Mirar   |   Click o Tecla F: Usar Monitor / Rack   |   Tecla E: Cerrar   |   ESC: Vista General";
+                string hint = "WASD: Caminar  |  Ratón: Mirar  |  Tecla V: 1ra/3ra Persona  |  Tecla F: Usar Equipo  |  Tecla E: Cerrar  |  ESC: Vista General";
                 float hw = btnLabelStyle.CalcSize(new GUIContent(hint)).x + 32f;
                 Rect hintRect = new Rect((vWidth - hw) * 0.5f, vHeight - 42f, hw, 30f);
                 DrawRoundedRect(hintRect, ColBarBg, ColBarBorder, 15f, 1f);

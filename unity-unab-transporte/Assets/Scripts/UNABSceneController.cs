@@ -44,6 +44,16 @@ namespace UNAB.Transporte3D
         public List<FloatingLabelRef> floatingLabels = new List<FloatingLabelRef>();
         public List<Renderer> blinkingLedRenderers = new List<Renderer>();
 
+        [Header("3D Walking Person (Avatar UNAB)")]
+        public Transform playerRoot;
+        public Transform playerVisuals;
+        public Transform playerHead;
+        public Transform playerLeftArmPivot;
+        public Transform playerRightArmPivot;
+        public Transform playerLeftLegPivot;
+        public Transform playerRightLegPivot;
+        public bool isThirdPerson = true;
+
         [Header("Interactive State")]
         public bool isFpsMode = true;
         public bool ceilingVisible = true;
@@ -56,12 +66,14 @@ namespace UNAB.Transporte3D
         public string activeInspectedKey = "";
         public string hoveredKey = "";
 
-        // FPS Camera state
+        // Player & Walk Camera state
         private float yaw = -90f;
-        private float pitch = 0f;
+        private float pitch = 12f;
         private float targetYaw = -90f;
-        private float targetPitch = 0f;
-        private Vector3 fpsVelocity = Vector3.zero;
+        private float targetPitch = 12f;
+        private Vector3 playerVelocity = Vector3.zero;
+        private float walkCycle = 0f;
+        private float thirdPersonDist = 2.15f;
 
         // Orbit Camera state
         private Vector3 orbitTarget = new Vector3(0f, 0.9f, 0f);
@@ -95,16 +107,42 @@ namespace UNAB.Transporte3D
             isFpsMode = true;
             SetCeilingState(true);
 
-            if (mainCamera != null)
+            if (playerRoot != null)
+            {
+                Vector3 p = playerRoot.position;
+                p.y = 0f;
+                playerRoot.position = p;
+            }
+            else if (mainCamera != null)
             {
                 mainCamera.transform.position = new Vector3(2.2f, 1.7f, -0.4f);
             }
-            yaw = -90f;
-            pitch = 0f;
-            targetYaw = yaw;
-            targetPitch = pitch;
 
+            UpdateAvatarVisibility();
             LockMouseCursor();
+        }
+
+        public void ToggleThirdPerson()
+        {
+            isThirdPerson = !isThirdPerson;
+            if (!isFpsMode)
+            {
+                ActivateFpsMode();
+            }
+            else
+            {
+                UpdateAvatarVisibility();
+            }
+        }
+
+        private void UpdateAvatarVisibility()
+        {
+            if (playerVisuals != null)
+            {
+                // En 3ra persona y en vista isometrica se ve el personaje 3D completo; en 1ra persona se oculta para no tapar la camara
+                bool showAvatar = !isFpsMode || isThirdPerson;
+                playerVisuals.gameObject.SetActive(showAvatar);
+            }
         }
 
         public void LockMouseCursor()
@@ -124,6 +162,7 @@ namespace UNAB.Transporte3D
             isFpsMode = false;
             UnlockMouseCursor();
             SetCeilingState(false);
+            UpdateAvatarVisibility();
 
             Vector3 endPos = new Vector3(0f, 16.5f, -15.5f);
             Vector3 endLook = new Vector3(0f, 0.8f, 0f);
@@ -213,7 +252,7 @@ namespace UNAB.Transporte3D
 
             if (isFpsMode)
             {
-                UpdateFpsMovement(dt);
+                UpdatePlayerAndWalkCamera(dt);
             }
             else
             {
@@ -263,6 +302,7 @@ namespace UNAB.Transporte3D
                 }
             }
 
+            if (WasKeyPressedThisFrame(KeyCode.V)) ToggleThirdPerson();
             if (WasKeyPressedThisFrame(KeyCode.T)) ToggleCeiling();
             if (WasKeyPressedThisFrame(KeyCode.C)) TogglePackets();
             if (WasKeyPressedThisFrame(KeyCode.M)) ToggleWalls();
@@ -280,22 +320,20 @@ namespace UNAB.Transporte3D
             }
         }
 
-        private void UpdateFpsMovement(float dt)
+        private void UpdatePlayerAndWalkCamera(float dt)
         {
             float moveZ = (IsKeyPressed(KeyCode.W) || IsKeyPressed(KeyCode.UpArrow) ? 1f : 0f)
                         - (IsKeyPressed(KeyCode.S) || IsKeyPressed(KeyCode.DownArrow) ? 1f : 0f);
             float moveX = (IsKeyPressed(KeyCode.D) || IsKeyPressed(KeyCode.RightArrow) ? 1f : 0f)
                         - (IsKeyPressed(KeyCode.A) || IsKeyPressed(KeyCode.LeftArrow) ? 1f : 0f);
-            float moveY = (IsKeyPressed(KeyCode.Space) ? 1f : 0f)
-                        - (IsKeyPressed(KeyCode.LeftShift) || IsKeyPressed(KeyCode.RightShift) ? 1f : 0f);
 
-            // Si el usuario presiona WASD en el Editor y el cursor aun no estaba bloqueado, bloquearlo automaticamente
+            // Auto-capturar cursor al presionar WASD
             if ((Mathf.Abs(moveZ) > 0.01f || Mathf.Abs(moveX) > 0.01f) && Cursor.lockState != CursorLockMode.Locked)
             {
                 LockMouseCursor();
             }
 
-            // Rotar camara si el cursor esta bloqueado O si mantiene presionado clic izquierdo/derecho en la escena
+            // Rotar camara con el raton
             bool canRotate = (Cursor.lockState == CursorLockMode.Locked) || IsMouseButtonPressed(0) || IsMouseButtonPressed(1);
             if (canRotate)
             {
@@ -303,28 +341,128 @@ namespace UNAB.Transporte3D
                 float dx = Mathf.Clamp(mouseDelta.x, -50f, 50f);
                 float dy = Mathf.Clamp(mouseDelta.y, -50f, 50f);
                 targetYaw += dx * 0.18f;
-                targetPitch = Mathf.Clamp(targetPitch - dy * 0.18f, -78f, 78f);
+                float minP = isThirdPerson ? -25f : -75f;
+                float maxP = isThirdPerson ? 58f : 75f;
+                targetPitch = Mathf.Clamp(targetPitch - dy * 0.18f, minP, maxP);
+            }
+
+            float scroll = GetMouseScrollY();
+            if (isThirdPerson && Mathf.Abs(scroll) > 0.001f)
+            {
+                thirdPersonDist = Mathf.Clamp(thirdPersonDist - scroll * 0.35f, 1.1f, 3.8f);
             }
 
             float smoothLook = Mathf.Min(1f, dt * 20f);
             yaw = Mathf.Lerp(yaw, targetYaw, smoothLook);
             pitch = Mathf.Lerp(pitch, targetPitch, smoothLook);
-            mainCamera.transform.rotation = Quaternion.Euler(pitch, yaw, 0f);
 
             Vector3 fwd = Quaternion.Euler(0f, yaw, 0f) * Vector3.forward;
             Vector3 right = Quaternion.Euler(0f, yaw, 0f) * Vector3.right;
 
-            Vector3 targetVel = Vector3.zero;
+            float walkSpeed = (IsKeyPressed(KeyCode.LeftShift) || IsKeyPressed(KeyCode.RightShift)) ? 5.2f : 3.4f;
+            Vector3 desiredMove = Vector3.zero;
             if (Mathf.Abs(moveZ) > 0.01f || Mathf.Abs(moveX) > 0.01f)
             {
-                targetVel = (fwd * moveZ + right * moveX).normalized * 5.5f;
+                desiredMove = (fwd * moveZ + right * moveX).normalized * walkSpeed;
             }
-            targetVel.y = moveY * 3.8f;
 
-            fpsVelocity = Vector3.Lerp(fpsVelocity, targetVel, Mathf.Min(1f, dt * 12f));
-            Vector3 nextPos = mainCamera.transform.position + fpsVelocity * dt;
-            nextPos.y = Mathf.Clamp(nextPos.y, 0.85f, 14f);
-            mainCamera.transform.position = nextPos;
+            playerVelocity = Vector3.Lerp(playerVelocity, desiredMove, Mathf.Min(1f, dt * 14f));
+
+            Vector3 currentPos = playerRoot != null ? playerRoot.position : new Vector3(mainCamera.transform.position.x, 0f, mainCamera.transform.position.z);
+            Vector3 nextPos = currentPos + playerVelocity * dt;
+
+            // Limites suaves dentro del edificio y terraza
+            nextPos.x = Mathf.Clamp(nextPos.x, -7.45f, 7.45f);
+            nextPos.z = Mathf.Clamp(nextPos.z, -6.5f, 4.45f);
+            nextPos.y = 0f;
+
+            // Colision suave con el muro divisorio central (x = 0), dejando libre el paso de la puerta (z entre -2.1 y -0.7)
+            if (Mathf.Abs(nextPos.x) < 0.28f && (nextPos.z > -0.75f || nextPos.z < -2.05f))
+            {
+                nextPos.x = currentPos.x > 0f ? Mathf.Max(nextPos.x, 0.28f) : Mathf.Min(nextPos.x, -0.28f);
+            }
+
+            if (playerRoot != null)
+            {
+                playerRoot.position = nextPos;
+            }
+
+            // Animar el personaje 3D (brazos, piernas y rotacion del cuerpo)
+            float planarSpeed = new Vector2(playerVelocity.x, playerVelocity.z).magnitude;
+            AnimatePlayerAvatar(dt, planarSpeed, playerVelocity);
+
+            // Posicionar camara en 3ra Persona o 1ra Persona
+            if (isThirdPerson && playerRoot != null)
+            {
+                Quaternion camRot = Quaternion.Euler(pitch, yaw, 0f);
+                Vector3 pivotPos = nextPos + new Vector3(0f, 1.52f, 0f) + (camRot * Vector3.right) * 0.22f;
+                Vector3 camDir = camRot * Vector3.back;
+
+                float actualDist = thirdPersonDist;
+                // Evitar que la camara atraviese paredes
+                if (Physics.SphereCast(pivotPos, 0.15f, camDir, out RaycastHit hit, thirdPersonDist))
+                {
+                    if (hit.transform != playerRoot && !hit.transform.IsChildOf(playerRoot))
+                    {
+                        actualDist = Mathf.Max(0.45f, hit.distance - 0.12f);
+                    }
+                }
+
+                mainCamera.transform.position = pivotPos + camDir * actualDist;
+                mainCamera.transform.rotation = camRot;
+            }
+            else
+            {
+                mainCamera.transform.position = nextPos + new Vector3(0f, 1.66f, 0f);
+                mainCamera.transform.rotation = Quaternion.Euler(pitch, yaw, 0f);
+            }
+        }
+
+        private void AnimatePlayerAvatar(float dt, float speed, Vector3 velocity)
+        {
+            if (playerVisuals == null) return;
+
+            if (speed > 0.12f)
+            {
+                float moveYaw = Mathf.Atan2(velocity.x, velocity.z) * Mathf.Rad2Deg;
+                Quaternion targetRot = Quaternion.Euler(0f, moveYaw, 0f);
+                playerVisuals.rotation = Quaternion.Slerp(playerVisuals.rotation, targetRot, dt * 12f);
+
+                walkCycle += dt * speed * 3.1f;
+                float swing = Mathf.Sin(walkCycle);
+                float bob = Mathf.Abs(Mathf.Cos(walkCycle)) * 0.032f;
+
+                playerVisuals.localPosition = new Vector3(0f, bob, 0f);
+
+                if (playerLeftLegPivot != null) playerLeftLegPivot.localRotation = Quaternion.Euler(swing * 34f, 0f, 0f);
+                if (playerRightLegPivot != null) playerRightLegPivot.localRotation = Quaternion.Euler(-swing * 34f, 0f, 0f);
+                if (playerLeftArmPivot != null) playerLeftArmPivot.localRotation = Quaternion.Euler(-swing * 26f, 0f, 0f);
+                if (playerRightArmPivot != null) playerRightArmPivot.localRotation = Quaternion.Euler(swing * 26f, 0f, 0f);
+            }
+            else
+            {
+                // En reposo: respiracion suave y extremidades regresan a postura natural
+                float idleBreath = Mathf.Sin(Time.time * 2.2f) * 0.008f;
+                playerVisuals.localPosition = Vector3.Lerp(playerVisuals.localPosition, new Vector3(0f, idleBreath, 0f), dt * 8f);
+
+                if (playerLeftLegPivot != null) playerLeftLegPivot.localRotation = Quaternion.Slerp(playerLeftLegPivot.localRotation, Quaternion.identity, dt * 10f);
+                if (playerRightLegPivot != null) playerRightLegPivot.localRotation = Quaternion.Slerp(playerRightLegPivot.localRotation, Quaternion.identity, dt * 10f);
+                if (playerLeftArmPivot != null) playerLeftArmPivot.localRotation = Quaternion.Slerp(playerLeftArmPivot.localRotation, Quaternion.Euler(0f, 0f, 3f), dt * 10f);
+                if (playerRightArmPivot != null) playerRightArmPivot.localRotation = Quaternion.Slerp(playerRightArmPivot.localRotation, Quaternion.Euler(0f, 0f, -3f), dt * 10f);
+            }
+
+            // Si el usuario agrego un modelo con Animator (ej. Mixamo), sincronizar parametros
+            Animator customAnim = playerVisuals.GetComponentInChildren<Animator>();
+            if (customAnim != null && customAnim.runtimeAnimatorController != null)
+            {
+                foreach (var param in customAnim.parameters)
+                {
+                    if (param.name == "Speed" && param.type == AnimatorControllerParameterType.Float)
+                        customAnim.SetFloat("Speed", speed);
+                    else if (param.name == "IsWalking" && param.type == AnimatorControllerParameterType.Bool)
+                        customAnim.SetBool("IsWalking", speed > 0.12f);
+                }
+            }
         }
 
         private void UpdateOrbitMovement()
@@ -418,113 +556,129 @@ namespace UNAB.Transporte3D
         public static Vector3 EvaluatePolyline(Vector3[] pts, float t)
         {
             float totalLen = 0f;
-            for (int i = 0; i < pts.Length - 1; i++)
-                totalLen += Vector3.Distance(pts[i], pts[i + 1]);
-
-            float targetDist = t * totalLen;
-            float accum = 0f;
+            float[] segLens = new float[pts.Length - 1];
             for (int i = 0; i < pts.Length - 1; i++)
             {
-                float seg = Vector3.Distance(pts[i], pts[i + 1]);
-                if (accum + seg >= targetDist && seg > 0.0001f)
+                segLens[i] = Vector3.Distance(pts[i], pts[i + 1]);
+                totalLen += segLens[i];
+            }
+            float target = t * totalLen;
+            float acc = 0f;
+            for (int i = 0; i < segLens.Length; i++)
+            {
+                if (acc + segLens[i] >= target)
                 {
-                    float localT = (targetDist - accum) / seg;
+                    float localT = (target - acc) / Mathf.Max(0.0001f, segLens[i]);
                     return Vector3.Lerp(pts[i], pts[i + 1], localT);
                 }
-                accum += seg;
+                acc += segLens[i];
             }
             return pts[pts.Length - 1];
         }
 
-        public static bool IsKeyPressed(KeyCode key)
+        // Helpers compatibles con el Nuevo Input System de Unity 6 y el Legacy Input Manager
+        private bool IsKeyPressed(KeyCode key)
         {
 #if ENABLE_INPUT_SYSTEM
-            if (Keyboard.current != null)
+            var kb = Keyboard.current;
+            if (kb == null) return false;
+            switch (key)
             {
-                switch (key)
-                {
-                    case KeyCode.W: return Keyboard.current.wKey.isPressed;
-                    case KeyCode.A: return Keyboard.current.aKey.isPressed;
-                    case KeyCode.S: return Keyboard.current.sKey.isPressed;
-                    case KeyCode.D: return Keyboard.current.dKey.isPressed;
-                    case KeyCode.UpArrow: return Keyboard.current.upArrowKey.isPressed;
-                    case KeyCode.DownArrow: return Keyboard.current.downArrowKey.isPressed;
-                    case KeyCode.LeftArrow: return Keyboard.current.leftArrowKey.isPressed;
-                    case KeyCode.RightArrow: return Keyboard.current.rightArrowKey.isPressed;
-                    case KeyCode.Space: return Keyboard.current.spaceKey.isPressed;
-                    case KeyCode.LeftShift: return Keyboard.current.leftShiftKey.isPressed;
-                    case KeyCode.RightShift: return Keyboard.current.rightShiftKey.isPressed;
-                }
+                case KeyCode.W: return kb.wKey.isPressed;
+                case KeyCode.A: return kb.aKey.isPressed;
+                case KeyCode.S: return kb.sKey.isPressed;
+                case KeyCode.D: return kb.dKey.isPressed;
+                case KeyCode.UpArrow: return kb.upArrowKey.isPressed;
+                case KeyCode.DownArrow: return kb.downArrowKey.isPressed;
+                case KeyCode.LeftArrow: return kb.leftArrowKey.isPressed;
+                case KeyCode.RightArrow: return kb.rightArrowKey.isPressed;
+                case KeyCode.Space: return kb.spaceKey.isPressed;
+                case KeyCode.LeftShift: return kb.leftShiftKey.isPressed;
+                case KeyCode.RightShift: return kb.rightShiftKey.isPressed;
             }
-#endif
             return false;
-        }
-
-        public static bool WasKeyPressedThisFrame(KeyCode key)
-        {
-#if ENABLE_INPUT_SYSTEM
-            if (Keyboard.current != null)
-            {
-                switch (key)
-                {
-                    case KeyCode.E: return Keyboard.current.eKey.wasPressedThisFrame;
-                    case KeyCode.F: return Keyboard.current.fKey.wasPressedThisFrame;
-                    case KeyCode.T: return Keyboard.current.tKey.wasPressedThisFrame;
-                    case KeyCode.C: return Keyboard.current.cKey.wasPressedThisFrame;
-                    case KeyCode.M: return Keyboard.current.mKey.wasPressedThisFrame;
-                    case KeyCode.L: return Keyboard.current.lKey.wasPressedThisFrame;
-                    case KeyCode.Escape: return Keyboard.current.escapeKey.wasPressedThisFrame;
-                }
-            }
-#endif
-            return false;
-        }
-
-        public static Vector2 GetMouseDelta()
-        {
-#if ENABLE_INPUT_SYSTEM
-            if (Mouse.current != null)
-            {
-                return Mouse.current.delta.ReadValue();
-            }
-#endif
-            return Vector2.zero;
-        }
-
-        public static Vector2 GetMousePosition()
-        {
-#if ENABLE_INPUT_SYSTEM
-            if (Mouse.current != null) return Mouse.current.position.ReadValue();
-#endif
-            return Vector2.zero;
-        }
-
-        public static bool IsMouseButtonPressed(int button)
-        {
-#if ENABLE_INPUT_SYSTEM
-            if (Mouse.current == null) return false;
-            return button == 0 ? Mouse.current.leftButton.isPressed : Mouse.current.rightButton.isPressed;
 #else
-            return false;
+            return Input.GetKey(key);
 #endif
         }
 
-        public static bool WasMouseButtonPressedThisFrame(int button)
+        private bool WasKeyPressedThisFrame(KeyCode key)
         {
 #if ENABLE_INPUT_SYSTEM
-            if (Mouse.current == null) return false;
-            return button == 0 ? Mouse.current.leftButton.wasPressedThisFrame : Mouse.current.rightButton.wasPressedThisFrame;
+            var kb = Keyboard.current;
+            if (kb == null) return false;
+            switch (key)
+            {
+                case KeyCode.E: return kb.eKey.wasPressedThisFrame;
+                case KeyCode.F: return kb.fKey.wasPressedThisFrame;
+                case KeyCode.V: return kb.vKey.wasPressedThisFrame;
+                case KeyCode.T: return kb.tKey.wasPressedThisFrame;
+                case KeyCode.C: return kb.cKey.wasPressedThisFrame;
+                case KeyCode.M: return kb.mKey.wasPressedThisFrame;
+                case KeyCode.L: return kb.lKey.wasPressedThisFrame;
+                case KeyCode.Escape: return kb.escapeKey.wasPressedThisFrame;
+            }
+            return false;
 #else
-            return false;
+            return Input.GetKeyDown(key);
 #endif
         }
 
-        public static float GetMouseScrollY()
+        private bool IsMouseButtonPressed(int button)
         {
 #if ENABLE_INPUT_SYSTEM
-            if (Mouse.current != null) return Mouse.current.scroll.ReadValue().y * 0.01f;
+            var m = Mouse.current;
+            if (m == null) return false;
+            return button == 0 ? m.leftButton.isPressed : m.rightButton.isPressed;
+#else
+            return Input.GetMouseButton(button);
 #endif
-            return 0f;
         }
+
+        private bool WasMouseButtonPressedThisFrame(int button)
+        {
+#if ENABLE_INPUT_SYSTEM
+            var m = Mouse.current;
+            if (m == null) return false;
+            return button == 0 ? m.leftButton.wasPressedThisFrame : m.rightButton.wasPressedThisFrame;
+#else
+            return Input.GetMouseButtonDown(button);
+#endif
+        }
+
+        private Vector2 GetMouseDelta()
+        {
+#if ENABLE_INPUT_SYSTEM
+            var m = Mouse.current;
+            return m != null ? m.delta.ReadValue() : Vector2.zero;
+#else
+            return new Vector2(Input.GetAxisRaw("Mouse X") * 10f, Input.GetAxisRaw("Mouse Y") * 10f);
+#endif
+        }
+
+        private Vector2 GetMousePosition()
+        {
+#if ENABLE_INPUT_SYSTEM
+            var m = Mouse.current;
+            return m != null ? m.position.ReadValue() : Vector2.zero;
+#else
+            return Input.mousePosition;
+#endif
+        }
+
+        private float GetMouseScrollY()
+        {
+#if ENABLE_INPUT_SYSTEM
+            var m = Mouse.current;
+            return m != null ? m.scroll.ReadValue().y * 0.01f : 0f;
+#else
+            return Input.mouseScrollDelta.y;
+#endif
+        }
+    }
+
+    public class UNABInteractableTag : MonoBehaviour
+    {
+        public string dataKey;
     }
 }
