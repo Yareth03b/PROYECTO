@@ -28,7 +28,7 @@ namespace UNAB.Transporte3D.EditorTools
         private static void TryAutoUpgradeScene()
         {
             if (EditorApplication.isPlayingOrWillChangePlaymode) return;
-            if (GameObject.Find("UNAB_Transporte_Root") != null && GameObject.Find("UNAB_HD_V6_RealCat6A") == null)
+            if (GameObject.Find("UNAB_Transporte_Root") != null && GameObject.Find("UNAB_HD_V7_UltraRealistic") == null)
             {
                 BuildCompleteSceneInternal(false);
             }
@@ -55,7 +55,7 @@ namespace UNAB.Transporte3D.EditorTools
             GameObject root = new GameObject("UNAB_Transporte_Root");
             Undo.RegisterCreatedObjectUndo(root, "Build UNAB Transporte 3D Scene");
 
-            GameObject marker = new GameObject("UNAB_HD_V6_RealCat6A");
+            GameObject marker = new GameObject("UNAB_HD_V7_UltraRealistic");
             marker.transform.SetParent(root.transform);
 
             var sim = root.AddComponent<UNABNetworkSimulator>();
@@ -215,9 +215,9 @@ namespace UNAB.Transporte3D.EditorTools
             lightGroup.transform.SetParent(root, false);
 
             RenderSettings.ambientMode = AmbientMode.Trilight;
-            RenderSettings.ambientSkyColor = new Color(0.78f, 0.85f, 0.94f);
-            RenderSettings.ambientEquatorColor = new Color(0.58f, 0.65f, 0.75f);
-            RenderSettings.ambientGroundColor = new Color(0.28f, 0.32f, 0.38f);
+            RenderSettings.ambientSkyColor = new Color(0.84f, 0.89f, 0.96f);
+            RenderSettings.ambientEquatorColor = new Color(0.64f, 0.70f, 0.78f);
+            RenderSettings.ambientGroundColor = new Color(0.35f, 0.38f, 0.44f);
 
             Light dirLight = Object.FindAnyObjectByType<Light>();
             if (dirLight == null || dirLight.type != LightType.Directional)
@@ -227,37 +227,51 @@ namespace UNAB.Transporte3D.EditorTools
                 dirLight = dlObj.AddComponent<Light>();
                 dirLight.type = LightType.Directional;
             }
-            dirLight.transform.rotation = Quaternion.Euler(46f, -35f, 0f);
-            dirLight.intensity = 1.35f;
-            dirLight.color = new Color(1f, 0.98f, 0.95f);
+            dirLight.transform.rotation = Quaternion.Euler(48f, -38f, 0f);
+            dirLight.intensity = 1.45f;
+            dirLight.color = new Color(1f, 0.98f, 0.94f);
             dirLight.shadows = LightShadows.Soft;
 
-            GameObject rackLightObj = new GameObject("Rack_BluePointLight");
-            rackLightObj.transform.SetParent(lightGroup.transform, false);
-            rackLightObj.transform.localPosition = new Vector3(-6.1f, 1.8f, -0.2f);
-            Light rl = rackLightObj.AddComponent<Light>();
-            rl.type = LightType.Point;
-            rl.color = new Color(0.22f, 0.58f, 0.98f);
-            rl.intensity = 2.8f;
-            rl.range = 6.5f;
+            // Luminarias interiores de techo para dar volumen, brillos especulares (PBR) y sombras suaves a los objetos
+            void AddInteriorCeilingLight(string name, Vector3 pos, Color col, float intensity, float range, bool castShadows = false)
+            {
+                GameObject lo = new GameObject(name);
+                lo.transform.SetParent(lightGroup.transform, false);
+                lo.transform.localPosition = pos;
+                Light l = lo.AddComponent<Light>();
+                l.type = LightType.Point;
+                l.color = col;
+                l.intensity = intensity;
+                l.range = range;
+                l.shadows = castShadows ? LightShadows.Soft : LightShadows.None;
+            }
 
-            GameObject offLightObj = new GameObject("Office_InteriorLight");
-            offLightObj.transform.SetParent(lightGroup.transform, false);
-            offLightObj.transform.localPosition = new Vector3(2.4f, 2.85f, 0f);
-            Light ol = offLightObj.AddComponent<Light>();
-            ol.type = LightType.Point;
-            ol.color = new Color(0.99f, 0.98f, 0.96f);
-            ol.intensity = 2.2f;
-            ol.range = 16f;
+            // Iluminacion Data Center (Blanco frio + acento azul cian en el Rack)
+            AddInteriorCeilingLight("DC_CeilingLight_North", new Vector3(-5.6f, 2.95f, 2.6f), new Color(0.90f, 0.95f, 1.0f), 6.5f, 9.5f, true);
+            AddInteriorCeilingLight("DC_CeilingLight_South", new Vector3(-5.6f, 2.95f, -2.6f), new Color(0.90f, 0.95f, 1.0f), 6.5f, 9.5f, false);
+            AddInteriorCeilingLight("Rack_CyberGlow", new Vector3(-5.95f, 1.65f, -0.45f), new Color(0.18f, 0.62f, 1.0f), 4.2f, 5.5f, false);
 
-            GameObject probeObj = new GameObject("Room_ReflectionProbe");
-            probeObj.transform.SetParent(lightGroup.transform, false);
-            probeObj.transform.localPosition = new Vector3(0f, 1.8f, 0f);
-            ReflectionProbe probe = probeObj.AddComponent<ReflectionProbe>();
-            probe.mode = ReflectionProbeMode.Realtime;
-            probe.refreshMode = ReflectionProbeRefreshMode.OnAwake;
-            probe.boxProjection = true;
-            probe.size = new Vector3(22f, 6f, 16f);
+            // Iluminacion Oficina de Monitoreo (Luz arquitectonica 4500K sobre escritorios y centro)
+            AddInteriorCeilingLight("Office_Light_Desk1", new Vector3(0.85f, 2.95f, 2.8f), new Color(1.0f, 0.98f, 0.94f), 7.5f, 10.5f, true);
+            AddInteriorCeilingLight("Office_Light_Desk2", new Vector3(5.40f, 2.95f, 2.8f), new Color(1.0f, 0.98f, 0.94f), 7.5f, 10.5f, false);
+            AddInteriorCeilingLight("Office_Light_Admin", new Vector3(3.80f, 2.95f, -2.8f), new Color(1.0f, 0.98f, 0.94f), 7.5f, 10.5f, false);
+            AddInteriorCeilingLight("Office_Light_Printer", new Vector3(-1.20f, 2.95f, -1.2f), new Color(0.98f, 0.98f, 1.0f), 6.0f, 9.0f, false);
+
+            // Reflection Probes de alta resolucion para reflejos reales en vidrios, pisos de porcelanato y chasis metalicos
+            void AddRoomProbe(string name, Vector3 pos, Vector3 size)
+            {
+                GameObject probeObj = new GameObject(name);
+                probeObj.transform.SetParent(lightGroup.transform, false);
+                probeObj.transform.localPosition = pos;
+                ReflectionProbe probe = probeObj.AddComponent<ReflectionProbe>();
+                probe.mode = ReflectionProbeMode.Realtime;
+                probe.refreshMode = ReflectionProbeRefreshMode.OnAwake;
+                probe.resolution = 256;
+                probe.boxProjection = true;
+                probe.size = size;
+            }
+            AddRoomProbe("Probe_MonitoringOffice", new Vector3(2.4f, 1.75f, 0f), new Vector3(12f, 4.2f, 11.5f));
+            AddRoomProbe("Probe_DataCenter", new Vector3(-5.6f, 1.75f, 0f), new Vector3(5.5f, 4.2f, 11.5f));
         }
 
         private static void BuildEnvironmentAndWalls(Transform root, UNABSceneController ctrl)
@@ -530,75 +544,140 @@ namespace UNAB.Transporte3D.EditorTools
                     AddCylinder(rack.transform, "PatchCordArc", new Vector3(px, (py + sy) * 0.5f, 0.425f + (p % 2) * 0.008f), new Vector3(0.011f, Mathf.Abs(py - sy) * 0.52f, 0.011f), utpBlueMat);
                     AddBox(rack.transform, "PortLED", new Vector3(px, sy + 0.026f, 0.365f), new Vector3(0.012f, 0.012f, 0.01f), greenLedMat, false);
                 }
+                // Puertos Uplink SFP+ Fibra Optica a la derecha del Switch
+                AddBox(rack.transform, "SFP_Cage1", new Vector3(0.35f, sy, 0.365f), new Vector3(0.028f, 0.024f, 0.018f), silverMat, false);
+                AddBox(rack.transform, "SFP_Cage2", new Vector3(0.35f, sy - 0.025f, 0.365f), new Vector3(0.028f, 0.024f, 0.018f), blueLedMat, false);
             }
 
-            // Router Blanco con 2 antenas y LEDs verdes
+            // Extractores de aire superiores en el techo del Rack + Display Digital de Temperatura
+            AddCylinder(rack.transform, "TopExhaustFan_1", new Vector3(-0.18f, 2.26f, 0.08f), new Vector3(0.24f, 0.02f, 0.24f), chassisGray);
+            AddCylinder(rack.transform, "TopExhaustFan_2", new Vector3(0.18f, 2.26f, 0.08f), new Vector3(0.24f, 0.02f, 0.24f), chassisGray);
+            AddBox(rack.transform, "RackTempDisplay", new Vector3(0f, 2.15f, 0.40f), new Vector3(0.78f, 0.045f, 0.04f), darkMetal, false);
+            AddBox(rack.transform, "RackTempLCD", new Vector3(-0.22f, 2.15f, 0.422f), new Vector3(0.11f, 0.028f, 0.006f), lcdBlueMat, false);
+
+            // Router Gateway Cisco ISR + MikroTik Cloud Core Router con pantalla LCD y 3 antenas
             AddBox(rack.transform, "Router_Shelf", new Vector3(0f, 1.14f, 0.05f), new Vector3(0.78f, 0.025f, 0.62f), darkMetal, false);
-            AddBox(rack.transform, "Router_Body", new Vector3(0f, 1.19f, 0.16f), new Vector3(0.36f, 0.065f, 0.24f), whiteMat, false);
-            AddBox(rack.transform, "Router_LEDs", new Vector3(0f, 1.19f, 0.282f), new Vector3(0.18f, 0.012f, 0.01f), greenLedMat, false);
-            AddCylinder(rack.transform, "Antenna_L", new Vector3(-0.14f, 1.31f, 0.08f), new Vector3(0.018f, 0.11f, 0.018f), whiteMat);
-            AddCylinder(rack.transform, "Antenna_R", new Vector3(0.14f, 1.31f, 0.08f), new Vector3(0.018f, 0.11f, 0.018f), whiteMat);
+            AddBox(rack.transform, "Router_CCR_Chasis", new Vector3(-0.16f, 1.20f, 0.16f), new Vector3(0.42f, 0.075f, 0.28f), whiteMat, false);
+            AddBox(rack.transform, "Router_LCD", new Vector3(-0.02f, 1.20f, 0.302f), new Vector3(0.08f, 0.04f, 0.006f), lcdBlueMat, false);
+            AddBox(rack.transform, "Router_LEDs", new Vector3(-0.22f, 1.20f, 0.302f), new Vector3(0.18f, 0.012f, 0.008f), greenLedMat, false);
+            AddCylinder(rack.transform, "Antenna_L", new Vector3(-0.32f, 1.33f, 0.06f), new Vector3(0.016f, 0.12f, 0.016f), whiteMat);
+            AddCylinder(rack.transform, "Antenna_M", new Vector3(-0.16f, 1.33f, 0.06f), new Vector3(0.016f, 0.12f, 0.016f), whiteMat);
+            AddCylinder(rack.transform, "Antenna_R", new Vector3(0.00f, 1.33f, 0.06f), new Vector3(0.016f, 0.12f, 0.016f), whiteMat);
+            // Modem Fibra Optica ONT al lado derecho de la bandeja
+            AddBox(rack.transform, "Fiber_ONT_Box", new Vector3(0.22f, 1.18f, 0.18f), new Vector3(0.22f, 0.045f, 0.18f), darkMetal, false);
+            AddBox(rack.transform, "ONT_PON_LED", new Vector3(0.22f, 1.18f, 0.272f), new Vector3(0.08f, 0.01f, 0.006f), greenLedMat, false);
 
-            // Servidor 1U + Servidor 4U de 4 bahias Hot-Swap + PDU
+            // Servidor 1U Dell PowerEdge (Aplicaciones / API GPS) + Servidor 4U Storage (12 Bahias Hot-Swap SAS 3.5")
             AddBox(rack.transform, "Server_1U_App", new Vector3(0f, 0.92f, 0.02f), new Vector3(0.78f, 0.11f, 0.72f), chassisGray, false);
-            AddBox(rack.transform, "Server_1U_LCD", new Vector3(-0.24f, 0.92f, 0.385f), new Vector3(0.12f, 0.035f, 0.01f), blueLedMat, false);
+            AddBox(rack.transform, "Server_1U_Bezel", new Vector3(0f, 0.92f, 0.382f), new Vector3(0.76f, 0.09f, 0.015f), darkMetal, false);
+            AddBox(rack.transform, "Server_1U_LCD", new Vector3(-0.24f, 0.92f, 0.392f), new Vector3(0.11f, 0.032f, 0.008f), blueLedMat, false);
+            AddBox(rack.transform, "Server_1U_Handles", new Vector3(-0.37f, 0.92f, 0.40f), new Vector3(0.02f, 0.08f, 0.03f), silverMat, false);
+            AddBox(rack.transform, "Server_1U_HandlesR", new Vector3(0.37f, 0.92f, 0.40f), new Vector3(0.02f, 0.08f, 0.03f), silverMat, false);
 
-            AddBox(rack.transform, "Server_4U_DB", new Vector3(0f, 0.48f, 0.02f), new Vector3(0.76f, 0.34f, 0.74f), darkMetal, false);
-            for (int bay = 0; bay < 4; bay++)
+            AddBox(rack.transform, "Server_4U_DB", new Vector3(0f, 0.50f, 0.02f), new Vector3(0.78f, 0.36f, 0.74f), darkMetal, false);
+            // Matriz realista de 12 Bahias Hot-Swap (3 filas x 4 columnas) con manijas plateadas y LEDs de estado/actividad
+            for (int row = 0; row < 3; row++)
             {
-                float bx = -0.24f + bay * 0.16f;
-                AddBox(rack.transform, "DriveCaddy", new Vector3(bx, 0.48f, 0.395f), new Vector3(0.13f, 0.24f, 0.02f), chassisGray, false);
-                AddBox(rack.transform, "BayLED", new Vector3(bx + 0.04f, 0.56f, 0.41f), new Vector3(0.015f, 0.015f, 0.01f), blueLedMat, false);
+                for (int col = 0; col < 4; col++)
+                {
+                    float bx = -0.255f + col * 0.17f;
+                    float by = 0.38f + row * 0.11f;
+                    AddBox(rack.transform, "DriveCaddy", new Vector3(bx, by, 0.395f), new Vector3(0.15f, 0.092f, 0.018f), chassisGray, false);
+                    AddBox(rack.transform, "CaddyLatch", new Vector3(bx - 0.015f, by, 0.406f), new Vector3(0.09f, 0.032f, 0.008f), silverMat, false);
+                    AddBox(rack.transform, "CaddyLED_Act", new Vector3(bx + 0.055f, by + 0.02f, 0.406f), new Vector3(0.012f, 0.012f, 0.006f), greenLedMat, false);
+                    AddBox(rack.transform, "CaddyLED_St", new Vector3(bx + 0.055f, by - 0.015f, 0.406f), new Vector3(0.012f, 0.012f, 0.006f), blueLedMat, false);
+                }
             }
 
-            AddBox(rack.transform, "PDU_Power", new Vector3(0f, 0.21f, 0.28f), new Vector3(0.78f, 0.075f, 0.16f), darkMetal, false);
-            AddBox(rack.transform, "PDU_Switch", new Vector3(-0.31f, 0.21f, 0.365f), new Vector3(0.035f, 0.035f, 0.015f), redLedMat, false);
+            // Regleta PDU Horizontal con disyuntor iluminado y tomas IEC
+            AddBox(rack.transform, "PDU_Power", new Vector3(0f, 0.20f, 0.30f), new Vector3(0.78f, 0.075f, 0.14f), darkMetal, false);
+            AddBox(rack.transform, "PDU_Switch", new Vector3(-0.32f, 0.20f, 0.372f), new Vector3(0.035f, 0.035f, 0.012f), redLedMat, false);
+            AddBox(rack.transform, "PDU_Meter", new Vector3(-0.22f, 0.20f, 0.372f), new Vector3(0.07f, 0.032f, 0.008f), lcdBlueMat, false);
 
             TagInteractable(rack, "rack_main");
             AddLabel(ctrl, "Rack Principal de Telecomunicaciones (42U)", new Vector3(-6.75f, 2.65f, -0.45f));
 
-            // 2. SISTEMA UPS ONLINE 220V (3 MODULOS ESCALONADOS CON RANURAS Y LCD 220V)
+            // 2. SISTEMA UPS ONLINE 220V (3 TORRES INDUSTRIALES DOBLE CONVERSION CON PLATAFORMA, LCD Y BOTONERA)
             GameObject upsGroup = new GameObject("UPS_3000VA_Bank");
             upsGroup.transform.SetParent(dc.transform, false);
             upsGroup.transform.localPosition = new Vector3(-5.25f, 0.16f, -4.55f);
             upsGroup.transform.localEulerAngles = new Vector3(0f, 180f, 0f);
 
-            AddBox(upsGroup.transform, "UPS_Collider", new Vector3(0f, 0.48f, 0f), new Vector3(1.35f, 0.96f, 0.75f), CreatePbrMat("Inv", Color.clear, 0, 0, null, null, true));
+            AddBox(upsGroup.transform, "UPS_Collider", new Vector3(0f, 0.48f, 0f), new Vector3(1.38f, 0.98f, 0.78f), CreatePbrMat("Inv", Color.clear, 0, 0, null, null, true));
+            // Plataforma aislante antivibracion en la base
+            AddBox(upsGroup.transform, "AntiVib_Plinth", new Vector3(0f, 0.025f, 0f), new Vector3(1.32f, 0.05f, 0.74f), chassisGray, false);
+            AddBox(upsGroup.transform, "SafetyYellowStripe", new Vector3(0f, 0.026f, 0.372f), new Vector3(1.32f, 0.02f, 0.01f), yellowLabelMat, false);
 
             (float x, float w, float h, float d)[] upsSpecs =
             {
-                (-0.42f, 0.38f, 0.86f, 0.68f),
-                ( 0.02f, 0.34f, 0.68f, 0.60f),
-                ( 0.41f, 0.30f, 0.54f, 0.52f)
+                (-0.42f, 0.38f, 0.88f, 0.68f),
+                ( 0.02f, 0.34f, 0.70f, 0.60f),
+                ( 0.41f, 0.30f, 0.56f, 0.52f)
             };
             foreach (var u in upsSpecs)
             {
-                AddBox(upsGroup.transform, "UPS_Tower", new Vector3(u.x, u.h * 0.5f, 0f), new Vector3(u.w, u.h, u.d), darkMetal, false);
-                AddBox(upsGroup.transform, "FrontBezel", new Vector3(u.x, u.h * 0.5f, u.d * 0.5f + 0.01f), new Vector3(u.w * 0.94f, u.h * 0.94f, 0.02f), chassisGray, false);
-                AddBox(upsGroup.transform, "UPS_LCD_220V", new Vector3(u.x, u.h * 0.76f, u.d * 0.5f + 0.022f), new Vector3(u.w * 0.46f, 0.11f, 0.01f), lcdBlueMat, false);
-                for (int s = 0; s < 5; s++)
+                AddBox(upsGroup.transform, "UPS_Tower", new Vector3(u.x, 0.05f + u.h * 0.5f, 0f), new Vector3(u.w, u.h, u.d), darkMetal, false);
+                AddBox(upsGroup.transform, "FrontBezel", new Vector3(u.x, 0.05f + u.h * 0.5f, u.d * 0.5f + 0.012f), new Vector3(u.w * 0.92f, u.h * 0.95f, 0.024f), chassisGray, false);
+                AddBox(upsGroup.transform, "LCD_Frame", new Vector3(u.x, 0.05f + u.h * 0.77f, u.d * 0.5f + 0.024f), new Vector3(u.w * 0.54f, 0.14f, 0.012f), darkMetal, false);
+                AddBox(upsGroup.transform, "UPS_LCD_220V", new Vector3(u.x, 0.05f + u.h * 0.77f, u.d * 0.5f + 0.031f), new Vector3(u.w * 0.46f, 0.105f, 0.006f), lcdBlueMat, false);
+                // Botonera de control debajo del LCD
+                for (int b = -1; b <= 1; b++)
                 {
-                    float sy = 0.10f + s * (u.h * 0.08f);
-                    AddBox(upsGroup.transform, "VentSlat", new Vector3(u.x, sy, u.d * 0.5f + 0.022f), new Vector3(u.w * 0.76f, 0.016f, 0.01f), darkMetal, false);
+                    AddCylinder(upsGroup.transform, "CtrlBtn", new Vector3(u.x + b * 0.035f, 0.05f + u.h * 0.64f, u.d * 0.5f + 0.026f),
+                        new Vector3(0.018f, 0.006f, 0.018f), b == 0 ? greenLedMat : silverMat)
+                        .transform.localEulerAngles = new Vector3(90f, 0f, 0f);
+                }
+                for (int s = 0; s < 6; s++)
+                {
+                    float sy = 0.14f + s * (u.h * 0.072f);
+                    AddBox(upsGroup.transform, "VentSlat", new Vector3(u.x, sy, u.d * 0.5f + 0.026f), new Vector3(u.w * 0.76f, 0.016f, 0.012f), darkMetal, false);
                 }
             }
             TagInteractable(upsGroup, "ups_power");
-            AddLabel(ctrl, "Banco de UPS Online 220V (3000VA)", new Vector3(-5.25f, 1.32f, -4.55f));
+            AddLabel(ctrl, "Banco de UPS Online 220V (3000VA)", new Vector3(-5.25f, 1.35f, -4.55f));
 
-            // 3. CLIMATIZADOR DE PRECISION EDAPOWER CRAC (MALLA PERFORADA + LOGO + PANTALLA HMI)
+            // 3. CLIMATIZADOR DE PRECISION EDAPOWER CRAC (DOBLE PUERTA, MALLA, PANTALLA HMI, BALIZA Y TUBERIAS DE COBRE)
             GameObject crac = new GameObject("EDApower_CRAC_Unit");
             crac.transform.SetParent(dc.transform, false);
             crac.transform.localPosition = new Vector3(-6.35f, 0.16f, 4.78f);
 
-            AddBox(crac.transform, "Cabinet", new Vector3(0f, 1.12f, 0f), new Vector3(1.18f, 2.24f, 0.74f), darkMetal);
-            AddBox(crac.transform, "TopMeshLogo", new Vector3(0f, 1.82f, -0.375f), new Vector3(1.08f, 0.68f, 0.02f), cracMeshLogoMat, false);
-            AddBox(crac.transform, "BottomMesh", new Vector3(0f, 0.52f, -0.375f), new Vector3(1.08f, 0.82f, 0.02f), cracMeshPlainMat, false);
-            AddBox(crac.transform, "HMI_Bezel", new Vector3(0.04f, 1.24f, -0.38f), new Vector3(0.30f, 0.22f, 0.02f), silverMat, false);
-            AddBox(crac.transform, "HMI_Touchscreen", new Vector3(0.04f, 1.24f, -0.39f), new Vector3(0.25f, 0.17f, 0.01f), lcdBlueMat, false);
-            AddBox(crac.transform, "SwingHandle", new Vector3(0.42f, 0.65f, -0.39f), new Vector3(0.03f, 0.18f, 0.02f), silverMat, false);
+            AddBox(crac.transform, "Cabinet", new Vector3(0f, 1.12f, 0f), new Vector3(1.20f, 2.24f, 0.76f), darkMetal);
+            AddBox(crac.transform, "DoorSeam", new Vector3(0f, 1.12f, -0.382f), new Vector3(0.012f, 2.18f, 0.01f), chassisGray, false);
+            AddBox(crac.transform, "TopMeshLogo", new Vector3(0f, 1.82f, -0.385f), new Vector3(1.10f, 0.68f, 0.02f), cracMeshLogoMat, false);
+            AddBox(crac.transform, "BottomMesh", new Vector3(0f, 0.52f, -0.385f), new Vector3(1.10f, 0.82f, 0.02f), cracMeshPlainMat, false);
+            AddBox(crac.transform, "HMI_Bezel", new Vector3(0.18f, 1.24f, -0.39f), new Vector3(0.32f, 0.23f, 0.022f), silverMat, false);
+            AddBox(crac.transform, "HMI_Touchscreen", new Vector3(0.18f, 1.24f, -0.402f), new Vector3(0.27f, 0.18f, 0.008f), lcdBlueMat, false);
+            AddBox(crac.transform, "EmergencyStopBtn", new Vector3(-0.28f, 1.24f, -0.392f), new Vector3(0.055f, 0.055f, 0.02f), yellowLabelMat, false);
+            AddCylinder(crac.transform, "EStopRedKnob", new Vector3(-0.28f, 1.24f, -0.408f), new Vector3(0.036f, 0.012f, 0.036f), redLedMat)
+                .transform.localEulerAngles = new Vector3(90f, 0f, 0f);
+            AddBox(crac.transform, "SwingHandle", new Vector3(0.46f, 0.95f, -0.395f), new Vector3(0.032f, 0.20f, 0.025f), silverMat, false);
+            // Baliza superior de estado operativo + Tuberias de refrigeracion hacia el techo
+            AddCylinder(crac.transform, "BeaconBase", new Vector3(-0.45f, 2.28f, 0f), new Vector3(0.06f, 0.04f, 0.06f), darkMetal);
+            AddCylinder(crac.transform, "BeaconGreenLight", new Vector3(-0.45f, 2.35f, 0f), new Vector3(0.055f, 0.045f, 0.055f), greenLedMat);
+            AddCylinder(crac.transform, "CoolantPipe_In", new Vector3(0.32f, 2.62f, 0.15f), new Vector3(0.055f, 0.38f, 0.055f), silverMat);
+            AddCylinder(crac.transform, "CoolantPipe_Out", new Vector3(0.44f, 2.62f, 0.15f), new Vector3(0.055f, 0.38f, 0.055f), darkMetal);
 
             TagInteractable(crac, "ac_unit");
-            AddLabel(ctrl, "Climatizador de Precision EDApower CRAC", new Vector3(-6.35f, 2.58f, 4.78f));
+            AddLabel(ctrl, "Climatizador de Precision EDApower CRAC", new Vector3(-6.35f, 2.62f, 4.78f));
+
+            // 4. EQUIPAMIENTO DE SEGURIDAD DEL DATA CENTER (EXTINTOR CO2 Y LECTOR BIOMETRICO DE ACCESO)
+            Material fireRedMat = CreatePbrMat("FireRed", new Color(0.82f, 0.09f, 0.09f), 0.35f, 0.72f);
+            GameObject ext = new GameObject("CO2_FireExtinguisher");
+            ext.transform.SetParent(dc.transform, false);
+            ext.transform.localPosition = new Vector3(-3.34f, 1.15f, 2.65f);
+            AddBox(ext.transform, "SafetySign", new Vector3(0.01f, 0.42f, 0f), new Vector3(0.01f, 0.24f, 0.18f), fireRedMat, false);
+            AddCylinder(ext.transform, "Tank", new Vector3(-0.08f, 0f, 0f), new Vector3(0.15f, 0.26f, 0.15f), fireRedMat);
+            AddCylinder(ext.transform, "ValveNeck", new Vector3(-0.08f, 0.28f, 0f), new Vector3(0.05f, 0.04f, 0.05f), silverMat);
+            AddCylinder(ext.transform, "CO2_Horn", new Vector3(-0.08f, 0.12f, 0.11f), new Vector3(0.06f, 0.12f, 0.06f), darkMetal)
+                .transform.localEulerAngles = new Vector3(25f, 0f, 0f);
+
+            // Lector Biometrico RFID junto a la puerta del Cuarto de Servidores (lado oficina)
+            GameObject bio = new GameObject("Biometric_AccessControl");
+            bio.transform.SetParent(dc.transform, false);
+            bio.transform.localPosition = new Vector3(-3.07f, 1.38f, 3.22f);
+            AddBox(bio.transform, "ReaderBody", Vector3.zero, new Vector3(0.03f, 0.18f, 0.11f), darkMetal, false);
+            AddBox(bio.transform, "ReaderScreen", new Vector3(0.016f, 0.035f, 0f), new Vector3(0.005f, 0.065f, 0.075f), lcdBlueMat, false);
+            AddBox(bio.transform, "FingerSensor", new Vector3(0.018f, -0.045f, 0f), new Vector3(0.01f, 0.035f, 0.03f), greenLedMat, false);
         }
 
         private static void BuildMonitoringOffice(Transform root, UNABSceneController ctrl)
@@ -606,17 +685,24 @@ namespace UNAB.Transporte3D.EditorTools
             GameObject office = new GameObject("Monitoring_Office_Furniture");
             office.transform.SetParent(root, false);
 
-            Material woodMat = CreatePbrMat("DeskWood", new Color(0.84f, 0.66f, 0.44f), 0.05f, 0.58f);
-            Material legMat = CreatePbrMat("DeskMetal", new Color(0.18f, 0.22f, 0.27f), 0.7f, 0.6f);
-            Material darkMat = CreatePbrMat("PCBlack", new Color(0.09f, 0.10f, 0.12f), 0.5f, 0.62f);
-            Material screenMat1 = CreatePbrMat("GpsScreen1", Color.white, 0.1f, 0.88f, MakeBusScreenTex(true), null, false, new Color(0.12f, 0.48f, 0.78f) * 0.9f);
-            Material screenMat2 = CreatePbrMat("GpsScreen2", Color.white, 0.1f, 0.88f, MakeBusScreenTex(false), null, false, new Color(0.12f, 0.48f, 0.78f) * 0.9f);
-            Material whiteShelfMat = CreatePbrMat("ShelfWhite", new Color(0.96f, 0.97f, 0.98f), 0.05f, 0.55f);
-            Material plantPotMat = CreatePbrMat("PotGray", new Color(0.60f, 0.64f, 0.68f), 0.3f, 0.45f);
-            Material leafGreenMat = CreatePbrMat("LeafGreen", new Color(0.16f, 0.48f, 0.18f), 0.05f, 0.4f);
-            Material chartMat = CreatePbrMat("PrintedChart", Color.white, 0f, 0.5f, MakePrintedChartTex());
+            Material woodMat = CreatePbrMat("DeskOakWood", Color.white, 0.06f, 0.68f, MakeWoodGrainTex(), new Vector2(2f, 1f));
+            Material darkEdgeMat = CreatePbrMat("DeskEdge", new Color(0.16f, 0.14f, 0.12f), 0.1f, 0.5f);
+            Material legMat = CreatePbrMat("DeskSteel", new Color(0.20f, 0.24f, 0.29f), 0.78f, 0.68f);
+            Material chromeMat = CreatePbrMat("ChromeStar", new Color(0.75f, 0.78f, 0.82f), 0.9f, 0.85f);
+            Material darkMat = CreatePbrMat("MatteBlack", new Color(0.08f, 0.09f, 0.11f), 0.45f, 0.62f);
+            Material meshFabricMat = CreatePbrMat("ChairMesh", new Color(0.12f, 0.13f, 0.16f), 0.05f, 0.32f);
+            Material padMat = CreatePbrMat("MousepadCloth", new Color(0.05f, 0.06f, 0.08f), 0.02f, 0.25f);
+            Material glassCaseMat = CreatePbrMat("TemperedGlassCase", new Color(0.08f, 0.12f, 0.18f, 0.55f), 0.8f, 0.95f, null, null, true);
+            Material rgbCyanMat = CreatePbrMat("CyanCoolerLED", new Color(0.05f, 0.82f, 0.98f), 0f, 0.9f, null, null, false, new Color(0.05f, 0.82f, 0.98f) * 2.5f);
+            Material screenMat1 = CreatePbrMat("GpsScreen1", Color.white, 0.1f, 0.90f, MakeBusScreenTex(true), null, false, new Color(0.15f, 0.52f, 0.84f) * 0.95f);
+            Material screenMat2 = CreatePbrMat("GpsScreen2", Color.white, 0.1f, 0.90f, MakeBusScreenTex(false), null, false, new Color(0.15f, 0.52f, 0.84f) * 0.95f);
+            Material whiteShelfMat = CreatePbrMat("ShelfWhite", new Color(0.96f, 0.97f, 0.98f), 0.05f, 0.62f);
+            Material plantPotMat = CreatePbrMat("CeramicPot", new Color(0.88f, 0.89f, 0.91f), 0.15f, 0.72f);
+            Material soilMat = CreatePbrMat("DarkSoil", new Color(0.18f, 0.13f, 0.09f), 0f, 0.15f);
+            Material leafGreenMat = CreatePbrMat("LeafGreen", new Color(0.14f, 0.46f, 0.17f), 0.05f, 0.48f);
+            Material chartMat = CreatePbrMat("PrintedChart", Color.white, 0f, 0.55f, MakePrintedChartTex());
 
-            void BuildDesk(float x, float zThree, float rotY, string key, string labelText, Material scrMat)
+            void BuildDesk(float x, float zThree, float rotY, string key, string labelText, Material mainScrMat, Material auxScrMat)
             {
                 float z = -zThree;
                 GameObject d = new GameObject($"Workstation_{key}");
@@ -625,100 +711,188 @@ namespace UNAB.Transporte3D.EditorTools
                 d.transform.localEulerAngles = new Vector3(0f, rotY, 0f);
 
                 AddBox(d.transform, "Desk_Collider", new Vector3(0f, 0.68f, 0f), new Vector3(2.2f, 1.35f, 1.25f), CreatePbrMat("Inv", Color.clear, 0, 0, null, null, true));
-                AddBox(d.transform, "TableTop", new Vector3(0f, 0.74f, 0f), new Vector3(2.15f, 0.06f, 1.05f), woodMat, false);
+
+                // Tablero de madera de roble con borde biselado oscuro, faldon metalico y pasacables
+                AddBox(d.transform, "TableTop_Wood", new Vector3(0f, 0.745f, 0f), new Vector3(2.14f, 0.045f, 1.04f), woodMat, false);
+                AddBox(d.transform, "TableTop_EdgeTrim", new Vector3(0f, 0.742f, 0f), new Vector3(2.16f, 0.038f, 1.06f), darkEdgeMat, false);
+                AddBox(d.transform, "ModestyPanel_Front", new Vector3(0f, 0.52f, 0.42f), new Vector3(1.90f, 0.38f, 0.02f), legMat, false);
+                AddCylinder(d.transform, "CableGrommet", new Vector3(0.65f, 0.77f, 0.34f), new Vector3(0.06f, 0.005f, 0.06f), darkMat);
 
                 float[] legs = { -0.98f, -0.44f,  0.98f, -0.44f,  -0.98f, 0.44f,  0.98f, 0.44f };
                 for (int i = 0; i < legs.Length; i += 2)
-                    AddBox(d.transform, "Leg", new Vector3(legs[i], 0.37f, legs[i + 1]), new Vector3(0.06f, 0.74f, 0.06f), legMat, false);
+                {
+                    AddBox(d.transform, "Leg", new Vector3(legs[i], 0.37f, legs[i + 1]), new Vector3(0.055f, 0.74f, 0.055f), legMat, false);
+                    AddCylinder(d.transform, "LevelFoot", new Vector3(legs[i], 0.015f, legs[i + 1]), new Vector3(0.075f, 0.015f, 0.075f), chromeMat);
+                }
 
-                AddBox(d.transform, "Monitor_Frame", new Vector3(0f, 1.12f, 0.18f), new Vector3(0.86f, 0.50f, 0.04f), darkMat, false);
-                AddBox(d.transform, "Monitor_Screen", new Vector3(0f, 1.12f, 0.155f), new Vector3(0.80f, 0.44f, 0.01f), scrMat, false);
-                AddBox(d.transform, "Monitor_Stand", new Vector3(0f, 0.85f, 0.20f), new Vector3(0.08f, 0.18f, 0.08f), darkMat, false);
-                AddBox(d.transform, "Monitor_Base", new Vector3(0f, 0.775f, 0.20f), new Vector3(0.28f, 0.015f, 0.20f), darkMat, false);
-                AddBox(d.transform, "Keyboard", new Vector3(-0.05f, 0.78f, -0.15f), new Vector3(0.42f, 0.02f, 0.15f), darkMat, false);
-                AddBox(d.transform, "Mouse", new Vector3(0.28f, 0.78f, -0.15f), new Vector3(0.07f, 0.025f, 0.11f), darkMat, false);
+                // Configuracion de Doble Monitor Profesional (Monitor Principal 27" + Monitor Secundario Inclinado 24" en brazo VESA doble)
+                AddCylinder(d.transform, "VESA_MountPole", new Vector3(-0.18f, 0.94f, 0.34f), new Vector3(0.045f, 0.18f, 0.045f), legMat);
+                AddBox(d.transform, "VESA_BaseClamp", new Vector3(-0.18f, 0.775f, 0.34f), new Vector3(0.14f, 0.02f, 0.14f), darkMat, false);
+                AddBox(d.transform, "VESA_ArmMain", new Vector3(-0.04f, 1.08f, 0.27f), new Vector3(0.32f, 0.03f, 0.03f), legMat, false);
+                AddBox(d.transform, "VESA_ArmAux", new Vector3(-0.42f, 1.08f, 0.24f), new Vector3(0.45f, 0.03f, 0.03f), legMat, false);
 
-                // PC Tower en el piso bajo el escritorio con boton power iluminado
-                AddBox(d.transform, "PC_Tower_Floor", new Vector3(0.75f, 0.26f, 0.05f), new Vector3(0.23f, 0.50f, 0.48f), darkMat, false);
-                AddBox(d.transform, "PC_PowerLED", new Vector3(0.75f, 0.44f, -0.195f), new Vector3(0.04f, 0.015f, 0.01f), screenMat1, false);
+                // Monitor Principal 27" (Centrado)
+                AddBox(d.transform, "MonitorMain_Frame", new Vector3(0.08f, 1.13f, 0.20f), new Vector3(0.76f, 0.45f, 0.025f), darkMat, false);
+                AddBox(d.transform, "MonitorMain_Screen", new Vector3(0.08f, 1.13f, 0.185f), new Vector3(0.73f, 0.42f, 0.006f), mainScrMat, false);
+                AddBox(d.transform, "MonitorMain_Chin", new Vector3(0.08f, 0.91f, 0.19f), new Vector3(0.76f, 0.018f, 0.03f), legMat, false);
+                AddBox(d.transform, "MonitorMain_LED", new Vector3(0.42f, 0.91f, 0.174f), new Vector3(0.015f, 0.006f, 0.005f), rgbCyanMat, false);
 
-                // Silla ergonomica completa
-                AddBox(d.transform, "Chair_Seat", new Vector3(0f, 0.46f, -0.68f), new Vector3(0.52f, 0.07f, 0.52f), darkMat, false);
-                AddBox(d.transform, "Chair_Back", new Vector3(0f, 0.82f, -0.91f), new Vector3(0.50f, 0.65f, 0.07f), darkMat, false);
-                AddCylinder(d.transform, "Chair_Piston", new Vector3(0f, 0.24f, -0.68f), new Vector3(0.06f, 0.22f, 0.06f), legMat);
+                // Monitor Secundario 24" (Angulado a 22 grados hacia el operador)
+                GameObject auxMon = new GameObject("MonitorAux_Angled");
+                auxMon.transform.SetParent(d.transform, false);
+                auxMon.transform.localPosition = new Vector3(-0.62f, 1.11f, 0.12f);
+                auxMon.transform.localEulerAngles = new Vector3(0f, -24f, 0f);
+                AddBox(auxMon.transform, "Frame", Vector3.zero, new Vector3(0.60f, 0.38f, 0.024f), darkMat, false);
+                AddBox(auxMon.transform, "Screen", new Vector3(0f, 0f, -0.014f), new Vector3(0.57f, 0.35f, 0.006f), auxScrMat, false);
+
+                // Mousepad XL + Teclado Mecanico con bloques de teclas + Mouse Ergonomico + Telefono IP Cisco + Taza UNAB
+                AddBox(d.transform, "DeskMat_XL", new Vector3(0.08f, 0.770f, -0.14f), new Vector3(0.78f, 0.004f, 0.34f), padMat, false);
+                AddBox(d.transform, "Keyboard_Chassis", new Vector3(0.0f, 0.780f, -0.14f), new Vector3(0.42f, 0.016f, 0.15f), darkMat, false);
+                AddBox(d.transform, "Keycaps_Main", new Vector3(-0.04f, 0.790f, -0.14f), new Vector3(0.30f, 0.010f, 0.11f), legMat, false);
+                AddBox(d.transform, "Keycaps_Numpad", new Vector3(0.155f, 0.790f, -0.14f), new Vector3(0.075f, 0.010f, 0.11f), legMat, false);
+                AddBox(d.transform, "Keyboard_LightBar", new Vector3(0.0f, 0.782f, -0.216f), new Vector3(0.40f, 0.005f, 0.004f), rgbCyanMat, false);
+
+                AddSphere(d.transform, "ErgonomicMouse", new Vector3(0.32f, 0.782f, -0.14f), new Vector3(0.065f, 0.032f, 0.105f), darkMat);
+                AddBox(d.transform, "MouseScroll", new Vector3(0.32f, 0.796f, -0.11f), new Vector3(0.01f, 0.008f, 0.022f), chromeMat, false);
+
+                // Telefono IP Empresarial en la esquina derecha del escritorio
+                GameObject phone = new GameObject("Cisco_IP_Phone");
+                phone.transform.SetParent(d.transform, false);
+                phone.transform.localPosition = new Vector3(0.72f, 0.78f, -0.05f);
+                phone.transform.localEulerAngles = new Vector3(-18f, 22f, 0f);
+                AddBox(phone.transform, "PhoneBase", Vector3.zero, new Vector3(0.18f, 0.03f, 0.16f), darkMat, false);
+                AddBox(phone.transform, "PhoneLCD", new Vector3(0.02f, 0.018f, 0.03f), new Vector3(0.09f, 0.005f, 0.055f), rgbCyanMat, false);
+                AddBox(phone.transform, "Handset", new Vector3(-0.055f, 0.025f, 0f), new Vector3(0.042f, 0.025f, 0.17f), legMat, false);
+
+                // Gabinete Workstation PC con ventana lateral de vidrio templado e interior iluminado (Cooler CPU + GPU)
+                Vector3 pcPos = new Vector3(0.75f, 0.27f, 0.05f);
+                AddBox(d.transform, "PC_Chassis", pcPos, new Vector3(0.23f, 0.52f, 0.48f), darkMat, false);
+                AddBox(d.transform, "PC_GlassSide", pcPos + new Vector3(-0.116f, 0f, 0f), new Vector3(0.006f, 0.46f, 0.42f), glassCaseMat, false);
+                AddCylinder(d.transform, "CPU_LiquidCooler_Ring", pcPos + new Vector3(-0.08f, 0.08f, 0.05f), new Vector3(0.11f, 0.015f, 0.11f), rgbCyanMat)
+                    .transform.localEulerAngles = new Vector3(0f, 0f, 90f);
+                AddBox(d.transform, "GPU_Card", pcPos + new Vector3(-0.06f, -0.06f, 0.02f), new Vector3(0.09f, 0.04f, 0.28f), legMat, false);
+                AddBox(d.transform, "GPU_LED_Strip", pcPos + new Vector3(-0.106f, -0.06f, 0.02f), new Vector3(0.006f, 0.012f, 0.18f), rgbCyanMat, false);
+                AddBox(d.transform, "PC_FrontPowerLED", pcPos + new Vector3(0f, 0.23f, -0.242f), new Vector3(0.08f, 0.012f, 0.006f), rgbCyanMat, false);
+
+                // Silla Ejecutiva Ergonomica Completa (Base estrella 5 puntas con ruedas, piston, asiento, respaldo lumbar, reposabrazos y cabecera)
+                Vector3 chPos = new Vector3(0f, 0f, -0.68f);
+                AddCylinder(d.transform, "Chair_Piston", chPos + new Vector3(0f, 0.23f, 0f), new Vector3(0.05f, 0.20f, 0.05f), chromeMat);
+                for (int arm = 0; arm < 5; arm++)
+                {
+                    float ang = arm * 72f * Mathf.Deg2Rad;
+                    Vector3 dir = new Vector3(Mathf.Sin(ang), 0f, Mathf.Cos(ang));
+                    GameObject legStar = AddBox(d.transform, "StarBaseLeg", chPos + dir * 0.16f + new Vector3(0f, 0.055f, 0f), new Vector3(0.035f, 0.025f, 0.32f), chromeMat, false);
+                    legStar.transform.localEulerAngles = new Vector3(0f, arm * 72f, 0f);
+                    AddSphere(d.transform, "CasterWheel", chPos + dir * 0.30f + new Vector3(0f, 0.025f, 0f), new Vector3(0.045f, 0.045f, 0.045f), darkMat);
+                }
+                AddBox(d.transform, "Chair_SeatCushion", chPos + new Vector3(0f, 0.45f, 0f), new Vector3(0.50f, 0.075f, 0.50f), meshFabricMat, false);
+                AddBox(d.transform, "Chair_Backrest", chPos + new Vector3(0f, 0.80f, -0.22f), new Vector3(0.48f, 0.62f, 0.06f), meshFabricMat, false);
+                AddBox(d.transform, "Chair_LumbarSupport", chPos + new Vector3(0f, 0.66f, -0.19f), new Vector3(0.42f, 0.14f, 0.03f), darkMat, false);
+                AddBox(d.transform, "Chair_Headrest", chPos + new Vector3(0f, 1.18f, -0.21f), new Vector3(0.28f, 0.12f, 0.05f), darkMat, false);
+                // Reposabrazos izquierdo y derecho en T
+                AddBox(d.transform, "Armrest_StemL", chPos + new Vector3(-0.27f, 0.56f, -0.04f), new Vector3(0.03f, 0.22f, 0.04f), darkMat, false);
+                AddBox(d.transform, "Armrest_PadL", chPos + new Vector3(-0.27f, 0.67f, -0.02f), new Vector3(0.07f, 0.025f, 0.26f), darkMat, false);
+                AddBox(d.transform, "Armrest_StemR", chPos + new Vector3(0.27f, 0.56f, -0.04f), new Vector3(0.03f, 0.22f, 0.04f), darkMat, false);
+                AddBox(d.transform, "Armrest_PadR", chPos + new Vector3(0.27f, 0.67f, -0.02f), new Vector3(0.07f, 0.025f, 0.26f), darkMat, false);
 
                 TagInteractable(d, key);
                 AddLabel(ctrl, labelText, new Vector3(x, 2.25f, z));
             }
 
-            BuildDesk(0.85f, -3.85f, 0f, "pc_monitor_1", "PC Monitoreo #1 (Mapa GPS)", screenMat1);
-            BuildDesk(5.4f, -3.85f, 0f, "pc_monitor_2", "PC Monitoreo #2 (Salidas/Llegadas)", screenMat2);
-            BuildDesk(4.1f, 4.15f, 180f, "pc_admin", "PC Administracion de Red", screenMat1);
+            BuildDesk(0.85f, -3.85f, 0f, "pc_monitor_1", "PC Monitoreo #1 (Mapa GPS)", screenMat1, screenMat2);
+            BuildDesk(5.4f, -3.85f, 0f, "pc_monitor_2", "PC Monitoreo #2 (Salidas/Llegadas)", screenMat2, screenMat1);
+            BuildDesk(4.1f, 4.15f, 180f, "pc_admin", "PC Administracion de Red", screenMat1, screenMat2);
 
-            // Impresora Epson EcoTank detallada con tanques CMYK y hoja impresa
+            // MUEBLE CREDENZA DE OFICINA + IMPRESORA MULTIFUNCIONAL EPSON ECOTANK PRO EN RED
             GameObject prn = new GameObject("Epson_EcoTank_Printer");
             prn.transform.SetParent(office.transform, false);
             prn.transform.localPosition = new Vector3(-1.75f, 0.12f, -0.65f);
 
-            AddBox(prn.transform, "Stand", new Vector3(0f, 0.37f, 0f), new Vector3(0.95f, 0.74f, 0.74f), CreatePbrMat("StandBeige", new Color(0.83f, 0.80f, 0.73f)));
-            AddBox(prn.transform, "Body", new Vector3(-0.06f, 0.88f, 0f), new Vector3(0.58f, 0.28f, 0.46f), darkMat);
-            GameObject lid = AddBox(prn.transform, "ScannerLid", new Vector3(-0.06f, 1.04f, 0f), new Vector3(0.57f, 0.03f, 0.45f), darkMat, false);
-            lid.transform.localEulerAngles = new Vector3(-4f, 0f, 0f);
-            AddBox(prn.transform, "EcoTank_Module", new Vector3(0.28f, 0.86f, 0.06f), new Vector3(0.14f, 0.24f, 0.32f), darkMat, false);
+            // Mueble Credenza moderno (Cuerpo blanco/antracita, tablero de madera de roble, puertas con tiradores cromados y paquetes de hojas A4)
+            AddBox(prn.transform, "Credenza_Body", new Vector3(0f, 0.36f, 0f), new Vector3(0.96f, 0.72f, 0.72f), whiteShelfMat);
+            AddBox(prn.transform, "Credenza_WoodTop", new Vector3(0f, 0.74f, 0f), new Vector3(1.00f, 0.04f, 0.76f), woodMat, false);
+            AddBox(prn.transform, "Credenza_DoorL", new Vector3(-0.23f, 0.35f, -0.365f), new Vector3(0.44f, 0.62f, 0.015f), legMat, false);
+            AddBox(prn.transform, "Credenza_DoorR", new Vector3(0.23f, 0.35f, -0.365f), new Vector3(0.44f, 0.62f, 0.015f), legMat, false);
+            AddBox(prn.transform, "Handle_L", new Vector3(-0.05f, 0.42f, -0.38f), new Vector3(0.015f, 0.14f, 0.015f), chromeMat, false);
+            AddBox(prn.transform, "Handle_R", new Vector3(0.05f, 0.42f, -0.38f), new Vector3(0.015f, 0.14f, 0.015f), chromeMat, false);
 
-            Color[] cmyk = { Color.black, Color.yellow, Color.magenta, Color.cyan };
+            // Impresora Multifuncional Epson EcoTank Pro con alimentador ADF superior, panel LCD inclinado y tanques CMYK translucidos
+            AddBox(prn.transform, "Printer_MainChassis", new Vector3(-0.05f, 0.90f, 0f), new Vector3(0.58f, 0.28f, 0.48f), darkMat);
+            AddBox(prn.transform, "Scanner_Bed", new Vector3(-0.05f, 1.05f, 0f), new Vector3(0.57f, 0.035f, 0.46f), legMat, false);
+            AddBox(prn.transform, "ADF_FeederTop", new Vector3(-0.08f, 1.09f, 0.02f), new Vector3(0.42f, 0.045f, 0.32f), darkMat, false);
+            GameObject ctrlPanel = AddBox(prn.transform, "FrontControlPanel", new Vector3(-0.06f, 0.94f, -0.245f), new Vector3(0.36f, 0.075f, 0.02f), legMat, false);
+            ctrlPanel.transform.localEulerAngles = new Vector3(22f, 0f, 0f);
+            AddBox(ctrlPanel.transform, "Printer_ColorLCD", new Vector3(0f, 0f, -0.012f), new Vector3(0.11f, 0.048f, 0.005f), rgbCyanMat, false);
+
+            AddBox(prn.transform, "EcoTank_Bay", new Vector3(0.28f, 0.88f, -0.04f), new Vector3(0.15f, 0.24f, 0.34f), darkMat, false);
+            Color[] cmyk = { new Color(0.1f, 0.1f, 0.12f), new Color(0.0f, 0.72f, 0.95f), new Color(0.92f, 0.12f, 0.55f), new Color(0.98f, 0.82f, 0.06f) };
             for (int t = 0; t < 4; t++)
             {
-                AddBox(prn.transform, $"InkVial_{t}", new Vector3(0.26f + t * 0.025f, 0.85f, -0.105f), new Vector3(0.018f, 0.14f, 0.01f),
-                    CreatePbrMat($"Ink_{t}", cmyk[t], 0.1f, 0.8f), false);
+                AddBox(prn.transform, $"InkWindow_{t}", new Vector3(0.24f + t * 0.028f, 0.87f, -0.215f), new Vector3(0.020f, 0.15f, 0.01f),
+                    CreatePbrMat($"Ink_{t}", cmyk[t], 0.1f, 0.88f), false);
             }
-            AddBox(prn.transform, "Printed_Sheet", new Vector3(-0.06f, 0.76f, -0.34f), new Vector3(0.32f, 0.01f, 0.26f), chartMat, false);
+            AddBox(prn.transform, "OutputTray", new Vector3(-0.06f, 0.78f, -0.32f), new Vector3(0.34f, 0.012f, 0.24f), darkMat, false);
+            AddBox(prn.transform, "Printed_Sheet", new Vector3(-0.06f, 0.79f, -0.33f), new Vector3(0.28f, 0.006f, 0.22f), chartMat, false);
 
             TagInteractable(prn, "printer_net");
             AddLabel(ctrl, "Impresora Epson EcoTank en Red", new Vector3(-1.75f, 1.55f, -0.65f));
 
-            // Estante Blanco de 5 Niveles con archivadores, libros y jarrones
+            // PANTALLA SMART TV 65" EN PARED (VIDEO WALL DE MONITOREO DE FLOTA UNAB)
+            GameObject wallTv = new GameObject("SmartTV_65_VideoWall");
+            wallTv.transform.SetParent(office.transform, false);
+            wallTv.transform.localPosition = new Vector3(-1.15f, 2.05f, 5.34f);
+            AddBox(wallTv.transform, "TV_Bezel", Vector3.zero, new Vector3(1.56f, 0.92f, 0.04f), darkMat, false);
+            AddBox(wallTv.transform, "TV_Screen", new Vector3(0f, 0f, -0.022f), new Vector3(1.50f, 0.86f, 0.008f), screenMat1, false);
+            AddBox(wallTv.transform, "TV_WallMount", new Vector3(0f, 0f, 0.025f), new Vector3(0.65f, 0.35f, 0.03f), legMat, false);
+
+            // Estante Ejecutivo de 5 Niveles con respaldo de madera, archivadores, libros y jarrones
             GameObject shelf = new GameObject("White_5Tier_Bookcase");
             shelf.transform.SetParent(office.transform, false);
             shelf.transform.localPosition = new Vector3(-2.72f, 0.12f, -3.55f);
             shelf.transform.localEulerAngles = new Vector3(0f, 90f, 0f);
 
-            AddBox(shelf.transform, "LeftSide", new Vector3(-0.44f, 1.05f, 0f), new Vector3(0.03f, 2.10f, 0.36f), whiteShelfMat);
-            AddBox(shelf.transform, "RightSide", new Vector3(0.44f, 1.05f, 0f), new Vector3(0.03f, 2.10f, 0.36f), whiteShelfMat);
-            AddBox(shelf.transform, "BackPanel", new Vector3(0f, 1.05f, -0.17f), new Vector3(0.90f, 2.10f, 0.02f), whiteShelfMat);
+            AddBox(shelf.transform, "LeftSide", new Vector3(-0.44f, 1.05f, 0f), new Vector3(0.035f, 2.10f, 0.36f), whiteShelfMat);
+            AddBox(shelf.transform, "RightSide", new Vector3(0.44f, 1.05f, 0f), new Vector3(0.035f, 2.10f, 0.36f), whiteShelfMat);
+            AddBox(shelf.transform, "BackPanel_Oak", new Vector3(0f, 1.05f, -0.17f), new Vector3(0.90f, 2.10f, 0.02f), woodMat);
 
-            Color[] bookCols = { new Color(0.15f, 0.32f, 0.58f), new Color(0.68f, 0.24f, 0.14f), new Color(0.22f, 0.26f, 0.32f), new Color(0.75f, 0.56f, 0.22f) };
+            Color[] bookCols = { new Color(0.12f, 0.28f, 0.54f), new Color(0.72f, 0.20f, 0.14f), new Color(0.18f, 0.22f, 0.28f), new Color(0.82f, 0.60f, 0.18f), new Color(0.14f, 0.52f, 0.42f) };
             for (int s = 0; s <= 5; s++)
             {
                 float sy = 0.04f + s * 0.40f;
                 AddBox(shelf.transform, $"Board_{s}", new Vector3(0f, sy, 0f), new Vector3(0.88f, 0.03f, 0.35f), whiteShelfMat, false);
                 if (s < 5)
                 {
-                    for (int b = 0; b < 5; b++)
+                    for (int b = 0; b < 6; b++)
                     {
-                        Material bm = CreatePbrMat("Book", bookCols[(s + b) % bookCols.Length], 0.05f, 0.4f);
-                        AddBox(shelf.transform, "Binder", new Vector3(-0.32f + b * 0.11f, sy + 0.15f, 0.02f), new Vector3(0.07f, 0.26f, 0.24f), bm, false);
+                        Material bm = CreatePbrMat("Book", bookCols[(s + b) % bookCols.Length], 0.08f, 0.48f);
+                        GameObject bk = AddBox(shelf.transform, "Binder", new Vector3(-0.34f + b * 0.095f, sy + 0.15f, 0.02f), new Vector3(0.062f, 0.26f, 0.24f), bm, false);
+                        AddBox(bk.transform, "SpineLabel", new Vector3(0f, 0.22f, 0.51f), new Vector3(0.75f, 0.18f, 0.02f), whiteShelfMat, false);
                     }
-                    AddCylinder(shelf.transform, "CeramicVase", new Vector3(0.30f, sy + 0.11f, 0.02f), new Vector3(0.09f, 0.09f, 0.09f), whiteShelfMat);
+                    AddCylinder(shelf.transform, "CeramicVase", new Vector3(0.31f, sy + 0.11f, 0.02f), new Vector3(0.09f, 0.09f, 0.09f), chromeMat);
                 }
             }
 
-            // Macetas Altas Dracaena con tallos y hojas arqueadas
+            // Macetas Ceramicas Cilindricas con tierra oscura, piedritas decorativas, 3 troncos y rosetas de hojas Dracaena
             Material stemMat = CreatePbrMat("WoodyStem", new Color(0.42f, 0.28f, 0.16f), 0f, 0.3f);
             void BuildPlanter(float px, float pzThree)
             {
                 GameObject pl = new GameObject("Indoor_Planter");
                 pl.transform.SetParent(office.transform, false);
                 pl.transform.localPosition = new Vector3(px, 0.12f, -pzThree);
-                AddBox(pl.transform, "TaperedPot", new Vector3(0f, 0.38f, 0f), new Vector3(0.36f, 0.76f, 0.36f), plantPotMat);
-                AddCylinder(pl.transform, "Stem1", new Vector3(-0.04f, 0.92f, 0f), new Vector3(0.04f, 0.22f, 0.04f), stemMat);
-                AddCylinder(pl.transform, "Stem2", new Vector3(0.05f, 0.88f, 0.03f), new Vector3(0.035f, 0.18f, 0.035f), stemMat);
+                AddCylinder(pl.transform, "CeramicPot_Body", new Vector3(0f, 0.36f, 0f), new Vector3(0.42f, 0.36f, 0.42f), plantPotMat, true);
+                AddCylinder(pl.transform, "Pot_Rim", new Vector3(0f, 0.71f, 0f), new Vector3(0.45f, 0.025f, 0.45f), plantPotMat, false);
+                AddCylinder(pl.transform, "PottingSoil", new Vector3(0f, 0.72f, 0f), new Vector3(0.39f, 0.015f, 0.39f), soilMat, false);
 
-                for (int l = 0; l < 10; l++)
+                AddCylinder(pl.transform, "Stem_Tall", new Vector3(-0.04f, 0.98f, 0f), new Vector3(0.042f, 0.28f, 0.042f), stemMat);
+                AddCylinder(pl.transform, "Stem_Mid", new Vector3(0.05f, 0.90f, 0.03f), new Vector3(0.036f, 0.20f, 0.036f), stemMat);
+                AddCylinder(pl.transform, "Stem_Low", new Vector3(0.01f, 0.82f, -0.05f), new Vector3(0.032f, 0.14f, 0.032f), stemMat);
+
+                for (int l = 0; l < 16; l++)
                 {
-                    float ang = l * 36f;
-                    GameObject leaf = AddBox(pl.transform, "DracaenaLeaf", new Vector3(0f, 1.18f + (l % 3) * 0.08f, 0f), new Vector3(0.08f, 0.02f, 0.52f), leafGreenMat, false);
-                    leaf.transform.localEulerAngles = new Vector3(25f + (l % 2) * 12f, ang, 0f);
+                    float ang = l * 22.5f;
+                    float hOff = 1.05f + (l % 3) * 0.11f;
+                    GameObject leaf = AddBox(pl.transform, "DracaenaLeaf", new Vector3(0f, hOff, 0f), new Vector3(0.075f, 0.016f, 0.56f), leafGreenMat, false);
+                    leaf.transform.localEulerAngles = new Vector3(22f + (l % 3) * 11f, ang, 0f);
                 }
             }
             BuildPlanter(-2.6f, -1.15f);
@@ -1071,23 +1245,82 @@ namespace UNAB.Transporte3D.EditorTools
             return t;
         }
 
+        private static Texture2D MakeWoodGrainTex()
+        {
+            int sz = 256;
+            var t = new Texture2D(sz, sz, TextureFormat.RGBA32, true) { anisoLevel = 8, wrapMode = TextureWrapMode.Repeat };
+            Color c1 = new Color(0.66f, 0.45f, 0.25f);
+            Color c2 = new Color(0.55f, 0.36f, 0.19f);
+            Color c3 = new Color(0.46f, 0.29f, 0.14f);
+            for (int y = 0; y < sz; y++)
+            {
+                for (int x = 0; x < sz; x++)
+                {
+                    float wave = Mathf.Sin((y * 0.18f) + Mathf.Sin(x * 0.045f) * 3.5f) * 0.5f + 0.5f;
+                    float fine = Mathf.Sin(y * 0.85f + x * 0.02f) * 0.5f + 0.5f;
+                    Color c = Color.Lerp(c1, c2, wave);
+                    c = Color.Lerp(c, c3, fine * 0.28f);
+                    t.SetPixel(x, y, c);
+                }
+            }
+            t.Apply();
+            return t;
+        }
+
         private static Texture2D MakeBusScreenTex(bool mapVariant)
         {
-            int w = 256, h = 160;
-            var t = new Texture2D(w, h, TextureFormat.RGBA32, false);
-            Color bg = new Color(0.06f, 0.16f, 0.26f);
-            Color header = new Color(0.02f, 0.52f, 0.78f);
-            Color park = new Color(0.08f, 0.32f, 0.18f);
-            Color road = new Color(0.22f, 0.74f, 0.97f);
+            int w = 512, h = 320;
+            var t = new Texture2D(w, h, TextureFormat.RGBA32, true) { anisoLevel = 8 };
+            Color bg = new Color(0.05f, 0.09f, 0.16f);
+            Color sidebar = new Color(0.03f, 0.06f, 0.11f);
+            Color header = new Color(0.02f, 0.38f, 0.68f);
+            Color card = new Color(0.08f, 0.14f, 0.24f);
+            Color park = new Color(0.07f, 0.26f, 0.16f);
+            Color grid = new Color(0.09f, 0.18f, 0.30f);
+            Color route1 = new Color(0.05f, 0.82f, 0.98f);
+            Color route2 = new Color(0.15f, 0.92f, 0.48f);
+            Color warn = new Color(0.98f, 0.72f, 0.12f);
 
             for (int y = 0; y < h; y++)
             {
                 for (int x = 0; x < w; x++)
                 {
-                    if (y > h - 22) t.SetPixel(x, y, header);
-                    else if (Mathf.Abs(y - 78) < 3 || Mathf.Abs(x - 118) < 3) t.SetPixel(x, y, road);
-                    else if ((x > 18 && x < 95 && y > 90 && y < 130) || (x > 140 && x < 225 && y > 20 && y < 65)) t.SetPixel(x, y, park);
-                    else t.SetPixel(x, y, bg);
+                    if (y > h - 34)
+                    {
+                        t.SetPixel(x, y, header);
+                    }
+                    else if (x < 118)
+                    {
+                        bool isCard = (x > 10 && x < 108) && ((y > 220 && y < 270) || (y > 155 && y < 205) || (y > 90 && y < 140) || (y > 25 && y < 75));
+                        bool isBar = isCard && (x > 18 && x < 92) && ((y % 65) > 12 && (y % 65) < 20);
+                        t.SetPixel(x, y, isBar ? (mapVariant ? route1 : route2) : (isCard ? card : sidebar));
+                    }
+                    else if (mapVariant)
+                    {
+                        bool isPark = (x > 145 && x < 265 && y > 165 && y < 255) || (x > 330 && x < 465 && y > 40 && y < 125);
+                        float dRoute1 = Mathf.Abs((y - 70f) - Mathf.Sin((x - 120f) * 0.018f) * 55f - (x - 120f) * 0.35f);
+                        float dRoute2 = Mathf.Abs((y - 240f) + (x - 120f) * 0.42f);
+                        bool isBusNode = (Vector2.Distance(new Vector2(x, y), new Vector2(240, 145)) < 8f) ||
+                                         (Vector2.Distance(new Vector2(x, y), new Vector2(375, 195)) < 8f) ||
+                                         (Vector2.Distance(new Vector2(x, y), new Vector2(310, 95)) < 7f);
+                        if (isBusNode) t.SetPixel(x, y, warn);
+                        else if (dRoute1 < 3.2f) t.SetPixel(x, y, route1);
+                        else if (dRoute2 < 2.8f) t.SetPixel(x, y, route2);
+                        else if (isPark) t.SetPixel(x, y, park);
+                        else if ((x % 32 == 0) || (y % 32 == 0)) t.SetPixel(x, y, grid);
+                        else t.SetPixel(x, y, bg);
+                    }
+                    else
+                    {
+                        // Panel de telemetria y graficos de barras/lineas para el monitor secundario
+                        bool isPanel = (x > 135 && x < 492) && ((y > 165 && y < 270) || (y > 25 && y < 145));
+                        bool isChartBar = (x > 155 && x < 470 && y > 40 && y < 125) && (((x - 155) % 28) < 16) && (y < 55 + ((x * 37) % 65));
+                        float waveY = 210f + Mathf.Sin(x * 0.05f) * 28f + Mathf.Cos(x * 0.11f) * 12f;
+                        if (Mathf.Abs(y - waveY) < 2.5f && x > 150 && x < 480) t.SetPixel(x, y, route1);
+                        else if (isChartBar) t.SetPixel(x, y, route2);
+                        else if (isPanel) t.SetPixel(x, y, card);
+                        else t.SetPixel(x, y, bg);
+                    }
                 }
             }
             t.Apply();
