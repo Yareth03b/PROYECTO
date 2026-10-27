@@ -676,9 +676,4 @@ namespace UNAB.Transporte3D
 #endif
         }
     }
-
-    public class UNABInteractableTag : MonoBehaviour
-    {
-        public string dataKey;
-    }
 }
