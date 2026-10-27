@@ -403,11 +403,11 @@ namespace UNAB.Transporte3D
                 if (ctrl.isFpsMode)
                 {
                     float dist = Vector3.Distance(camPos, lbl.worldPosition);
-                    if (dist > 7.8f) continue;
-                    bool camInOffice = camPos.x > 0.25f;
-                    bool camInServer = camPos.x < -0.25f;
-                    if (camInOffice && lbl.worldPosition.x < -0.2f) continue;
-                    if (camInServer && lbl.worldPosition.x > 0.2f) continue;
+                    if (dist > 8.5f) continue;
+                    bool camInOffice = camPos.x > -3.0f;
+                    bool camInServer = camPos.x < -3.4f;
+                    if (camInOffice && lbl.worldPosition.x < -3.3f) continue;
+                    if (camInServer && lbl.worldPosition.x > -3.1f) continue;
                 }
 
                 Vector3 screenPos = ctrl.mainCamera.WorldToScreenPoint(lbl.worldPosition);

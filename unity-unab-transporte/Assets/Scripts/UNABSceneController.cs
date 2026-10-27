@@ -66,14 +66,14 @@ namespace UNAB.Transporte3D
         public string activeInspectedKey = "";
         public string hoveredKey = "";
 
-        // Player & Walk Camera state
-        private float yaw = -90f;
-        private float pitch = 12f;
-        private float targetYaw = -90f;
-        private float targetPitch = 12f;
+        // Player & Walk Camera state (Inicia mirando hacia los escritorios de monitoreo)
+        private float yaw = 0f;
+        private float pitch = 14f;
+        private float targetYaw = 0f;
+        private float targetPitch = 14f;
         private Vector3 playerVelocity = Vector3.zero;
         private float walkCycle = 0f;
-        private float thirdPersonDist = 2.15f;
+        private float thirdPersonDist = 2.1f;
 
         // Orbit Camera state
         private Vector3 orbitTarget = new Vector3(0f, 0.9f, 0f);
@@ -97,6 +97,10 @@ namespace UNAB.Transporte3D
 
         private void Start()
         {
+            if (playerVisuals != null)
+            {
+                playerVisuals.rotation = Quaternion.Euler(0f, yaw, 0f);
+            }
             ActivateFpsMode();
         }
 
@@ -139,7 +143,6 @@ namespace UNAB.Transporte3D
         {
             if (playerVisuals != null)
             {
-                // En 3ra persona y en vista isometrica se ve el personaje 3D completo; en 1ra persona se oculta para no tapar la camara
                 bool showAvatar = !isFpsMode || isThirdPerson;
                 playerVisuals.gameObject.SetActive(showAvatar);
             }
@@ -341,15 +344,15 @@ namespace UNAB.Transporte3D
                 float dx = Mathf.Clamp(mouseDelta.x, -50f, 50f);
                 float dy = Mathf.Clamp(mouseDelta.y, -50f, 50f);
                 targetYaw += dx * 0.18f;
-                float minP = isThirdPerson ? -25f : -75f;
-                float maxP = isThirdPerson ? 58f : 75f;
+                float minP = isThirdPerson ? -20f : -75f;
+                float maxP = isThirdPerson ? 55f : 75f;
                 targetPitch = Mathf.Clamp(targetPitch - dy * 0.18f, minP, maxP);
             }
 
             float scroll = GetMouseScrollY();
             if (isThirdPerson && Mathf.Abs(scroll) > 0.001f)
             {
-                thirdPersonDist = Mathf.Clamp(thirdPersonDist - scroll * 0.35f, 1.1f, 3.8f);
+                thirdPersonDist = Mathf.Clamp(thirdPersonDist - scroll * 0.35f, 1.0f, 3.6f);
             }
 
             float smoothLook = Mathf.Min(1f, dt * 20f);
@@ -359,35 +362,29 @@ namespace UNAB.Transporte3D
             Vector3 fwd = Quaternion.Euler(0f, yaw, 0f) * Vector3.forward;
             Vector3 right = Quaternion.Euler(0f, yaw, 0f) * Vector3.right;
 
-            float walkSpeed = (IsKeyPressed(KeyCode.LeftShift) || IsKeyPressed(KeyCode.RightShift)) ? 5.2f : 3.4f;
+            float walkSpeed = (IsKeyPressed(KeyCode.LeftShift) || IsKeyPressed(KeyCode.RightShift)) ? 5.6f : 3.8f;
             Vector3 desiredMove = Vector3.zero;
             if (Mathf.Abs(moveZ) > 0.01f || Mathf.Abs(moveX) > 0.01f)
             {
                 desiredMove = (fwd * moveZ + right * moveX).normalized * walkSpeed;
             }
 
-            playerVelocity = Vector3.Lerp(playerVelocity, desiredMove, Mathf.Min(1f, dt * 14f));
+            playerVelocity = Vector3.Lerp(playerVelocity, desiredMove, Mathf.Min(1f, dt * 15f));
 
             Vector3 currentPos = playerRoot != null ? playerRoot.position : new Vector3(mainCamera.transform.position.x, 0f, mainCamera.transform.position.z);
             Vector3 nextPos = currentPos + playerVelocity * dt;
 
-            // Limites suaves dentro del edificio y terraza
-            nextPos.x = Mathf.Clamp(nextPos.x, -7.45f, 7.45f);
-            nextPos.z = Mathf.Clamp(nextPos.z, -6.5f, 4.45f);
+            // Movimiento 100% libre por toda la oficina, cuarto de servidores y jardin exterior (sin paredes invisibles)
+            nextPos.x = Mathf.Clamp(nextPos.x, -12.5f, 12.5f);
+            nextPos.z = Mathf.Clamp(nextPos.z, -10.5f, 10.5f);
             nextPos.y = 0f;
-
-            // Colision suave con el muro divisorio central (x = 0), dejando libre el paso de la puerta (z entre -2.1 y -0.7)
-            if (Mathf.Abs(nextPos.x) < 0.28f && (nextPos.z > -0.75f || nextPos.z < -2.05f))
-            {
-                nextPos.x = currentPos.x > 0f ? Mathf.Max(nextPos.x, 0.28f) : Mathf.Min(nextPos.x, -0.28f);
-            }
 
             if (playerRoot != null)
             {
                 playerRoot.position = nextPos;
             }
 
-            // Animar el personaje 3D (brazos, piernas y rotacion del cuerpo)
+            // Animar el personaje 3D (siempre mirando hacia adelante / direccion de avance, nunca de espaldas)
             float planarSpeed = new Vector2(playerVelocity.x, playerVelocity.z).magnitude;
             AnimatePlayerAvatar(dt, planarSpeed, playerVelocity);
 
@@ -395,20 +392,10 @@ namespace UNAB.Transporte3D
             if (isThirdPerson && playerRoot != null)
             {
                 Quaternion camRot = Quaternion.Euler(pitch, yaw, 0f);
-                Vector3 pivotPos = nextPos + new Vector3(0f, 1.52f, 0f) + (camRot * Vector3.right) * 0.22f;
+                Vector3 pivotPos = nextPos + new Vector3(0f, 1.54f, 0f) + (camRot * Vector3.right) * 0.20f;
                 Vector3 camDir = camRot * Vector3.back;
 
-                float actualDist = thirdPersonDist;
-                // Evitar que la camara atraviese paredes
-                if (Physics.SphereCast(pivotPos, 0.15f, camDir, out RaycastHit hit, thirdPersonDist))
-                {
-                    if (hit.transform != playerRoot && !hit.transform.IsChildOf(playerRoot))
-                    {
-                        actualDist = Mathf.Max(0.45f, hit.distance - 0.12f);
-                    }
-                }
-
-                mainCamera.transform.position = pivotPos + camDir * actualDist;
+                mainCamera.transform.position = pivotPos + camDir * thirdPersonDist;
                 mainCamera.transform.rotation = camRot;
             }
             else
@@ -424,13 +411,14 @@ namespace UNAB.Transporte3D
 
             if (speed > 0.12f)
             {
+                // Al caminar: el personaje mira hacia donde avanza
                 float moveYaw = Mathf.Atan2(velocity.x, velocity.z) * Mathf.Rad2Deg;
                 Quaternion targetRot = Quaternion.Euler(0f, moveYaw, 0f);
-                playerVisuals.rotation = Quaternion.Slerp(playerVisuals.rotation, targetRot, dt * 12f);
+                playerVisuals.rotation = Quaternion.Slerp(playerVisuals.rotation, targetRot, dt * 14f);
 
-                walkCycle += dt * speed * 3.1f;
+                walkCycle += dt * speed * 3.2f;
                 float swing = Mathf.Sin(walkCycle);
-                float bob = Mathf.Abs(Mathf.Cos(walkCycle)) * 0.032f;
+                float bob = Mathf.Abs(Mathf.Cos(walkCycle)) * 0.03f;
 
                 playerVisuals.localPosition = new Vector3(0f, bob, 0f);
 
@@ -441,8 +429,11 @@ namespace UNAB.Transporte3D
             }
             else
             {
-                // En reposo: respiracion suave y extremidades regresan a postura natural
-                float idleBreath = Mathf.Sin(Time.time * 2.2f) * 0.008f;
+                // Al estar detenido: el personaje gira suavemente mirando hacia donde apunta la camara (de espaldas a la camara)
+                Quaternion lookRot = Quaternion.Euler(0f, yaw, 0f);
+                playerVisuals.rotation = Quaternion.Slerp(playerVisuals.rotation, lookRot, dt * 8f);
+
+                float idleBreath = Mathf.Sin(Time.time * 2.2f) * 0.007f;
                 playerVisuals.localPosition = Vector3.Lerp(playerVisuals.localPosition, new Vector3(0f, idleBreath, 0f), dt * 8f);
 
                 if (playerLeftLegPivot != null) playerLeftLegPivot.localRotation = Quaternion.Slerp(playerLeftLegPivot.localRotation, Quaternion.identity, dt * 10f);
@@ -451,7 +442,6 @@ namespace UNAB.Transporte3D
                 if (playerRightArmPivot != null) playerRightArmPivot.localRotation = Quaternion.Slerp(playerRightArmPivot.localRotation, Quaternion.Euler(0f, 0f, -3f), dt * 10f);
             }
 
-            // Si el usuario agrego un modelo con Animator (ej. Mixamo), sincronizar parametros
             Animator customAnim = playerVisuals.GetComponentInChildren<Animator>();
             if (customAnim != null && customAnim.runtimeAnimatorController != null)
             {
@@ -576,7 +566,6 @@ namespace UNAB.Transporte3D
             return pts[pts.Length - 1];
         }
 
-        // Helpers compatibles con el Nuevo Input System de Unity 6 y el Legacy Input Manager
         private bool IsKeyPressed(KeyCode key)
         {
 #if ENABLE_INPUT_SYSTEM

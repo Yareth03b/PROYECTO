@@ -28,7 +28,7 @@ namespace UNAB.Transporte3D.EditorTools
         private static void TryAutoUpgradeScene()
         {
             if (EditorApplication.isPlayingOrWillChangePlaymode) return;
-            if (GameObject.Find("UNAB_Transporte_Root") != null && GameObject.Find("UNAB_HD_V4_Avatar") == null)
+            if (GameObject.Find("UNAB_Transporte_Root") != null && GameObject.Find("UNAB_HD_V5_SmoothAvatar") == null)
             {
                 BuildCompleteSceneInternal(false);
             }
@@ -55,7 +55,7 @@ namespace UNAB.Transporte3D.EditorTools
             GameObject root = new GameObject("UNAB_Transporte_Root");
             Undo.RegisterCreatedObjectUndo(root, "Build UNAB Transporte 3D Scene");
 
-            GameObject marker = new GameObject("UNAB_HD_V4_Avatar");
+            GameObject marker = new GameObject("UNAB_HD_V5_SmoothAvatar");
             marker.transform.SetParent(root.transform);
 
             var sim = root.AddComponent<UNABNetworkSimulator>();
@@ -929,7 +929,7 @@ namespace UNAB.Transporte3D.EditorTools
             return t;
         }
 
-        // Construye el personaje 3D articulado (Ingeniero de Red UNAB) con animacion de caminata y soporte 1ra/3ra persona
+        // Construye el personaje 3D articulado (Ingeniero de Red UNAB) con formas redondeadas, espalda limpia y frente en +Z
         private static void BuildPlayerAvatar(Transform root, UNABSceneController ctrl)
         {
             GameObject playerRoot = new GameObject("PlayerAvatar_UNAB");
@@ -939,70 +939,70 @@ namespace UNAB.Transporte3D.EditorTools
             GameObject visuals = new GameObject("AvatarVisuals");
             visuals.transform.SetParent(playerRoot.transform);
             visuals.transform.localPosition = Vector3.zero;
-            visuals.transform.localEulerAngles = new Vector3(0f, -90f, 0f);
+            visuals.transform.localEulerAngles = Vector3.zero;
 
             Material skinMat = CreatePbrMat("AvatarSkin", new Color(0.92f, 0.76f, 0.64f), 0.02f, 0.35f);
-            Material hairMat = CreatePbrMat("AvatarHair", new Color(0.11f, 0.09f, 0.08f), 0.05f, 0.4f);
+            Material hairMat = CreatePbrMat("AvatarHair", new Color(0.10f, 0.08f, 0.07f), 0.05f, 0.4f);
             Material jacketMat = CreatePbrMat("AvatarJacketUNAB", new Color(0.08f, 0.16f, 0.32f), 0.08f, 0.45f);
             Material shirtMat = CreatePbrMat("AvatarShirt", new Color(0.95f, 0.96f, 0.98f), 0.02f, 0.3f);
             Material pantsMat = CreatePbrMat("AvatarPants", new Color(0.14f, 0.16f, 0.20f), 0.05f, 0.35f);
             Material shoeMat = CreatePbrMat("AvatarShoes", new Color(0.07f, 0.07f, 0.09f), 0.15f, 0.6f);
             Material lanyardMat = CreatePbrMat("AvatarLanyard", new Color(0.02f, 0.65f, 0.92f), 0.1f, 0.6f, emission: new Color(0.01f, 0.18f, 0.28f));
 
-            // Torso (Chaqueta institucional azul marino UNAB + camisa blanca + fotocheck)
-            AddBox(visuals.transform, "Torso_Jacket", new Vector3(0f, 1.07f, 0f), new Vector3(0.36f, 0.50f, 0.20f), jacketMat, false);
-            AddBox(visuals.transform, "Shirt_Center", new Vector3(0f, 1.08f, 0.002f), new Vector3(0.12f, 0.46f, 0.206f), shirtMat, false);
-            AddBox(visuals.transform, "Belt_Waist", new Vector3(0f, 0.80f, 0f), new Vector3(0.35f, 0.06f, 0.202f), shoeMat, false);
+            // Torso redondeado (Espalda 100% azul marino en -Z; camisa blanca y fotocheck UNICAMENTE en el frente +Z)
+            AddBox(visuals.transform, "Torso_Jacket", new Vector3(0f, 1.07f, 0f), new Vector3(0.34f, 0.48f, 0.19f), jacketMat, false);
+            AddSphere(visuals.transform, "Shoulder_L", new Vector3(-0.18f, 1.26f, 0f), new Vector3(0.13f, 0.13f, 0.14f), jacketMat);
+            AddSphere(visuals.transform, "Shoulder_R", new Vector3(0.18f, 1.26f, 0f), new Vector3(0.13f, 0.13f, 0.14f), jacketMat);
+            AddBox(visuals.transform, "Shirt_FrontOnly", new Vector3(0f, 1.08f, 0.088f), new Vector3(0.11f, 0.44f, 0.02f), shirtMat, false);
+            AddBox(visuals.transform, "Belt_Waist", new Vector3(0f, 0.81f, 0f), new Vector3(0.33f, 0.05f, 0.195f), shoeMat, false);
 
-            // Cordon y Fotocheck UNAB en el pecho
-            AddBox(visuals.transform, "Lanyard_L", new Vector3(-0.04f, 1.20f, 0.106f), new Vector3(0.018f, 0.22f, 0.01f), lanyardMat, false)
+            // Cordon y Fotocheck UNAB unicamente en el pecho frontal (+Z)
+            AddBox(visuals.transform, "Lanyard_L", new Vector3(-0.038f, 1.20f, 0.10f), new Vector3(0.016f, 0.20f, 0.008f), lanyardMat, false)
                 .transform.localEulerAngles = new Vector3(0f, 0f, -12f);
-            AddBox(visuals.transform, "Lanyard_R", new Vector3(0.04f, 1.20f, 0.106f), new Vector3(0.018f, 0.22f, 0.01f), lanyardMat, false)
+            AddBox(visuals.transform, "Lanyard_R", new Vector3(0.038f, 1.20f, 0.10f), new Vector3(0.016f, 0.20f, 0.008f), lanyardMat, false)
                 .transform.localEulerAngles = new Vector3(0f, 0f, 12f);
-            AddBox(visuals.transform, "ID_Badge_Holder", new Vector3(0f, 1.05f, 0.108f), new Vector3(0.065f, 0.09f, 0.012f), shirtMat, false);
-            AddBox(visuals.transform, "ID_Badge_Header", new Vector3(0f, 1.08f, 0.109f), new Vector3(0.058f, 0.022f, 0.014f), lanyardMat, false);
+            AddBox(visuals.transform, "ID_Badge_Holder", new Vector3(0f, 1.05f, 0.102f), new Vector3(0.062f, 0.085f, 0.008f), shirtMat, false);
+            AddBox(visuals.transform, "ID_Badge_Header", new Vector3(0f, 1.08f, 0.104f), new Vector3(0.056f, 0.02f, 0.009f), lanyardMat, false);
 
-            // Cuello y Cabeza
-            AddCylinder(visuals.transform, "Neck", new Vector3(0f, 1.35f, 0f), new Vector3(0.11f, 0.04f, 0.11f), skinMat, false);
+            // Cuello y Cabeza redondeada (Cabello cubre toda la nuca -Z y parte superior; rostro y lentes en +Z)
+            AddCylinder(visuals.transform, "Neck", new Vector3(0f, 1.35f, 0f), new Vector3(0.10f, 0.05f, 0.10f), skinMat, false);
             GameObject headPivot = new GameObject("HeadPivot");
             headPivot.transform.SetParent(visuals.transform);
             headPivot.transform.localPosition = new Vector3(0f, 1.50f, 0f);
 
-            AddBox(headPivot.transform, "Head", Vector3.zero, new Vector3(0.21f, 0.23f, 0.21f), skinMat, false);
-            AddBox(headPivot.transform, "Hair_Top", new Vector3(0f, 0.095f, -0.005f), new Vector3(0.225f, 0.075f, 0.225f), hairMat, false);
-            AddBox(headPivot.transform, "Hair_Back", new Vector3(0f, 0.02f, -0.085f), new Vector3(0.22f, 0.18f, 0.06f), hairMat, false);
-            AddBox(headPivot.transform, "Hair_SideL", new Vector3(-0.102f, 0.03f, -0.01f), new Vector3(0.03f, 0.12f, 0.16f), hairMat, false);
-            AddBox(headPivot.transform, "Hair_SideR", new Vector3(0.102f, 0.03f, -0.01f), new Vector3(0.03f, 0.12f, 0.16f), hairMat, false);
-            // Lentes
-            AddBox(headPivot.transform, "Glasses_Front", new Vector3(0f, 0.02f, 0.106f), new Vector3(0.17f, 0.038f, 0.02f), shoeMat, false);
+            AddSphere(headPivot.transform, "Head", Vector3.zero, new Vector3(0.22f, 0.25f, 0.23f), skinMat);
+            AddSphere(headPivot.transform, "Hair_TopCap", new Vector3(0f, 0.045f, -0.015f), new Vector3(0.235f, 0.21f, 0.24f), hairMat);
+            AddBox(headPivot.transform, "Hair_BackNape", new Vector3(0f, -0.02f, -0.065f), new Vector3(0.20f, 0.16f, 0.11f), hairMat, false);
+            // Lentes en el frente (+Z)
+            AddBox(headPivot.transform, "Glasses_Front", new Vector3(0f, 0.015f, 0.11f), new Vector3(0.15f, 0.032f, 0.018f), shoeMat, false);
 
             // Brazo Izquierdo Articulado
             GameObject leftArmPivot = new GameObject("LeftArmPivot");
             leftArmPivot.transform.SetParent(visuals.transform);
-            leftArmPivot.transform.localPosition = new Vector3(-0.235f, 1.28f, 0f);
-            AddBox(leftArmPivot.transform, "UpperArm_L", new Vector3(0f, -0.20f, 0f), new Vector3(0.10f, 0.44f, 0.10f), jacketMat, false);
-            AddBox(leftArmPivot.transform, "Hand_L", new Vector3(0f, -0.45f, 0f), new Vector3(0.08f, 0.09f, 0.08f), skinMat, false);
+            leftArmPivot.transform.localPosition = new Vector3(-0.22f, 1.26f, 0f);
+            AddCylinder(leftArmPivot.transform, "UpperArm_L", new Vector3(0f, -0.20f, 0f), new Vector3(0.095f, 0.21f, 0.095f), jacketMat, false);
+            AddSphere(leftArmPivot.transform, "Hand_L", new Vector3(0f, -0.44f, 0f), new Vector3(0.085f, 0.095f, 0.085f), skinMat);
 
             // Brazo Derecho Articulado
             GameObject rightArmPivot = new GameObject("RightArmPivot");
             rightArmPivot.transform.SetParent(visuals.transform);
-            rightArmPivot.transform.localPosition = new Vector3(0.235f, 1.28f, 0f);
-            AddBox(rightArmPivot.transform, "UpperArm_R", new Vector3(0f, -0.20f, 0f), new Vector3(0.10f, 0.44f, 0.10f), jacketMat, false);
-            AddBox(rightArmPivot.transform, "Hand_R", new Vector3(0f, -0.45f, 0f), new Vector3(0.08f, 0.09f, 0.08f), skinMat, false);
+            rightArmPivot.transform.localPosition = new Vector3(0.22f, 1.26f, 0f);
+            AddCylinder(rightArmPivot.transform, "UpperArm_R", new Vector3(0f, -0.20f, 0f), new Vector3(0.095f, 0.21f, 0.095f), jacketMat, false);
+            AddSphere(rightArmPivot.transform, "Hand_R", new Vector3(0f, -0.44f, 0f), new Vector3(0.085f, 0.095f, 0.085f), skinMat);
 
             // Pierna Izquierda Articulada
             GameObject leftLegPivot = new GameObject("LeftLegPivot");
             leftLegPivot.transform.SetParent(visuals.transform);
-            leftLegPivot.transform.localPosition = new Vector3(-0.095f, 0.78f, 0f);
-            AddBox(leftLegPivot.transform, "Leg_L", new Vector3(0f, -0.35f, 0f), new Vector3(0.13f, 0.70f, 0.13f), pantsMat, false);
-            AddBox(leftLegPivot.transform, "Shoe_L", new Vector3(0f, -0.74f, 0.035f), new Vector3(0.135f, 0.08f, 0.21f), shoeMat, false);
+            leftLegPivot.transform.localPosition = new Vector3(-0.09f, 0.78f, 0f);
+            AddCylinder(leftLegPivot.transform, "Leg_L", new Vector3(0f, -0.35f, 0f), new Vector3(0.125f, 0.35f, 0.125f), pantsMat, false);
+            AddBox(leftLegPivot.transform, "Shoe_L", new Vector3(0f, -0.74f, 0.03f), new Vector3(0.12f, 0.075f, 0.20f), shoeMat, false);
 
             // Pierna Derecha Articulada
             GameObject rightLegPivot = new GameObject("RightLegPivot");
             rightLegPivot.transform.SetParent(visuals.transform);
-            rightLegPivot.transform.localPosition = new Vector3(0.095f, 0.78f, 0f);
-            AddBox(rightLegPivot.transform, "Leg_R", new Vector3(0f, -0.35f, 0f), new Vector3(0.13f, 0.70f, 0.13f), pantsMat, false);
-            AddBox(rightLegPivot.transform, "Shoe_R", new Vector3(0f, -0.74f, 0.035f), new Vector3(0.135f, 0.08f, 0.21f), shoeMat, false);
+            rightLegPivot.transform.localPosition = new Vector3(0.09f, 0.78f, 0f);
+            AddCylinder(rightLegPivot.transform, "Leg_R", new Vector3(0f, -0.35f, 0f), new Vector3(0.125f, 0.35f, 0.125f), pantsMat, false);
+            AddBox(rightLegPivot.transform, "Shoe_R", new Vector3(0f, -0.74f, 0.03f), new Vector3(0.12f, 0.075f, 0.20f), shoeMat, false);
 
             ctrl.playerRoot = playerRoot.transform;
             ctrl.playerVisuals = visuals.transform;
