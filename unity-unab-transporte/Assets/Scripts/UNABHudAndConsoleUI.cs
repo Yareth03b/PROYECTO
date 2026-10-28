@@ -306,35 +306,41 @@ namespace UNAB.Transporte3D
             // Menu desplegable de Vistas Rapidas
             if (viewsDropdownOpen)
             {
-                Rect dropRect = new Rect(viewsBtnRect.x, navRect.yMax + 6f, 248f, 328f);
+                Rect dropRect = new Rect(viewsBtnRect.x, navRect.yMax + 6f, 258f, 398f);
                 DrawRoundedRect(dropRect, ColCardBg, ColCardBorder, 16f, 1.2f);
                 GUI.Label(new Rect(dropRect.x + 14f, dropRect.y + 10f, 160f, 20f), "VISTAS DE CÁMARA", specLabelStyle);
                 if (DrawPillButton(new Rect(dropRect.xMax - 38f, dropRect.y + 8f, 26f, 22f), "X", false))
                     viewsDropdownOpen = false;
 
                 float by = dropRect.y + 36f;
-                if (DrawPillButton(new Rect(dropRect.x + 12f, by, 224f, 30f), "Caminar en Fachada UNAB", ctrl.IsPlayerOutsideCampus()))
+                if (DrawPillButton(new Rect(dropRect.x + 12f, by, 234f, 30f), "Caminar en Fachada UNAB", ctrl.IsPlayerOutsideCampus()))
                 { ctrl.TeleportPlayerTo(new Vector3(36.5f, 0f, 3.5f), -90f, 4f); viewsDropdownOpen = false; }
                 by += 35f;
-                if (DrawPillButton(new Rect(dropRect.x + 12f, by, 224f, 30f), "Caminar en Área Transporte", !ctrl.IsPlayerOutsideCampus()))
+                if (DrawPillButton(new Rect(dropRect.x + 12f, by, 234f, 30f), "Esquina Street View (Luzuriaga)", false))
+                { ctrl.SwitchToCameraView("streetview"); viewsDropdownOpen = false; }
+                by += 35f;
+                if (DrawPillButton(new Rect(dropRect.x + 12f, by, 234f, 30f), "Vista Satélite Google Maps", false))
+                { ctrl.SwitchToCameraView("satelite"); viewsDropdownOpen = false; }
+                by += 35f;
+                if (DrawPillButton(new Rect(dropRect.x + 12f, by, 234f, 30f), "Caminar en Área Transporte", !ctrl.IsPlayerOutsideCampus()))
                 { ctrl.TeleportPlayerTo(new Vector3(2.2f, 0f, -0.4f), 0f, 12f); viewsDropdownOpen = false; }
                 by += 35f;
-                if (DrawPillButton(new Rect(dropRect.x + 12f, by, 224f, 30f), "Vista Panorámica Fachada UNAB", false))
+                if (DrawPillButton(new Rect(dropRect.x + 12f, by, 234f, 30f), "Vista Panorámica Fachada UNAB", false))
                 { ctrl.SwitchToCameraView("fachada"); viewsDropdownOpen = false; }
                 by += 35f;
-                if (DrawPillButton(new Rect(dropRect.x + 12f, by, 224f, 30f), "Alternar 1ra / 3ra Persona (V)", ctrl.isThirdPerson))
+                if (DrawPillButton(new Rect(dropRect.x + 12f, by, 234f, 30f), "Alternar 1ra / 3ra Persona (V)", ctrl.isThirdPerson))
                 { ctrl.ToggleThirdPerson(); viewsDropdownOpen = false; }
                 by += 35f;
-                if (DrawPillButton(new Rect(dropRect.x + 12f, by, 224f, 30f), "Vista Aérea Interior (Sin Techo)", false))
+                if (DrawPillButton(new Rect(dropRect.x + 12f, by, 234f, 30f), "Vista Aérea Interior (Sin Techo)", false))
                 { ctrl.SwitchToCameraView("iso"); viewsDropdownOpen = false; }
                 by += 35f;
-                if (DrawPillButton(new Rect(dropRect.x + 12f, by, 224f, 30f), "Cuarto de Servidores (Rack)", false))
+                if (DrawPillButton(new Rect(dropRect.x + 12f, by, 234f, 30f), "Cuarto de Servidores (Rack)", false))
                 { ctrl.SwitchToCameraView("datacenter"); viewsDropdownOpen = false; }
                 by += 35f;
-                if (DrawPillButton(new Rect(dropRect.x + 12f, by, 224f, 30f), "Paso de Cableado / Techo", false))
+                if (DrawPillButton(new Rect(dropRect.x + 12f, by, 234f, 30f), "Paso de Cableado / Techo", false))
                 { ctrl.SwitchToCameraView("cabling"); viewsDropdownOpen = false; }
                 by += 35f;
-                if (DrawPillButton(new Rect(dropRect.x + 12f, by, 224f, 30f), "Monitores GPS Buses", false))
+                if (DrawPillButton(new Rect(dropRect.x + 12f, by, 234f, 30f), "Monitores GPS Buses", false))
                 { ctrl.SwitchToCameraView("monitoring"); viewsDropdownOpen = false; }
             }
 
@@ -443,7 +449,7 @@ namespace UNAB.Transporte3D
                 }
 
                 Vector3 screenPos = ctrl.mainCamera.WorldToScreenPoint(lbl.worldPosition);
-                float maxZ = camOutside ? 75f : 26f;
+                float maxZ = camOutside ? 155f : 26f;
                 if (screenPos.z > 0.4f && screenPos.z < maxZ)
                 {
                     GUIContent content = new GUIContent(lbl.text);

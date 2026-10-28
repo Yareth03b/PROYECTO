@@ -211,7 +211,7 @@ namespace UNAB.Transporte3D
         {
             isFpsMode = false;
             UnlockMouseCursor();
-            SetCeilingState(viewName == "fachada");
+            SetCeilingState(viewName == "fachada" || viewName == "satelite" || viewName == "streetview");
             UpdateAvatarVisibility();
 
             Vector3 endPos = new Vector3(0f, 16.5f, -15.5f);
@@ -219,8 +219,19 @@ namespace UNAB.Transporte3D
 
             if (viewName == "fachada")
             {
-                endPos = new Vector3(48.0f, 11.5f, 14.0f);
-                endLook = new Vector3(22.0f, 5.2f, 6.0f);
+                endPos = new Vector3(52.0f, 14.5f, 12.0f);
+                endLook = new Vector3(18.0f, 5.2f, 4.0f);
+            }
+            else if (viewName == "satelite")
+            {
+                endPos = new Vector3(28.0f, 118.0f, -6.0f);
+                endLook = new Vector3(-8.0f, 0.0f, -4.0f);
+            }
+            else if (viewName == "streetview")
+            {
+                // Punto exacto del enlace de Google Street View (-10.726348, -77.7737269) en la esquina de Av. Toribio de Luzuriaga
+                TeleportPlayerTo(new Vector3(38.5f, 0f, 48.0f), -125f, 4f);
+                return;
             }
             else if (viewName == "datacenter")
             {
@@ -426,9 +437,9 @@ namespace UNAB.Transporte3D
             Vector3 currentPos = playerRoot != null ? playerRoot.position : new Vector3(mainCamera.transform.position.x, 0f, mainCamera.transform.position.z);
             Vector3 nextPos = currentPos + playerVelocity * dt;
 
-            // Movimiento 100% libre por toda la avenida exterior, portico UNAB, mural de Caral, patio del campus y oficinas interiores
-            nextPos.x = Mathf.Clamp(nextPos.x, -28.0f, 52.0f);
-            nextPos.z = Mathf.Clamp(nextPos.z, -56.0f, 58.0f);
+            // Movimiento 100% libre por Av. Toribio de Luzuriaga, Jr. Ancash, calle del portico UNAB, mural de Caral, patio del campus y oficinas interiores
+            nextPos.x = Mathf.Clamp(nextPos.x, -62.0f, 65.0f);
+            nextPos.z = Mathf.Clamp(nextPos.z, -70.0f, 62.0f);
             nextPos.y = 0f;
 
             if (playerRoot != null)
@@ -529,7 +540,7 @@ namespace UNAB.Transporte3D
             float scroll = GetMouseScrollY();
             if (Mathf.Abs(scroll) > 0.001f)
             {
-                orbitDistance = Mathf.Clamp(orbitDistance - scroll * 2.2f, 2.5f, 120f);
+                orbitDistance = Mathf.Clamp(orbitDistance - scroll * 2.5f, 2.5f, 185f);
             }
 
             Quaternion rot = Quaternion.Euler(orbitPitch, orbitYaw, 0f);

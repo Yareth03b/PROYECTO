@@ -28,7 +28,7 @@ namespace UNAB.Transporte3D.EditorTools
         private static void TryAutoUpgradeScene()
         {
             if (EditorApplication.isPlayingOrWillChangePlaymode) return;
-            if (GameObject.Find("UNAB_Transporte_Root") != null && GameObject.Find("UNAB_HD_V9_GiantCampusFacade") == null)
+            if (GameObject.Find("UNAB_Transporte_Root") != null && GameObject.Find("UNAB_HD_V10_GoogleMapsReplica") == null)
             {
                 BuildCompleteSceneInternal(false);
             }
@@ -55,7 +55,7 @@ namespace UNAB.Transporte3D.EditorTools
             GameObject root = new GameObject("UNAB_Transporte_Root");
             Undo.RegisterCreatedObjectUndo(root, "Build UNAB Transporte 3D Scene");
 
-            GameObject marker = new GameObject("UNAB_HD_V9_GiantCampusFacade");
+            GameObject marker = new GameObject("UNAB_HD_V10_GoogleMapsReplica");
             marker.transform.SetParent(root.transform);
 
             var sim = root.AddComponent<UNABNetworkSimulator>();
@@ -75,7 +75,7 @@ namespace UNAB.Transporte3D.EditorTools
             mainCam.clearFlags = CameraClearFlags.Skybox;
             mainCam.backgroundColor = new Color(0.38f, 0.68f, 0.96f);
             mainCam.nearClipPlane = 0.1f;
-            mainCam.farClipPlane = 240f;
+            mainCam.farClipPlane = 360f;
             mainCam.fieldOfView = 50f;
             mainCam.allowMSAA = true;
             mainCam.allowHDR = true;
@@ -467,20 +467,23 @@ namespace UNAB.Transporte3D.EditorTools
         }
 
         // ==========================================================================================================
-        // CAMPUS Y FACHADA EXTERIOR MONUMENTAL DE LA UNIVERSIDAD NACIONAL DE BARRANCA (ESCALA ARQUITECTONICA REAL)
+        // REPLICA 1:1 DE GOOGLE MAPS (SATELITE + STREET VIEW) DEL CAMPUS Y ENTORNO URBANO DE LA UNAB - BARRANCA
+        // Coordenadas reales: -10.726348, -77.7737269 (Interseccion Av. Toribio de Luzuriaga, Calle UNAB y Jr. Ancash)
         // ==========================================================================================================
         private static void BuildUNABCampusAndFacade(Transform root, UNABSceneController ctrl)
         {
             GameObject campus = new GameObject("UNAB_Campus_And_Facade");
             campus.transform.SetParent(root, false);
 
-            // Texturas fotograficas y arquitectonicas desde Assets/Resources/
+            // Texturas fotograficas y arquitectonicas reales desde Assets/Resources/
             Texture2D slateTex = LoadResourceTex("piedra-laja-unab", true);
             Texture2D porticoHdrTex = LoadResourceTex("portico-unab-header", false);
             Texture2D towerUnabTex = LoadResourceTex("torre-unab-vertical", false);
             Texture2D caralMuralTex = LoadResourceTex("mural-caral", false);
             Texture2D caralRelievesTex = LoadResourceTex("relieves-caral", false);
             Texture2D caralPlacaTex = LoadResourceTex("placa-caral-texto", false);
+            Texture2D caralEsquinaLuzTex = LoadResourceTex("caral-esquina-luzuriaga", false);
+            Texture2D brickWallWhiteTex = LoadResourceTex("muro-ladrillo-blanco", true);
 
             Material slateMat = CreatePbrMat("UNAB_SlateStone", Color.white, 0.12f, 0.38f, slateTex, new Vector2(6f, 5f));
             Material slatePillarMat = CreatePbrMat("UNAB_SlatePillar", Color.white, 0.12f, 0.42f, slateTex, new Vector2(2.5f, 4f));
@@ -490,45 +493,115 @@ namespace UNAB.Transporte3D.EditorTools
             Material caralMuralMat = CreatePbrMat("UNAB_CaralMural", Color.white, 0.04f, 0.28f, caralMuralTex);
             Material caralRelievesMat = CreatePbrMat("UNAB_CaralRelieves", Color.white, 0.05f, 0.30f, caralRelievesTex);
             Material caralPlacaMat = CreatePbrMat("UNAB_CaralPlaca", Color.white, 0.05f, 0.32f, caralPlacaTex);
+            Material caralEsquinaMat = CreatePbrMat("UNAB_CaralEsquinaLuzuriaga", Color.white, 0.04f, 0.30f, caralEsquinaLuzTex);
+            Material whiteBrickMat = CreatePbrMat("StreetView_WhiteBrick", Color.white, 0.02f, 0.22f, brickWallWhiteTex, new Vector2(8f, 2f));
 
             Material grassExtMat = CreatePbrMat("CampusGrassExt", new Color(0.35f, 0.58f, 0.12f), 0f, 0.15f);
+            Material urbanSandMat = CreatePbrMat("BarrancaUrbanGround", new Color(0.76f, 0.72f, 0.65f), 0.02f, 0.18f);
             Material concreteLightMat = CreatePbrMat("CampusConcrete", new Color(0.84f, 0.85f, 0.83f), 0.04f, 0.30f);
             Material sidewalkMat = CreatePbrMat("SidewalkConcrete", new Color(0.75f, 0.76f, 0.74f), 0.04f, 0.32f);
-            Material asphaltMat = CreatePbrMat("AvenueAsphalt", new Color(0.16f, 0.17f, 0.19f), 0.06f, 0.28f);
+            Material asphaltMat = CreatePbrMat("AvenueAsphalt", new Color(0.22f, 0.23f, 0.25f), 0.05f, 0.26f);
             Material yellowCurbMat = CreatePbrMat("TrafficYellowCurb", new Color(0.95f, 0.74f, 0.05f), 0.08f, 0.48f);
             Material ochreWallMat = CreatePbrMat("PerimeterOchre", new Color(0.92f, 0.72f, 0.22f), 0.04f, 0.35f);
             Material beigeWallMat = CreatePbrMat("CaralWallBeige", new Color(0.87f, 0.84f, 0.76f), 0.04f, 0.32f);
+            Material plinthBrownMat = CreatePbrMat("CaralWallPlinth", new Color(0.38f, 0.24f, 0.18f), 0.04f, 0.28f);
             Material whiteConcreteMat = CreatePbrMat("PavilionWhite", new Color(0.96f, 0.97f, 0.98f), 0.04f, 0.48f);
             Material cyanAccentMat = CreatePbrMat("UNAB_CyanAccent", new Color(0.02f, 0.62f, 0.90f), 0.20f, 0.65f);
             Material fenceGrayMat = CreatePbrMat("FenceSteelGray", new Color(0.46f, 0.49f, 0.53f), 0.65f, 0.55f);
             Material glassReflectMat = CreatePbrMat("CampusCurtainGlass", new Color(0.45f, 0.76f, 0.96f, 0.78f), 0.80f, 0.94f, MakeReflectiveGlassTex(), Vector2.one, true, new Color(0.02f, 0.12f, 0.22f));
             Material darkMullionMat = CreatePbrMat("DarkMullion", new Color(0.10f, 0.12f, 0.15f), 0.5f, 0.65f);
+            Material terracottaRoofMat = CreatePbrMat("TerracottaGableRoof", new Color(0.76f, 0.36f, 0.26f), 0.08f, 0.32f);
+            Material courtGreenMat = CreatePbrMat("SportCourtGreen", new Color(0.16f, 0.48f, 0.36f), 0.05f, 0.35f);
+            Material courtBlueMat = CreatePbrMat("SportCourtBlue", new Color(0.14f, 0.38f, 0.64f), 0.05f, 0.35f);
             Material trunkMat = CreatePbrMat("TreeTrunkBrown", new Color(0.36f, 0.24f, 0.14f), 0.02f, 0.2f);
             Material foliageMat = CreatePbrMat("TreeFoliageGreen", new Color(0.18f, 0.46f, 0.14f), 0.02f, 0.28f);
             Material warmLightMat = CreatePbrMat("SpotlightWarm", Color.white, 0f, 0.9f, null, null, false, new Color(1.0f, 0.95f, 0.82f) * 2.2f);
 
-            // 1. GRAN EXPLANADA DEL CAMPUS UNAB (110m DE FRENTE) Y AVENIDA EXTERIOR DE BARRANCA
-            AddBox(campus.transform, "Extended_Campus_Ground", new Vector3(12f, -0.09f, 4f), new Vector3(130f, 0.06f, 130f), grassExtMat, false);
-            AddBox(campus.transform, "Campus_Courtyard_Floor", new Vector3(6.5f, -0.03f, 2f), new Vector3(37.0f, 0.06f, 108.0f), concreteLightMat, false);
+            // ========================================================================================================
+            // 1. PLANO URBANO DE GOOGLE MAPS: MANZANA DEL CAMPUS UNAB + 3 CALLES REALES + MANZANAS VECINAS
+            // ========================================================================================================
+            // Suelo general de la urbanizacion La Florida - Barranca (220m x 220m)
+            AddBox(campus.transform, "Barranca_Urban_Ground", new Vector3(5f, -0.11f, -4f), new Vector3(220f, 0.06f, 220f), urbanSandMat, false);
+            // Explanada interior de la manzana completa de la UNAB (x = -58 a +25, z = -58 a +46.6 -> 83m x 104.6m)
+            AddBox(campus.transform, "Campus_FullBlock_Floor", new Vector3(-16.5f, -0.04f, -5.7f), new Vector3(83.0f, 0.06f, 104.6f), concreteLightMat, false);
+
+            // Jardines interiores del campus (frente a pabellones y claustros)
+            AddBox(campus.transform, "Campus_Garden_Left", new Vector3(16.5f, -0.005f, -10.5f), new Vector3(14.0f, 0.02f, 11.0f), grassExtMat, false);
+            AddBox(campus.transform, "Campus_Garden_Right", new Vector3(16.5f, -0.005f, 10.5f), new Vector3(14.0f, 0.02f, 11.0f), grassExtMat, false);
 
             // Alameda peatonal principal desde el Gran Portico (x=25.0) hasta la entrada del Area de Transporte (x=8.0)
             AddBox(campus.transform, "Walkway_To_Transporte", new Vector3(16.5f, 0.005f, 0f), new Vector3(16.8f, 0.02f, 7.6f), sidewalkMat, false);
             AddBox(campus.transform, "Walkway_Curb_L", new Vector3(16.5f, 0.04f, -3.85f), new Vector3(16.6f, 0.08f, 0.18f), yellowCurbMat, false);
             AddBox(campus.transform, "Walkway_Curb_R", new Vector3(16.5f, 0.04f, 3.85f), new Vector3(16.6f, 0.08f, 0.18f), yellowCurbMat, false);
 
-            // Vereda exterior ancha, sardinel amarillo y Avenida asfaltada de doble via (120 metros de largo)
-            AddBox(campus.transform, "Exterior_Sidewalk", new Vector3(27.2f, 0.02f, 4.0f), new Vector3(4.2f, 0.08f, 118.0f), sidewalkMat, false);
-            AddBox(campus.transform, "Exterior_YellowCurb", new Vector3(29.28f, 0.05f, 4.0f), new Vector3(0.22f, 0.12f, 118.0f), yellowCurbMat, false);
-            AddBox(campus.transform, "Exterior_Avenue_Asphalt", new Vector3(38.0f, -0.02f, 4.0f), new Vector3(17.5f, 0.06f, 120.0f), asphaltMat, false);
-            // Lineas blancas de la avenida (continua lateral y segmentada central)
-            AddBox(campus.transform, "Road_Line_Edge1", new Vector3(29.85f, 0.015f, 4.0f), new Vector3(0.16f, 0.01f, 118.0f), whiteConcreteMat, false);
-            AddBox(campus.transform, "Road_Line_Edge2", new Vector3(45.80f, 0.015f, 4.0f), new Vector3(0.16f, 0.01f, 118.0f), whiteConcreteMat, false);
-            for (float rz = -50f; rz <= 56f; rz += 4.5f)
+            // --- CALLE 1: CALLE PRINCIPAL DEL PORTICO Y MURAL DE CARAL (Conecta Jr. Ancash z=-58 con Av. Luzuriaga z=+46.6) ---
+            AddBox(campus.transform, "FrontStreet_Sidewalk_UNAB", new Vector3(27.2f, 0.02f, -5.5f), new Vector3(4.2f, 0.08f, 105.0f), sidewalkMat, false);
+            AddBox(campus.transform, "FrontStreet_YellowCurb_UNAB", new Vector3(29.28f, 0.05f, -5.5f), new Vector3(0.22f, 0.12f, 105.0f), yellowCurbMat, false);
+            AddBox(campus.transform, "FrontStreet_Asphalt", new Vector3(36.0f, -0.02f, -5.5f), new Vector3(13.4f, 0.06f, 134.0f), asphaltMat, false);
+            AddBox(campus.transform, "FrontStreet_Sidewalk_Opposite", new Vector3(44.2f, 0.02f, -5.5f), new Vector3(3.0f, 0.08f, 105.0f), sidewalkMat, false);
+
+            // --- CALLE 2: AV. TORIBIO DE LUZURIAGA (Cruza la esquina Norte del Mural de Caral en z = +46.6 a +62.0, de x = -65 a +82) ---
+            AddBox(campus.transform, "AvLuzuriaga_Sidewalk_South", new Vector3(-16.0f, 0.02f, 48.2f), new Vector3(83.5f, 0.08f, 3.2f), sidewalkMat, false);
+            AddBox(campus.transform, "AvLuzuriaga_YellowCurb_South", new Vector3(-16.0f, 0.05f, 49.78f), new Vector3(83.5f, 0.12f, 0.22f), yellowCurbMat, false);
+            AddBox(campus.transform, "AvLuzuriaga_Asphalt", new Vector3(6.0f, -0.015f, 55.2f), new Vector3(152.0f, 0.06f, 10.8f), asphaltMat, false);
+            AddBox(campus.transform, "AvLuzuriaga_Sidewalk_North", new Vector3(6.0f, 0.02f, 62.0f), new Vector3(152.0f, 0.08f, 2.8f), sidewalkMat, false);
+            AddLabel(ctrl, "Av. Toribio de Luzuriaga (Esquina Street View UNAB)", new Vector3(32.0f, 3.8f, 53.5f));
+
+            // --- CALLE 3: JR. ANCASH (Cruza el limite Sur de la manzana UNAB en z = -58.0 a -72.0, de x = -65 a +82 - Mapa Satelital) ---
+            AddBox(campus.transform, "JrAncash_Sidewalk_North", new Vector3(-16.0f, 0.02f, -59.5f), new Vector3(83.5f, 0.08f, 3.0f), sidewalkMat, false);
+            AddBox(campus.transform, "JrAncash_YellowCurb_North", new Vector3(-16.0f, 0.05f, -60.98f), new Vector3(83.5f, 0.12f, 0.22f), yellowCurbMat, false);
+            AddBox(campus.transform, "JrAncash_Asphalt", new Vector3(6.0f, -0.015f, -66.0f), new Vector3(152.0f, 0.06f, 10.0f), asphaltMat, false);
+            AddBox(campus.transform, "JrAncash_Sidewalk_South", new Vector3(6.0f, 0.02f, -72.4f), new Vector3(152.0f, 0.08f, 2.8f), sidewalkMat, false);
+            AddLabel(ctrl, "Jr. Ancash (Limite Sur Campus UNAB)", new Vector3(32.0f, 3.8f, -65.0f));
+
+            // --- CALLE 4: PASAJE OESTE (Cierra la manzana del campus por el oeste en x = -58 a -66) ---
+            AddBox(campus.transform, "WestStreet_Asphalt", new Vector3(-62.0f, -0.015f, -5.5f), new Vector3(8.0f, 0.06f, 134.0f), asphaltMat, false);
+
+            // ========================================================================================================
+            // 2. REPLICA EXACTA DEL LADO OPUESTO DE LA CALLE EN STREET VIEW (MURO DE LADRILLO BLANCO EN ESQUINA + POSTES + CABLES)
+            // ========================================================================================================
+            GameObject oppositeBlock = new GameObject("Manzana_Frente_StreetView");
+            oppositeBlock.transform.SetParent(campus.transform, false);
+
+            // El famoso muro de ladrillo blanco en esquina que aparece a la derecha de tu Street View (x = 45.7 a 76.0, z = 8.0 a 46.6)
+            AddBox(oppositeBlock.transform, "WhiteBrickWall_FrontFace", new Vector3(45.8f, 1.55f, 27.3f), new Vector3(0.32f, 3.10f, 38.6f), whiteBrickMat, false);
+            AddBox(oppositeBlock.transform, "WhiteBrickWall_LuzuriagaCorner", new Vector3(61.0f, 1.55f, 46.5f), new Vector3(30.4f, 3.10f, 0.32f), whiteBrickMat, false);
+            // Viviendas y comercios vecinos detras y a lo largo de la cuadra (Distribuidora / Casas de La Florida en Google Maps)
+            AddBox(oppositeBlock.transform, "Neighbor_House_1", new Vector3(54.0f, 3.2f, -6.0f), new Vector3(16.0f, 6.4f, 18.0f), beigeWallMat, false);
+            AddBox(oppositeBlock.transform, "Neighbor_House_2", new Vector3(54.0f, 4.5f, -26.0f), new Vector3(16.0f, 9.0f, 16.0f), whiteConcreteMat, false);
+            AddBox(oppositeBlock.transform, "Neighbor_House_3", new Vector3(54.0f, 3.2f, -45.0f), new Vector3(16.0f, 6.4f, 18.0f), ochreWallMat, false);
+            // Manzana al norte de Av. Toribio de Luzuriaga (vista al fondo del Street View)
+            AddBox(oppositeBlock.transform, "NorthBlock_Wall", new Vector3(18.0f, 1.6f, 64.0f), new Vector3(48.0f, 3.2f, 0.35f), beigeWallMat, false);
+            AddBox(oppositeBlock.transform, "NorthBlock_Warehouse", new Vector3(-22.0f, 4.2f, 70.0f), new Vector3(24.0f, 8.4f, 12.0f), towerBlueMat, false);
+
+            // El Poste Electrico de Concreto en la esquina exacta del Street View (x = 43.3, z = 44.5) con cables aereos negros
+            Material cableBlackMat = CreatePbrMat("OverheadCableBlack", new Color(0.06f, 0.06f, 0.08f), 0.1f, 0.3f);
+            float[] oppPolesZ = { 44.5f, 14.0f, -18.0f, -48.0f };
+            for (int p = 0; p < oppPolesZ.Length; p++)
             {
-                AddBox(campus.transform, "Road_Line_CenterDash", new Vector3(37.8f, 0.015f, rz), new Vector3(0.18f, 0.01f, 2.4f), whiteConcreteMat, false);
+                float pz = oppPolesZ[p];
+                GameObject upole = new GameObject($"UtilityPole_East_{p}");
+                upole.transform.SetParent(oppositeBlock.transform, false);
+                upole.transform.localPosition = new Vector3(43.3f, 0f, pz);
+                AddCylinder(upole.transform, "ConcretePole", new Vector3(0f, 4.4f, 0f), new Vector3(0.22f, 4.4f, 0.22f), sidewalkMat, false);
+                AddBox(upole.transform, "CrossArm", new Vector3(0f, 8.1f, 0f), new Vector3(1.1f, 0.10f, 0.10f), darkMullionMat, false);
+                AddCylinder(upole.transform, "LampArm", new Vector3(-0.95f, 8.55f, 0f), new Vector3(0.07f, 0.95f, 0.07f), fenceGrayMat, false)
+                    .transform.localEulerAngles = new Vector3(0f, 0f, 68f);
+                AddBox(upole.transform, "StreetLED", new Vector3(-1.75f, 8.85f, 0f), new Vector3(0.55f, 0.08f, 0.26f), warmLightMat, false);
+
+                if (p < oppPolesZ.Length - 1)
+                {
+                    float nextZ = oppPolesZ[p + 1];
+                    float midZ = (pz + nextZ) * 0.5f;
+                    float span = Mathf.Abs(pz - nextZ);
+                    AddBox(oppositeBlock.transform, $"OverheadWire_A_{p}", new Vector3(43.0f, 8.05f, midZ), new Vector3(0.03f, 0.03f, span), cableBlackMat, false);
+                    AddBox(oppositeBlock.transform, $"OverheadWire_B_{p}", new Vector3(43.6f, 8.05f, midZ), new Vector3(0.03f, 0.03f, span), cableBlackMat, false);
+                }
             }
 
-            // 2. PABELLON CENTRAL UNAB DE 4 PISOS (CON AREA DE TRANSPORTE EN EL 1ER PISO + TORRE AZUL GIGANTE "U N A B")
+            // ========================================================================================================
+            // 3. PABELLON CENTRAL UNAB DE 4 PISOS (CON AREA DE TRANSPORTE EN EL 1ER PISO + TORRE AZUL GIGANTE "U N A B")
+            // ========================================================================================================
             GameObject entranceCanopy = new GameObject("Canopy_Area_Transporte");
             entranceCanopy.transform.SetParent(campus.transform, false);
             entranceCanopy.transform.localPosition = new Vector3(8.16f, 3.22f, 0f);
@@ -545,7 +618,7 @@ namespace UNAB.Transporte3D.EditorTools
             AddQuad(blueTower.transform, "UNAB_Vertical_Front", new Vector3(1.82f, 8.6f, 0f), new Vector3(3.0f, 14.2f, 1f), new Vector3(0f, -90f, 0f), towerSignMat);
             AddQuad(blueTower.transform, "UNAB_Vertical_Side", new Vector3(0f, 8.6f, 1.62f), new Vector3(3.3f, 14.2f, 1f), new Vector3(0f, 180f, 0f), towerSignMat);
 
-            // Alas laterales del Pabellon Central para darle 28 metros de frente monumental
+            // Alas laterales del Pabellon Central con balcones blancos escalonados (tal como en Foto 5 "UNAB MODERNA")
             AddBox(campus.transform, "CentralPavilion_LeftWing", new Vector3(0f, 7.2f, -12.5f), new Vector3(16.2f, 14.4f, 7.2f), whiteConcreteMat, false);
             AddBox(campus.transform, "CentralPavilion_LeftWing_Glass", new Vector3(8.15f, 7.2f, -12.5f), new Vector3(0.14f, 12.6f, 6.4f), glassReflectMat, false);
             AddBox(campus.transform, "CentralPavilion_RightWing", new Vector3(0f, 7.2f, 9.2f), new Vector3(16.2f, 14.4f, 7.2f), whiteConcreteMat, false);
@@ -562,13 +635,11 @@ namespace UNAB.Transporte3D.EditorTools
                 AddBox(upperFloors.transform, "Slab_Floor4", new Vector3(0f, 10.95f, 0f), new Vector3(16.6f, 0.28f, 11.6f), whiteConcreteMat, false);
                 AddBox(upperFloors.transform, "Slab_Roof", new Vector3(0f, 14.40f, 0f), new Vector3(16.8f, 0.32f, 11.8f), whiteConcreteMat, false);
 
-                // Muro cortina de vidrio azul reflectivo en los pisos 2, 3 y 4
                 AddBox(upperFloors.transform, "UpperGlass_Front", new Vector3(7.95f, 9.05f, 0f), new Vector3(0.14f, 10.4f, 10.8f), glassReflectMat, false);
                 AddBox(upperFloors.transform, "UpperGlass_North", new Vector3(0f, 9.05f, 5.44f), new Vector3(15.6f, 10.4f, 0.14f), glassReflectMat, false);
                 AddBox(upperFloors.transform, "UpperGlass_South", new Vector3(0f, 9.05f, -5.44f), new Vector3(15.6f, 10.4f, 0.14f), glassReflectMat, false);
                 AddBox(upperFloors.transform, "UpperWall_Back", new Vector3(-7.96f, 9.05f, 0f), new Vector3(0.28f, 10.4f, 11.4f), whiteConcreteMat, false);
 
-                // Columnas blancas y pergola de azotea tipicas del Pabellon UNAB (Fotos 1, 4 y 5)
                 for (float cz = -5.4f; cz <= 5.4f; cz += 2.7f)
                 {
                     AddBox(upperFloors.transform, "WhiteCol_Front", new Vector3(8.14f, 9.05f, cz), new Vector3(0.34f, 10.8f, 0.34f), whiteConcreteMat, false);
@@ -577,36 +648,92 @@ namespace UNAB.Transporte3D.EditorTools
                 AddBox(upperFloors.transform, "RoofPergola_Beam", new Vector3(8.14f, 16.20f, 0f), new Vector3(0.36f, 0.26f, 11.6f), whiteConcreteMat, false);
             }
 
-            // 3. GRAN PABELLON IZQUIERDO DE PIEDRA LAJA OSCURA Y MARCO CELESTE (FOTOS 2 Y 3 - ESCALA MONUMENTAL)
+            // ========================================================================================================
+            // 4. TODOS LOS PABELLONES REALES DEL CAMPUS UNAB SEGUN LA VISTA SATELITE DE GOOGLE MAPS Y FOTO AEREA "UNAB MODERNA"
+            // ========================================================================================================
+            // 4A. Pabellon Izquierdo de Piedra Laja Oscura y Marco Celeste junto al Portico (Fotos 2, 3 y 5)
             GameObject leftPavilion = new GameObject("Pabellon_PiedraLaja_Izquierdo");
             leftPavilion.transform.SetParent(campus.transform, false);
-            leftPavilion.transform.localPosition = new Vector3(18.5f, 0f, -21.5f);
-            AddBox(leftPavilion.transform, "Slate_MainVolume", new Vector3(0f, 7.6f, 0f), new Vector3(11.8f, 15.2f, 18.5f), slateMat, false);
-            AddBox(leftPavilion.transform, "Glass_InnerFace", new Vector3(-0.3f, 7.4f, 9.32f), new Vector3(10.2f, 13.2f, 0.14f), glassReflectMat, false);
-            AddBox(leftPavilion.transform, "CyanFrame_Top", new Vector3(0f, 14.3f, 9.38f), new Vector3(11.0f, 0.42f, 0.24f), cyanAccentMat, false);
-            AddBox(leftPavilion.transform, "CyanFrame_Right", new Vector3(5.3f, 7.4f, 9.38f), new Vector3(0.42f, 14.2f, 0.24f), cyanAccentMat, false);
+            leftPavilion.transform.localPosition = new Vector3(18.2f, 0f, -19.8f);
+            AddBox(leftPavilion.transform, "Slate_MainVolume", new Vector3(0f, 7.6f, 0f), new Vector3(11.8f, 15.2f, 15.5f), slateMat, false);
+            AddBox(leftPavilion.transform, "Glass_InnerFace", new Vector3(-0.3f, 7.4f, 7.82f), new Vector3(10.2f, 13.2f, 0.14f), glassReflectMat, false);
+            AddBox(leftPavilion.transform, "CyanFrame_Top", new Vector3(0f, 14.3f, 7.88f), new Vector3(11.0f, 0.42f, 0.24f), cyanAccentMat, false);
+            AddBox(leftPavilion.transform, "CyanFrame_Right", new Vector3(5.3f, 7.4f, 7.88f), new Vector3(0.42f, 14.2f, 0.24f), cyanAccentMat, false);
 
-            // 4. GRAN AUDITORIO DETRAS DEL MURAL DE CARAL (TECHO A DOS AGUAS - FOTO 1) Y PABELLON DERECHO (FOTOS 2 Y 5)
+            // 4B. Pabellon de Techo Rojo a Dos Aguas + Pancarta Vertical Azul "U N A B" (Abajo a la izquierda en Foto 5 "UNAB MODERNA")
+            GameObject southEastGable = new GameObject("Pabellon_TechoRojo_BannerUNAB");
+            southEastGable.transform.SetParent(campus.transform, false);
+            southEastGable.transform.localPosition = new Vector3(12.5f, 0f, -38.5f);
+            AddBox(southEastGable.transform, "Building_Body", new Vector3(0f, 5.2f, 0f), new Vector3(18.0f, 10.4f, 14.0f), whiteConcreteMat, false);
+            AddBox(southEastGable.transform, "RedGable_Slope1", new Vector3(0f, 11.2f, -3.6f), new Vector3(18.4f, 0.28f, 7.6f), terracottaRoofMat, false)
+                .transform.localEulerAngles = new Vector3(-14f, 0f, 0f);
+            AddBox(southEastGable.transform, "RedGable_Slope2", new Vector3(0f, 11.2f, 3.6f), new Vector3(18.4f, 0.28f, 7.6f), terracottaRoofMat, false)
+                .transform.localEulerAngles = new Vector3(14f, 0f, 0f);
+            // Pancarta vertical azul "U N A B" en su fachada (Foto 5)
+            AddBox(southEastGable.transform, "BlueBanner_Backing", new Vector3(6.5f, 5.6f, 7.08f), new Vector3(2.4f, 9.2f, 0.12f), towerBlueMat, false);
+            AddQuad(southEastGable.transform, "BlueBanner_UNAB", new Vector3(6.5f, 5.6f, 7.16f), new Vector3(2.2f, 8.8f, 1f), new Vector3(0f, 180f, 0f), towerSignMat);
+            // Patio techado rojizo entre este pabellon y el muro perimetrico (Foto 5)
+            AddBox(southEastGable.transform, "Patio_TerracottaCanopy", new Vector3(8.2f, 3.4f, -10.5f), new Vector3(8.0f, 0.18f, 7.5f), terracottaRoofMat, false);
+
+            // 4C. Complejo de Laboratorios en forma de "U" con Patio Central y Techos Rojizos frente a Jr. Ancash (Vista Satelite Google Maps)
+            GameObject uComplex = new GameObject("Complejo_Laboratorios_En_U_JrAncash");
+            uComplex.transform.SetParent(campus.transform, false);
+            uComplex.transform.localPosition = new Vector3(-32.0f, 0f, -32.0f);
+            // Ala Oeste larga con techo rojo (paralela al pasaje oeste)
+            AddBox(uComplex.transform, "U_WestWing_Body", new Vector3(-16.0f, 5.5f, 0f), new Vector3(10.5f, 11.0f, 36.0f), whiteConcreteMat, false);
+            AddBox(uComplex.transform, "U_WestWing_RedRoof", new Vector3(-16.0f, 11.3f, 0f), new Vector3(11.0f, 0.6f, 36.4f), terracottaRoofMat, false);
+            // Ala Norte y Ala Sur cerrando el claustro central
+            AddBox(uComplex.transform, "U_NorthWing", new Vector3(0f, 5.0f, 13.5f), new Vector3(22.0f, 10.0f, 9.0f), whiteConcreteMat, false);
+            AddBox(uComplex.transform, "U_SouthWing", new Vector3(0f, 5.0f, -13.5f), new Vector3(22.0f, 10.0f, 9.0f), whiteConcreteMat, false);
+            AddBox(uComplex.transform, "U_EastClosure", new Vector3(11.0f, 4.5f, 0f), new Vector3(6.5f, 9.0f, 18.0f), whiteConcreteMat, false);
+            AddBox(uComplex.transform, "U_Courtyard_Lawn", new Vector3(-2.5f, 0.02f, 0f), new Vector3(16.0f, 0.05f, 16.0f), grassExtMat, false);
+            AddLabel(ctrl, "Complejo de Pabellones y Claustro Sur (Sector Jr. Ancash)", new Vector3(-32.0f, 12.2f, -32.0f));
+
+            // 4D. Pabellon con Portico de Piedra/Concreto y Auditorio detras del Mural de Caral (Fotos 1, 2 y 5)
             GameObject rightAudit = new GameObject("Auditorio_Y_Pabellon_Derecho");
             rightAudit.transform.SetParent(campus.transform, false);
-            // Nave del auditorio detras del gran mural de Caral (z = +19.5 a +46.5, 27 metros de largo)
-            AddBox(rightAudit.transform, "Auditorium_Body", new Vector3(15.5f, 3.8f, 33.0f), new Vector3(18.0f, 7.6f, 26.8f), whiteConcreteMat, false);
+            // Edificio con portico gris y ventanales que se ve detras de la reja derecha del Portico Principal (Fotos 2 y 5)
+            AddBox(rightAudit.transform, "RightPortal_Building", new Vector3(11.5f, 5.4f, 16.0f), new Vector3(16.0f, 10.8f, 11.5f), whiteConcreteMat, false);
+            AddBox(rightAudit.transform, "RightPortal_Glass", new Vector3(19.55f, 5.4f, 16.0f), new Vector3(0.14f, 8.8f, 9.5f), glassReflectMat, false);
+            AddBox(rightAudit.transform, "RightPortal_ArchFrame", new Vector3(20.8f, 4.8f, 12.5f), new Vector3(2.4f, 9.6f, 4.2f), slateMat, false);
+
+            // Nave del Auditorio con techo a dos aguas detras del gran Mural de Caral (z = +20.0 a +45.8, justo en la esquina de Av. Luzuriaga)
+            AddBox(rightAudit.transform, "Auditorium_Body", new Vector3(15.5f, 3.8f, 33.0f), new Vector3(17.5f, 7.6f, 25.5f), whiteConcreteMat, false);
             Material roofBeigeMat = CreatePbrMat("AuditoriumRoof", new Color(0.78f, 0.72f, 0.66f), 0.15f, 0.35f);
-            AddBox(rightAudit.transform, "GableRoof_Slope1", new Vector3(15.5f, 8.35f, 26.4f), new Vector3(18.4f, 0.24f, 13.8f), roofBeigeMat, false)
+            AddBox(rightAudit.transform, "GableRoof_Slope1", new Vector3(15.5f, 8.35f, 26.6f), new Vector3(18.0f, 0.24f, 13.2f), roofBeigeMat, false)
                 .transform.localEulerAngles = new Vector3(11f, 0f, 0f);
-            AddBox(rightAudit.transform, "GableRoof_Slope2", new Vector3(15.5f, 8.35f, 39.6f), new Vector3(18.4f, 0.24f, 13.8f), roofBeigeMat, false)
+            AddBox(rightAudit.transform, "GableRoof_Slope2", new Vector3(15.5f, 8.35f, 39.4f), new Vector3(18.0f, 0.24f, 13.2f), roofBeigeMat, false)
                 .transform.localEulerAngles = new Vector3(-11f, 0f, 0f);
 
-            // Pabellon moderno derecho de 4 pisos (visible al fondo en las Fotos 1, 2 y 5)
-            AddBox(rightAudit.transform, "ModernRight_Building", new Vector3(2.5f, 7.8f, 28.0f), new Vector3(14.5f, 15.6f, 24.0f), whiteConcreteMat, false);
-            AddBox(rightAudit.transform, "ModernRight_Glass", new Vector3(9.85f, 7.8f, 28.0f), new Vector3(0.16f, 13.2f, 21.5f), glassReflectMat, false);
+            // 4E. Gran Edificio Blanco de 5 Pisos en la Esquina de Av. Toribio de Luzuriaga (Derecha de Foto 5 "UNAB MODERNA" y Satelite)
+            AddBox(rightAudit.transform, "Corner5Story_Building", new Vector3(-3.5f, 8.8f, 33.5f), new Vector3(16.5f, 17.6f, 22.0f), whiteConcreteMat, false);
+            AddBox(rightAudit.transform, "Corner5Story_GlassEast", new Vector3(4.82f, 8.8f, 33.5f), new Vector3(0.16f, 14.8f, 19.5f), glassReflectMat, false);
+            AddBox(rightAudit.transform, "Corner5Story_GlassNorth", new Vector3(-3.5f, 8.8f, 44.58f), new Vector3(14.0f, 14.8f, 0.16f), glassReflectMat, false);
+            AddLabel(ctrl, "Pabellon de Aulas y Laboratorios (5 Pisos - Esquina Av. Luzuriaga)", new Vector3(-3.5f, 18.5f, 33.5f));
 
-            // 5. EL GRAN PORTICO PRINCIPAL DE INGRESO MONUMENTAL (23m DE ANCHO X 8.6m DE ALTO - FOTOS 2, 3 Y 4)
+            // 4F. Los 3 Pabellones Paralelos de Techos Rojos + Losa Deportiva Multiusos sobre Av. Toribio de Luzuriaga (Mapa Satelital Google Maps)
+            GameObject northSector = new GameObject("Sector_AvLuzuriaga_Pabellones_Y_LosaDeportiva");
+            northSector.transform.SetParent(campus.transform, false);
+            float[] redPavX = { -19.0f, -31.5f, -44.0f };
+            for (int rp = 0; rp < redPavX.Length; rp++)
+            {
+                float px = redPavX[rp];
+                AddBox(northSector.transform, $"RedPavilion_{rp}_Body", new Vector3(px, 4.2f, 14.0f), new Vector3(8.2f, 8.4f, 24.0f), whiteConcreteMat, false);
+                AddBox(northSector.transform, $"RedPavilion_{rp}_Roof", new Vector3(px, 8.65f, 14.0f), new Vector3(8.8f, 0.55f, 24.6f), terracottaRoofMat, false);
+            }
+            // Losa Deportiva Multiusos (Cancha verde/azul con lineas blancas en la esquina Norte de Av. Luzuriaga - Vista Satelite)
+            AddBox(northSector.transform, "SportsCourt_OuterGreen", new Vector3(-31.5f, 0.03f, 36.5f), new Vector3(32.0f, 0.06f, 17.5f), courtGreenMat, false);
+            AddBox(northSector.transform, "SportsCourt_InnerBlue", new Vector3(-31.5f, 0.05f, 36.5f), new Vector3(26.0f, 0.06f, 13.5f), courtBlueMat, false);
+            AddBox(northSector.transform, "SportsCourt_CenterLine", new Vector3(-31.5f, 0.085f, 36.5f), new Vector3(0.18f, 0.02f, 13.5f), whiteConcreteMat, false);
+            AddLabel(ctrl, "Losa Deportiva y Pabellones Sector Av. Luzuriaga", new Vector3(-31.5f, 5.5f, 36.5f));
+
+            // ========================================================================================================
+            // 5. EL GRAN PORTICO PRINCIPAL DE INGRESO MONUMENTAL (23.2m DE ANCHO X 8.6m DE ALTO - FOTOS 2, 3 Y 4)
+            // ========================================================================================================
             GameObject portico = new GameObject("Portico_Principal_UNAB");
             portico.transform.SetParent(campus.transform, false);
             portico.transform.localPosition = new Vector3(25.0f, 0f, 0f);
 
-            // Pilares trapezoidales inclinados gigantes en piedra laja negra a izquierda (z=-10.2) y derecha (z=+10.2)
             AddBox(portico.transform, "Pilar_Izquierdo_Base", new Vector3(0f, 0.24f, -10.35f), new Vector3(2.45f, 0.48f, 2.55f), yellowCurbMat, false);
             GameObject pilarIzq = AddBox(portico.transform, "Pilar_Izquierdo_Piedra", new Vector3(0f, 4.25f, -10.15f), new Vector3(2.20f, 8.20f, 2.10f), slatePillarMat, false);
             pilarIzq.transform.localEulerAngles = new Vector3(-7.5f, 0f, 0f);
@@ -615,22 +742,17 @@ namespace UNAB.Transporte3D.EditorTools
             GameObject pilarDer = AddBox(portico.transform, "Pilar_Derecho_Piedra", new Vector3(0f, 4.25f, 10.15f), new Vector3(2.20f, 8.20f, 2.10f), slatePillarMat, false);
             pilarDer.transform.localEulerAngles = new Vector3(7.5f, 0f, 0f);
 
-            // Viga superior monumental revestida en piedra laja negra (23.2m de largo x 2.15m de alto)
             AddBox(portico.transform, "Viga_Superior_Piedra", new Vector3(0f, 7.55f, 0f), new Vector3(2.25f, 2.15f, 23.2f), slateMat, false);
-            // Plafon blanco inferior con dicroicos LED empotrados (Fotos 2 y 3)
             AddBox(portico.transform, "Plafon_Blanco_Soffit", new Vector3(0f, 6.46f, 0f), new Vector3(2.12f, 0.06f, 19.2f), whiteConcreteMat, false);
             for (float lz = -7.8f; lz <= 7.8f; lz += 2.6f)
             {
                 AddCylinder(portico.transform, "Downlight_LED", new Vector3(0f, 6.42f, lz), new Vector3(0.26f, 0.015f, 0.26f), warmLightMat, false);
             }
 
-            // Friso frontal gigante con letras doradas "UNIVERSIDAD NACIONAL DE BARRANCA" y Escudo 3D UNAB (21.6m x 2.04m)
             AddQuad(portico.transform, "Friso_Letras_UNAB", new Vector3(1.14f, 7.55f, 0f), new Vector3(21.6f, 2.04f, 1f), new Vector3(0f, -90f, 0f), porticoHdrMat);
-            // Volumen 3D adicional para el Escudo de la UNAB a la derecha del friso
             AddBox(portico.transform, "Escudo_UNAB_3D_Box", new Vector3(1.18f, 7.55f, 8.12f), new Vector3(0.16f, 1.35f, 0.30f), cyanAccentMat, false);
             AddBox(portico.transform, "Escudo_UNAB_3D_Main", new Vector3(1.16f, 7.55f, 8.62f), new Vector3(0.14f, 1.35f, 0.72f), towerBlueMat, false);
 
-            // 2 Reflectores LED superiores con brazo metalico sobre la viga (Fotos 2 y 3)
             float[] floodZ = { -4.6f, 4.6f };
             foreach (float fz in floodZ)
             {
@@ -640,7 +762,6 @@ namespace UNAB.Transporte3D.EditorTools
                 AddBox(portico.transform, "Floodlight_Lamp", new Vector3(1.38f, 9.60f, fz), new Vector3(0.28f, 0.09f, 0.44f), warmLightMat, false);
             }
 
-            // Muro amarillo central con jardinera y arbustos + Rejas metalicas grises de 4.0m de alto
             AddBox(portico.transform, "Central_YellowWall", new Vector3(0f, 1.80f, 0f), new Vector3(0.38f, 3.60f, 3.40f), ochreWallMat, false);
             AddBox(portico.transform, "Central_PlanterBox", new Vector3(0.55f, 0.32f, 0f), new Vector3(0.82f, 0.64f, 3.48f), yellowCurbMat, false);
             for (int b = -1; b <= 1; b++)
@@ -648,7 +769,9 @@ namespace UNAB.Transporte3D.EditorTools
                 AddSphere(portico.transform, "Planter_Bush", new Vector3(0.60f, 1.05f, b * 0.95f), new Vector3(1.05f, 1.15f, 1.05f), foliageMat);
             }
 
-            // Funcion auxiliar para construir panos de reja metalica gris de 4.0m de alto con barrotes verticales
+            // Caseta azul/blanca de vigilancia en el ingreso izquierdo (Foto 1)
+            AddBox(portico.transform, "Security_BlueTotem", new Vector3(1.45f, 1.35f, -9.0f), new Vector3(0.35f, 2.70f, 1.15f), cyanAccentMat, false);
+
             void BuildFencePanel(Transform parent, Vector3 pos, float widthZ, float heightY = 4.0f, float rotY = 0f)
             {
                 GameObject fp = new GameObject("Fence_Panel");
@@ -667,13 +790,11 @@ namespace UNAB.Transporte3D.EditorTools
                 }
             }
 
-            // Rejas laterales fijas y hojas abiertas de 3.2m hacia el interior para paso amplio
             BuildFencePanel(portico.transform, new Vector3(0f, 0f, -7.45f), 3.5f, 4.0f);
             BuildFencePanel(portico.transform, new Vector3(0f, 0f, 7.45f), 3.5f, 4.0f);
             BuildFencePanel(portico.transform, new Vector3(-1.55f, 0f, -5.55f), 3.1f, 4.0f, 82f);
             BuildFencePanel(portico.transform, new Vector3(-1.55f, 0f, 5.55f), 3.1f, 4.0f, -82f);
 
-            // Vallas amarillas de control peatonal en los extremos (Foto 2)
             float[] barrierZ = { -7.5f, 7.5f };
             foreach (float bz in barrierZ)
             {
@@ -686,47 +807,66 @@ namespace UNAB.Transporte3D.EditorTools
             TagInteractable(portico, "portico_unab");
             AddLabel(ctrl, "Portico Principal - Universidad Nacional de Barranca", new Vector3(26.2f, 8.95f, 0f));
 
-            // 6. MURO PERIMETRICO MONUMENTAL CON LOS 4 RELIEVES Y EL GIGANTESCO MURAL DE CARAL (43 METROS DE LARGO - FOTO 1)
-            GameObject caralWall = new GameObject("Muro_Monumental_Caral");
+            // ========================================================================================================
+            // 6. CERCO PERIMETRICO COMPLETO DE LA MANZANA UNAB + ESQUINA REAL EN 90 GRADOS DEL MURAL DE CARAL
+            //    (Tal cual aparece en Google Street View panoid Za1qsJBvqcrTZVwSjdS6Kw en Av. Toribio de Luzuriaga)
+            // ========================================================================================================
+            GameObject caralWall = new GameObject("Muro_Monumental_Caral_Y_Cerco_UNAB");
             caralWall.transform.SetParent(campus.transform, false);
             caralWall.transform.localPosition = new Vector3(25.0f, 0f, 0f);
 
-            // Tramo 1 (z = +11.6 a +19.6, 8.0m de largo x 4.8m de alto): Muro de los 4 paneles verticales con relieves de Caral
+            // Tramo 1 Frontal (z = +11.6 a +19.6, 8.0m de largo x 4.8m de alto): 4 paneles verticales con relieves de Caral
             AddBox(caralWall.transform, "Wall_Relieves_Body", new Vector3(0f, 2.40f, 15.6f), new Vector3(0.45f, 4.80f, 8.0f), beigeWallMat, false);
             AddQuad(caralWall.transform, "Quad_4_Relieves_Caral", new Vector3(0.25f, 2.40f, 15.6f), new Vector3(7.5f, 4.20f, 1f), new Vector3(0f, -90f, 0f), caralRelievesMat);
 
-            // Tramo 2 (z = +19.6 a +46.6, ¡27 METROS de largo x 7.8 METROS de alto!): Gran Mural de la Ciudad Sagrada de Caral
+            // Tramo 2 Frontal (z = +19.6 a +46.6, ¡27 METROS de largo x 7.8 METROS de alto llegando hasta la esquina de Av. Luzuriaga!)
             AddBox(caralWall.transform, "Wall_CaralMural_Body", new Vector3(0f, 3.90f, 33.1f), new Vector3(0.55f, 7.80f, 27.0f), beigeWallMat, false);
-            AddQuad(caralWall.transform, "Quad_Mural_Ciudad_Sagrada_Caral", new Vector3(0.30f, 3.95f, 33.1f), new Vector3(26.4f, 7.35f, 1f), new Vector3(0f, -90f, 0f), caralMuralMat);
+            AddBox(caralWall.transform, "Wall_CaralMural_Plinth", new Vector3(0.06f, 0.25f, 33.1f), new Vector3(0.58f, 0.50f, 27.0f), plinthBrownMat, false);
+            AddQuad(caralWall.transform, "Quad_Mural_Ciudad_Sagrada_Caral", new Vector3(0.30f, 4.05f, 33.1f), new Vector3(26.6f, 7.30f, 1f), new Vector3(0f, -90f, 0f), caralMuralMat);
 
-            // Tramo 3 (z = +46.6 a +55.0, 8.4m de largo x 4.8m de alto): Muro con la inscripcion "CARAL Primera Civilizacion de America"
-            AddBox(caralWall.transform, "Wall_CaralText_Body", new Vector3(0f, 2.40f, 50.8f), new Vector3(0.45f, 4.80f, 8.4f), beigeWallMat, false);
-            AddQuad(caralWall.transform, "Quad_Placa_Texto_Caral", new Vector3(0.25f, 2.30f, 50.6f), new Vector3(7.6f, 3.85f, 1f), new Vector3(0f, -90f, 0f), caralPlacaMat);
+            // ¡EL QUIEBRE REAL DE 90 GRADOS EN LA ESQUINA DE AV. TORIBIO DE LUZURIAGA (z = +46.6, corriendo hacia -X)!
+            // Tal como se ve en el Street View: al doblar la esquina hacia Av. Luzuriaga esta la pared con
+            // "CARAL Primera Civilizacion de America - Barranca Peru" + 4 relieves + Porton Metalico de Av. Luzuriaga
+            AddBox(caralWall.transform, "CornerLuzuriaga_CaralWall", new Vector3(-6.2f, 2.40f, 46.55f), new Vector3(12.4f, 4.80f, 0.45f), beigeWallMat, false);
+            AddQuad(caralWall.transform, "Quad_Esquina_AvLuzuriaga_Caral", new Vector3(-6.2f, 2.40f, 46.80f), new Vector3(12.0f, 4.65f, 1f), new Vector3(0f, 180f, 0f), caralEsquinaMat);
+            // Porton metalico secundario de Av. Toribio de Luzuriaga (visto en Street View al costado de los relieves)
+            BuildFencePanel(caralWall.transform, new Vector3(-16.2f, 0f, 46.55f), 7.5f, 4.2f, 90f);
+            // Continuacion del cerco perimetrico norte a lo largo de toda la Av. Toribio de Luzuriaga (hasta x = -58)
+            AddBox(caralWall.transform, "NorthWall_AvLuzuriaga", new Vector3(-51.5f, 2.0f, 46.55f), new Vector3(63.0f, 4.0f, 0.40f), ochreWallMat, false);
 
-            // Muro perimetrico izquierdo con rejas altas (z = -11.6 a -44.0, 32.4m de largo)
-            AddBox(caralWall.transform, "Wall_LeftPerimeter_Low", new Vector3(0f, 0.85f, -27.8f), new Vector3(0.42f, 1.70f, 32.4f), ochreWallMat, false);
-            BuildFencePanel(caralWall.transform, new Vector3(0f, 1.5f, -19.5f), 14.5f, 3.2f);
-            BuildFencePanel(caralWall.transform, new Vector3(0f, 1.5f, -35.5f), 14.5f, 3.2f);
+            // Tramo Izquierdo Frontal hacia Jr. Ancash (z = -11.6 a -58.0, 46.4m de largo con rejas y muro amarillo con paneles blancos - Foto 5)
+            AddBox(caralWall.transform, "Wall_LeftFence_Base", new Vector3(0f, 0.75f, -19.0f), new Vector3(0.42f, 1.50f, 14.8f), ochreWallMat, false);
+            BuildFencePanel(caralWall.transform, new Vector3(0f, 1.4f, -19.0f), 14.4f, 3.1f);
+            AddBox(caralWall.transform, "Wall_LeftOchre_To_JrAncash", new Vector3(0f, 2.10f, -42.2f), new Vector3(0.42f, 4.20f, 31.6f), ochreWallMat, false);
+            for (float pz = -28.0f; pz >= -56.0f; pz -= 5.6f)
+            {
+                AddBox(caralWall.transform, "Wall_Pilaster_White", new Vector3(0.04f, 2.15f, pz), new Vector3(0.48f, 4.30f, 0.45f), whiteConcreteMat, false);
+            }
+            // Cerco perimetrico Sur a lo largo de Jr. Ancash (z = -58.0) y Oeste (x = -58.0)
+            AddBox(caralWall.transform, "SouthWall_JrAncash", new Vector3(-41.5f, 2.0f, -58.0f), new Vector3(83.0f, 4.0f, 0.40f), ochreWallMat, false);
+            AddBox(caralWall.transform, "WestWall_Perimeter", new Vector3(-83.0f, 2.0f, -5.7f), new Vector3(0.40f, 4.0f, 104.6f), ochreWallMat, false);
 
             TagInteractable(caralWall, "portico_unab");
-            AddLabel(ctrl, "Mural Monumental Ciudad Sagrada de Caral (27m)", new Vector3(25.8f, 8.15f, 33.1f));
+            AddLabel(ctrl, "Mural Monumental Ciudad Sagrada de Caral (Esquina Av. Luzuriaga)", new Vector3(25.8f, 8.15f, 33.1f));
 
-            // Arboles ornamentales en alcorques de sardinel amarillo y postes de luz curvados altos en la vereda (Foto 1)
-            float[] treeZ = { -14.5f, 13.5f, 38.5f };
+            // ========================================================================================================
+            // 7. ARBOLES EN ALCORQUES AMARILLOS, POSTES CURVADOS, MOTOTAXIS DE BARRANCA Y BUS INSTITUCIONAL UNAB
+            // ========================================================================================================
+            float[] treeZ = { -42.0f, -28.0f, -14.5f, 13.5f, 38.5f };
             foreach (float tz in treeZ)
             {
                 GameObject treePit = new GameObject($"Sidewalk_Tree_{tz}");
                 treePit.transform.SetParent(campus.transform, false);
                 treePit.transform.localPosition = new Vector3(28.1f, 0.06f, tz);
-                AddBox(treePit.transform, "YellowCurbPit", new Vector3(0f, 0.08f, 0f), new Vector3(1.65f, 0.18f, 2.15f), yellowCurbMat, false);
-                AddBox(treePit.transform, "Soil", new Vector3(0f, 0.10f, 0f), new Vector3(1.38f, 0.19f, 1.88f), trunkMat, false);
+                AddBox(treePit.transform, "YellowCurbPit", new Vector3(0f, 0.08f, 0f), new Vector3(1.65f, 0.18f, 2.25f), yellowCurbMat, false);
+                AddBox(treePit.transform, "Soil", new Vector3(0f, 0.10f, 0f), new Vector3(1.38f, 0.19f, 1.95f), trunkMat, false);
                 AddCylinder(treePit.transform, "Trunk", new Vector3(0f, 1.65f, 0f), new Vector3(0.24f, 1.55f, 0.24f), trunkMat, false);
                 AddSphere(treePit.transform, "Canopy_Main", new Vector3(0f, 3.45f, 0f), new Vector3(2.45f, 2.10f, 2.45f), foliageMat);
                 AddSphere(treePit.transform, "Canopy_Sub1", new Vector3(0.55f, 3.15f, 0.55f), new Vector3(1.75f, 1.65f, 1.75f), foliageMat);
                 AddSphere(treePit.transform, "Canopy_Sub2", new Vector3(-0.55f, 3.20f, -0.45f), new Vector3(1.85f, 1.65f, 1.85f), foliageMat);
             }
 
-            float[] poleZ = { -17.5f, 18.0f, 41.5f };
+            float[] poleZ = { -35.0f, -17.5f, 18.0f, 41.5f };
             foreach (float pz in poleZ)
             {
                 GameObject pole = new GameObject($"StreetLamp_{pz}");
@@ -738,8 +878,36 @@ namespace UNAB.Transporte3D.EditorTools
                 AddBox(pole.transform, "LED_Luminaria", new Vector3(1.72f, 7.90f, 0f), new Vector3(0.68f, 0.10f, 0.34f), warmLightMat, false);
             }
 
-            // 7. EL BUS INSTITUCIONAL DE LA UNAB EN 3D ESTACIONADO EN LA AVENIDA (FOTO 5)
-            BuildUNABInstitutionalBus(campus.transform, ctrl, new Vector3(32.2f, 0.01f, 26.5f));
+            // Mototaxis clasicas de Barranca (Azul y Roja) estacionadas cerca de la esquina tal como en tu Street View
+            BuildBarrancaMototaxi(campus.transform, new Vector3(30.8f, 0.01f, 41.2f), 180f, new Color(0.05f, 0.32f, 0.78f));
+            BuildBarrancaMototaxi(campus.transform, new Vector3(30.8f, 0.01f, 36.8f), 180f, new Color(0.82f, 0.12f, 0.12f));
+
+            // El Bus Institucional de la UNAB #03 estacionado en la avenida frente al Mural de Caral (Foto 5)
+            BuildUNABInstitutionalBus(campus.transform, ctrl, new Vector3(32.2f, 0.01f, 24.5f));
+        }
+
+        private static void BuildBarrancaMototaxi(Transform parent, Vector3 pos, float rotY, Color bodyColor)
+        {
+            GameObject moto = new GameObject("Mototaxi_Barranca");
+            moto.transform.SetParent(parent, false);
+            moto.transform.localPosition = pos;
+            moto.transform.localEulerAngles = new Vector3(0f, rotY, 0f);
+
+            Material bodyMat = CreatePbrMat("MotoBody", bodyColor, 0.25f, 0.65f);
+            Material tarpMat = CreatePbrMat("MotoTarpWhite", new Color(0.94f, 0.95f, 0.97f), 0.05f, 0.4f);
+            Material darkMat = CreatePbrMat("MotoDark", new Color(0.10f, 0.11f, 0.13f), 0.2f, 0.4f);
+            Material glassMat = CreatePbrMat("MotoWindshield", new Color(0.55f, 0.80f, 0.95f, 0.7f), 0.7f, 0.9f, null, null, true);
+
+            AddBox(moto.transform, "Cabin_Lower", new Vector3(0f, 0.62f, -0.35f), new Vector3(1.28f, 0.68f, 1.35f), bodyMat, false);
+            AddBox(moto.transform, "Cabin_Roof", new Vector3(0f, 1.56f, -0.20f), new Vector3(1.30f, 0.10f, 1.75f), tarpMat, false);
+            AddBox(moto.transform, "Front_Nose", new Vector3(0f, 0.65f, 0.55f), new Vector3(0.72f, 0.62f, 0.55f), bodyMat, false);
+            AddBox(moto.transform, "Windshield", new Vector3(0f, 1.22f, 0.52f), new Vector3(1.12f, 0.58f, 0.05f), glassMat, false);
+            AddCylinder(moto.transform, "Wheel_Front", new Vector3(0f, 0.26f, 0.92f), new Vector3(0.52f, 0.08f, 0.52f), darkMat, false)
+                .transform.localEulerAngles = new Vector3(0f, 0f, 90f);
+            AddCylinder(moto.transform, "Wheel_RL", new Vector3(-0.62f, 0.26f, -0.65f), new Vector3(0.52f, 0.08f, 0.52f), darkMat, false)
+                .transform.localEulerAngles = new Vector3(0f, 0f, 90f);
+            AddCylinder(moto.transform, "Wheel_RR", new Vector3(0.62f, 0.26f, -0.65f), new Vector3(0.52f, 0.08f, 0.52f), darkMat, false)
+                .transform.localEulerAngles = new Vector3(0f, 0f, 90f);
         }
 
         private static void BuildUNABInstitutionalBus(Transform parent, UNABSceneController ctrl, Vector3 pos)
