@@ -12,10 +12,20 @@ namespace UNAB.Transporte3D
         {
             get
             {
-                if (_instance == null) _instance = UnityEngine.Object.FindFirstObjectByType<UNABHudAndConsoleUI>();
+                if (_instance == null || !_instance) _instance = UnityEngine.Object.FindFirstObjectByType<UNABHudAndConsoleUI>();
                 return _instance;
             }
             private set => _instance = value;
+        }
+
+        private void OnDisable()
+        {
+            if (_instance == this) _instance = null;
+        }
+
+        private void OnDestroy()
+        {
+            if (_instance == this) _instance = null;
         }
 
         private Texture2D logoTex;
@@ -239,8 +249,13 @@ namespace UNAB.Transporte3D
         private void OnGUI()
         {
             InitStyles();
-            var ctrl = UNABSceneController.Instance ?? GetComponent<UNABSceneController>() ?? UnityEngine.Object.FindFirstObjectByType<UNABSceneController>();
-            var sim = UNABNetworkSimulator.Instance ?? GetComponent<UNABNetworkSimulator>() ?? UnityEngine.Object.FindFirstObjectByType<UNABNetworkSimulator>();
+            UNABSceneController ctrl = UNABSceneController.Instance;
+            if (ctrl == null || !ctrl) ctrl = GetComponent<UNABSceneController>();
+            if (ctrl == null || !ctrl) ctrl = UnityEngine.Object.FindFirstObjectByType<UNABSceneController>();
+
+            UNABNetworkSimulator sim = UNABNetworkSimulator.Instance;
+            if (sim == null || !sim) sim = GetComponent<UNABNetworkSimulator>();
+            if (sim == null || !sim) sim = UnityEngine.Object.FindFirstObjectByType<UNABNetworkSimulator>();
             if (ctrl == null || sim == null) return;
 
             // 1. ETIQUETAS FLOTANTES 3D (Con filtro de pared en Modo Caminata y capsulas nitidas)

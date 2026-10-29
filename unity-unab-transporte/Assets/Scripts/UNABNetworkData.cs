@@ -105,10 +105,20 @@ namespace UNAB.Transporte3D
         {
             get
             {
-                if (_instance == null) _instance = UnityEngine.Object.FindFirstObjectByType<UNABNetworkSimulator>();
+                if (_instance == null || !_instance) _instance = UnityEngine.Object.FindFirstObjectByType<UNABNetworkSimulator>();
                 return _instance;
             }
             private set => _instance = value;
+        }
+
+        private void OnDisable()
+        {
+            if (_instance == this) _instance = null;
+        }
+
+        private void OnDestroy()
+        {
+            if (_instance == this) _instance = null;
         }
 
         public Dictionary<string, EquipmentInfo> EquipmentDB = new Dictionary<string, EquipmentInfo>();
