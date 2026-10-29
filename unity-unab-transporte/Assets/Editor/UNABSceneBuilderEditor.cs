@@ -495,6 +495,7 @@ namespace UNAB.Transporte3D.EditorTools
             Material caralPlacaMat = CreatePbrMat("UNAB_CaralPlaca", Color.white, 0.05f, 0.32f, caralPlacaTex);
             Material caralEsquinaMat = CreatePbrMat("UNAB_CaralEsquinaLuzuriaga", Color.white, 0.04f, 0.30f, caralEsquinaLuzTex);
             Material whiteBrickMat = CreatePbrMat("StreetView_WhiteBrick", Color.white, 0.02f, 0.22f, brickWallWhiteTex, new Vector2(8f, 2f));
+            Material silverMat = CreatePbrMat("SilverSteel", new Color(0.75f, 0.78f, 0.82f), 0.85f, 0.75f);
 
             Material grassExtMat = CreatePbrMat("CampusGrassExt", new Color(0.35f, 0.58f, 0.12f), 0f, 0.15f);
             Material urbanSandMat = CreatePbrMat("BarrancaUrbanGround", new Color(0.76f, 0.72f, 0.65f), 0.02f, 0.18f);
@@ -1316,6 +1317,7 @@ namespace UNAB.Transporte3D.EditorTools
             Material soilMat = CreatePbrMat("DarkSoil", new Color(0.18f, 0.13f, 0.09f), 0f, 0.15f);
             Material leafGreenMat = CreatePbrMat("LeafGreen", new Color(0.14f, 0.46f, 0.17f), 0.05f, 0.48f);
             Material chartMat = CreatePbrMat("PrintedChart", Color.white, 0f, 0.55f, MakePrintedChartTex());
+            Material silverMat = CreatePbrMat("SilverAluminum", new Color(0.75f, 0.78f, 0.82f), 0.85f, 0.75f);
 
             void BuildDesk(float x, float zThree, float rotY, string key, string labelText, Material mainScrMat, Material auxScrMat)
             {
