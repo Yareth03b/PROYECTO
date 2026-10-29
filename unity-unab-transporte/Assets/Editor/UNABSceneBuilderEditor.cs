@@ -2013,9 +2013,9 @@ namespace UNAB.Transporte3D.EditorTools
             playerRoot.transform.localPosition = new Vector3(36.5f, 0f, 3.5f);
 
             GameObject visuals = new GameObject("AvatarVisuals");
-            visuals.transform.SetParent(playerRoot.transform);
+            visuals.transform.SetParent(playerRoot.transform, false);
             visuals.transform.localPosition = Vector3.zero;
-            visuals.transform.localEulerAngles = new Vector3(0f, -90f, 0f);
+            visuals.transform.localEulerAngles = Vector3.zero;
 
             // Materiales PBR estilo Genshin / Anime de Pablo Cientifico
             Material pabloBlueMat = CreatePbrMat("PabloBlueSkin", new Color(0.18f, 0.48f, 0.98f), 0.01f, 0.50f);
@@ -2036,7 +2036,7 @@ namespace UNAB.Transporte3D.EditorTools
 
             // 1. PIERNAS Y PATITAS DE PINGUINO (Tobillos amarillos con 3 deditos azules cada uno)
             GameObject leftLegPivot = new GameObject("LeftLegPivot");
-            leftLegPivot.transform.SetParent(visuals.transform);
+            leftLegPivot.transform.SetParent(visuals.transform, false);
             leftLegPivot.transform.localPosition = new Vector3(-0.13f, 0.26f, 0f);
             AddCylinder(leftLegPivot.transform, "Ankle_L", new Vector3(0f, -0.06f, 0f), new Vector3(0.10f, 0.08f, 0.10f), pabloYellowMat, false);
             AddBox(leftLegPivot.transform, "FootBase_L", new Vector3(0f, -0.15f, 0.035f), new Vector3(0.15f, 0.042f, 0.16f), pabloYellowMat, false);
@@ -2045,7 +2045,7 @@ namespace UNAB.Transporte3D.EditorTools
             AddSphere(leftLegPivot.transform, "Toe3_L", new Vector3(0.048f, -0.15f, 0.12f), new Vector3(0.052f, 0.040f, 0.068f), pabloBlueMat);
 
             GameObject rightLegPivot = new GameObject("RightLegPivot");
-            rightLegPivot.transform.SetParent(visuals.transform);
+            rightLegPivot.transform.SetParent(visuals.transform, false);
             rightLegPivot.transform.localPosition = new Vector3(0.13f, 0.26f, 0f);
             AddCylinder(rightLegPivot.transform, "Ankle_R", new Vector3(0f, -0.06f, 0f), new Vector3(0.10f, 0.08f, 0.10f), pabloYellowMat, false);
             AddBox(rightLegPivot.transform, "FootBase_R", new Vector3(0f, -0.15f, 0.035f), new Vector3(0.15f, 0.042f, 0.16f), pabloYellowMat, false);
@@ -2058,9 +2058,9 @@ namespace UNAB.Transporte3D.EditorTools
             AddBox(visuals.transform, "Belt", new Vector3(0f, 0.42f, 0f), new Vector3(0.39f, 0.04f, 0.33f), glassesFrameMat, false);
             AddBox(visuals.transform, "Buckle", new Vector3(0f, 0.42f, 0.17f), new Vector3(0.07f, 0.05f, 0.02f), goldBuckleMat, false);
 
-            // 3. TORSO: CUERPO REDONDO + BATA BLANCA DE LABORATORIO + CHALECO + CORBATITA MICHI ROJA
+            // 3. TORSO: CUERPO REDONDO + BATA BLANCA DE LABORATORIO SUAVE Y REDONDEADA
             AddSphere(visuals.transform, "LabCoat_Body", new Vector3(0f, 0.58f, 0f), new Vector3(0.48f, 0.44f, 0.42f), labCoatWhiteMat);
-            AddBox(visuals.transform, "LabCoat_Skirt", new Vector3(0f, 0.42f, 0f), new Vector3(0.46f, 0.20f, 0.40f), labCoatWhiteMat, false);
+            AddSphere(visuals.transform, "LabCoat_SkirtRound", new Vector3(0f, 0.44f, 0f), new Vector3(0.46f, 0.28f, 0.40f), labCoatWhiteMat);
             // Chaleco beige y camisa blanca visibles por la apertura de la bata
             AddBox(visuals.transform, "Vest_Inside", new Vector3(0f, 0.58f, 0.18f), new Vector3(0.24f, 0.32f, 0.05f), vestBrownMat, false);
             AddBox(visuals.transform, "Shirt_Chest", new Vector3(0f, 0.65f, 0.19f), new Vector3(0.12f, 0.18f, 0.05f), shirtWhiteMat, false);
@@ -2079,29 +2079,30 @@ namespace UNAB.Transporte3D.EditorTools
             AddBox(visuals.transform, "Bowtie_WingL", new Vector3(-0.06f, 0.74f, 0.20f), new Vector3(0.08f, 0.055f, 0.02f), bowtieRedMat, false).transform.localEulerAngles = new Vector3(0f, 0f, 14f);
             AddBox(visuals.transform, "Bowtie_WingR", new Vector3(0.06f, 0.74f, 0.20f), new Vector3(0.08f, 0.055f, 0.02f), bowtieRedMat, false).transform.localEulerAngles = new Vector3(0f, 0f, -14f);
 
-            // 4. BRAZOS / ALITAS DE PINGUINO (Mangas blancas + alitas azules)
+            // 4. BRAZOS / ALITAS DE PINGUINO (Mangas blancas + alitas azules redondeadas)
             GameObject leftArmPivot = new GameObject("LeftArmPivot");
-            leftArmPivot.transform.SetParent(visuals.transform);
+            leftArmPivot.transform.SetParent(visuals.transform, false);
             leftArmPivot.transform.localPosition = new Vector3(-0.27f, 0.68f, 0f);
             AddCylinder(leftArmPivot.transform, "Sleeve_L", new Vector3(0f, -0.09f, 0f), new Vector3(0.12f, 0.10f, 0.12f), labCoatWhiteMat, false);
-            AddBox(leftArmPivot.transform, "Flipper_Hand_L", new Vector3(0f, -0.22f, 0.02f), new Vector3(0.08f, 0.18f, 0.13f), pabloBlueMat, false);
+            AddSphere(leftArmPivot.transform, "Flipper_Hand_L", new Vector3(0f, -0.22f, 0.02f), new Vector3(0.09f, 0.20f, 0.14f), pabloBlueMat);
 
             GameObject rightArmPivot = new GameObject("RightArmPivot");
-            rightArmPivot.transform.SetParent(visuals.transform);
+            rightArmPivot.transform.SetParent(visuals.transform, false);
             rightArmPivot.transform.localPosition = new Vector3(0.27f, 0.68f, 0f);
             AddCylinder(rightArmPivot.transform, "Sleeve_R", new Vector3(0f, -0.09f, 0f), new Vector3(0.12f, 0.10f, 0.12f), labCoatWhiteMat, false);
-            AddBox(rightArmPivot.transform, "Flipper_Hand_R", new Vector3(0f, -0.22f, 0.02f), new Vector3(0.08f, 0.18f, 0.13f), pabloBlueMat, false);
+            AddSphere(rightArmPivot.transform, "Flipper_Hand_R", new Vector3(0f, -0.22f, 0.02f), new Vector3(0.09f, 0.20f, 0.14f), pabloBlueMat);
 
-            // 5. CABEZA DE PINGUINO AZUL + PICO AMARILLO + OJOS SALTONES + LENTES DE CAREY + GORRITO CON HELICE
+            // 5. CABEZA DE PINGUINO AZUL + PICO AMARILLO + OJOS SALTONES + LENTES DE CAREY + GORRITO CON HELICE (Todo alineado al frente +Z)
             GameObject headPivot = new GameObject("HeadPivot");
-            headPivot.transform.SetParent(visuals.transform);
+            headPivot.transform.SetParent(visuals.transform, false);
             headPivot.transform.localPosition = new Vector3(0f, 0.80f, 0f);
+            headPivot.transform.localEulerAngles = Vector3.zero;
 
-            // Cabeza esferica azul
+            // Cabeza esferica azul suave
             AddSphere(headPivot.transform, "Head_Blue", new Vector3(0f, 0.22f, 0f), new Vector3(0.50f, 0.46f, 0.48f), pabloBlueMat);
-            // Pico amarillo conico/redondeado
-            AddBox(headPivot.transform, "Beak_Base", new Vector3(0f, 0.17f, 0.26f), new Vector3(0.18f, 0.075f, 0.16f), pabloYellowMat, false);
-            AddSphere(headPivot.transform, "Beak_Tip", new Vector3(0f, 0.165f, 0.33f), new Vector3(0.12f, 0.06f, 0.08f), pabloYellowMat);
+            // Pico amarillo redondeado de patito / pinguino
+            AddSphere(headPivot.transform, "Beak_Base", new Vector3(0f, 0.17f, 0.25f), new Vector3(0.18f, 0.09f, 0.18f), pabloYellowMat);
+            AddSphere(headPivot.transform, "Beak_Tip", new Vector3(0f, 0.165f, 0.31f), new Vector3(0.14f, 0.065f, 0.10f), pabloYellowMat);
 
             // Ojos saltones blancos y pupilas negras con destellos brillantes estilo anime
             AddSphere(headPivot.transform, "Eye_L", new Vector3(-0.10f, 0.28f, 0.21f), new Vector3(0.12f, 0.13f, 0.06f), eyeWhiteMat);
