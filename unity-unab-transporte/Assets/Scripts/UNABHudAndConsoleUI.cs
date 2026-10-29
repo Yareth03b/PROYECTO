@@ -4,9 +4,19 @@ using UnityEngine;
 
 namespace UNAB.Transporte3D
 {
+    [ExecuteAlways]
     public class UNABHudAndConsoleUI : MonoBehaviour
     {
-        public static UNABHudAndConsoleUI Instance { get; private set; }
+        private static UNABHudAndConsoleUI _instance;
+        public static UNABHudAndConsoleUI Instance
+        {
+            get
+            {
+                if (_instance == null) _instance = UnityEngine.Object.FindFirstObjectByType<UNABHudAndConsoleUI>();
+                return _instance;
+            }
+            private set => _instance = value;
+        }
 
         private Texture2D logoTex;
 
@@ -45,9 +55,16 @@ namespace UNAB.Transporte3D
         private static readonly Color ColCardBorder = new Color(1f, 1f, 1f, 0.14f);
         private static readonly Color ColTermBg = new Color(0.045f, 0.045f, 0.06f, 1f);
 
+        private void OnEnable()
+        {
+            _instance = this;
+            stylesInitialized = false;
+            if (logoTex == null) logoTex = Resources.Load<Texture2D>("logo-unab");
+        }
+
         private void Awake()
         {
-            Instance = this;
+            _instance = this;
         }
 
         private void Start()
@@ -205,8 +222,8 @@ namespace UNAB.Transporte3D
         private void OnGUI()
         {
             InitStyles();
-            var ctrl = UNABSceneController.Instance;
-            var sim = UNABNetworkSimulator.Instance;
+            var ctrl = UNABSceneController.Instance ?? GetComponent<UNABSceneController>() ?? UnityEngine.Object.FindFirstObjectByType<UNABSceneController>();
+            var sim = UNABNetworkSimulator.Instance ?? GetComponent<UNABNetworkSimulator>() ?? UnityEngine.Object.FindFirstObjectByType<UNABNetworkSimulator>();
             if (ctrl == null || sim == null) return;
 
             // 1. ETIQUETAS FLOTANTES 3D (Con filtro de pared en Modo Caminata y capsulas nitidas)
