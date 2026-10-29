@@ -237,7 +237,7 @@ namespace UNAB.Transporte3D
             string lblFps = ctrl.isFpsMode
                 ? (ctrl.isThirdPerson ? "Caminata: 3ra Persona (V)" : "Caminata: 1ra Persona (V)")
                 : "Modo Caminata (WASD)";
-            string lblViews = "Vistas Rápidas ▾";
+            string lblViews = "Vistas Rapidas";
             string lblCeil = $"Techo: {(ctrl.ceilingVisible ? "ON" : "OFF")}";
             string lblPack = $"Flujo de Datos: {(ctrl.packetsEnabled ? "ON" : "OFF")}";
             string lblWall = $"Vista Muros: {(ctrl.wallsLowered ? "Bajos" : "Normal")}";
@@ -274,7 +274,7 @@ namespace UNAB.Transporte3D
                 GUI.DrawTexture(new Rect(lx + 2f, navRect.y + 10f, 28f, 28f), logoTex, ScaleMode.ScaleToFit);
                 lx += 40f;
             }
-            GUI.Label(new Rect(lx, navRect.y + 8f, 165f, 32f), "ÁREA DE TRANSPORTE", brandTitleStyle);
+            GUI.Label(new Rect(lx, navRect.y + 8f, 165f, 32f), "AREA DE TRANSPORTE", brandTitleStyle);
             lx += 168f;
             DrawSolidLine(new Rect(lx, navRect.y + 13f, 1f, 22f), new Color(1f, 1f, 1f, 0.16f));
 
