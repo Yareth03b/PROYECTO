@@ -39,20 +39,10 @@ namespace UNAB.Transporte3D
         {
             get
             {
-                if (_instance == null || !_instance) _instance = UnityEngine.Object.FindFirstObjectByType<UNABSceneController>();
+                if (_instance == null) _instance = UnityEngine.Object.FindFirstObjectByType<UNABSceneController>();
                 return _instance;
             }
             set => _instance = value;
-        }
-
-        private void OnDisable()
-        {
-            if (_instance == this) _instance = null;
-        }
-
-        private void OnDestroy()
-        {
-            if (_instance == this) _instance = null;
         }
 
         [Header("Scene References")]

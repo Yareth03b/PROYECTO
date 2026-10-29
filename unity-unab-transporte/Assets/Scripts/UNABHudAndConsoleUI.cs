@@ -12,20 +12,10 @@ namespace UNAB.Transporte3D
         {
             get
             {
-                if (_instance == null || !_instance) _instance = UnityEngine.Object.FindFirstObjectByType<UNABHudAndConsoleUI>();
+                if (_instance == null) _instance = UnityEngine.Object.FindFirstObjectByType<UNABHudAndConsoleUI>();
                 return _instance;
             }
             private set => _instance = value;
-        }
-
-        private void OnDisable()
-        {
-            if (_instance == this) _instance = null;
-        }
-
-        private void OnDestroy()
-        {
-            if (_instance == this) _instance = null;
         }
 
         private Texture2D logoTex;
@@ -92,10 +82,7 @@ namespace UNAB.Transporte3D
 
         private void InitStyles()
         {
-            if (btnLabelStyle != null && brandTitleStyle != null && floatingTextStyle != null && badgeTextStyle != null && specLabelStyle != null)
-            {
-                return;
-            }
+            if (stylesInitialized) return;
             stylesInitialized = true;
 
             brandTitleStyle = new GUIStyle
@@ -172,29 +159,15 @@ namespace UNAB.Transporte3D
                 normal = { textColor = new Color(0.92f, 0.94f, 0.96f) }
             };
 
-            try
+            textFieldStyle = new GUIStyle(GUI.skin.textField)
             {
-                var baseStyle = (GUI.skin != null && GUI.skin.textField != null) ? GUI.skin.textField : GUIStyle.none;
-                textFieldStyle = new GUIStyle(baseStyle)
-                {
-                    fontSize = 12,
-                    alignment = TextAnchor.MiddleLeft,
-                    padding = new RectOffset(10, 10, 4, 4),
-                    normal = { background = null, scaledBackgrounds = null, textColor = Color.white },
-                    focused = { background = null, scaledBackgrounds = null, textColor = Color.white },
-                    hover = { background = null, scaledBackgrounds = null, textColor = Color.white }
-                };
-            }
-            catch
-            {
-                textFieldStyle = new GUIStyle
-                {
-                    fontSize = 12,
-                    alignment = TextAnchor.MiddleLeft,
-                    padding = new RectOffset(10, 10, 4, 4),
-                    normal = { textColor = Color.white }
-                };
-            }
+                fontSize = 12,
+                alignment = TextAnchor.MiddleLeft,
+                padding = new RectOffset(10, 10, 4, 4),
+                normal = { background = null, scaledBackgrounds = null, textColor = Color.white },
+                focused = { background = null, scaledBackgrounds = null, textColor = Color.white },
+                hover = { background = null, scaledBackgrounds = null, textColor = Color.white }
+            };
         }
 
         // Dibuja un rectangulo redondeado o capsula perfecto por hardware (sin distorsion 9-slice ni bordes negros)
@@ -249,13 +222,8 @@ namespace UNAB.Transporte3D
         private void OnGUI()
         {
             InitStyles();
-            UNABSceneController ctrl = UNABSceneController.Instance;
-            if (ctrl == null || !ctrl) ctrl = GetComponent<UNABSceneController>();
-            if (ctrl == null || !ctrl) ctrl = UnityEngine.Object.FindFirstObjectByType<UNABSceneController>();
-
-            UNABNetworkSimulator sim = UNABNetworkSimulator.Instance;
-            if (sim == null || !sim) sim = GetComponent<UNABNetworkSimulator>();
-            if (sim == null || !sim) sim = UnityEngine.Object.FindFirstObjectByType<UNABNetworkSimulator>();
+            var ctrl = UNABSceneController.Instance ?? GetComponent<UNABSceneController>() ?? UnityEngine.Object.FindFirstObjectByType<UNABSceneController>();
+            var sim = UNABNetworkSimulator.Instance ?? GetComponent<UNABNetworkSimulator>() ?? UnityEngine.Object.FindFirstObjectByType<UNABNetworkSimulator>();
             if (ctrl == null || sim == null) return;
 
             // 1. ETIQUETAS FLOTANTES 3D (Con filtro de pared en Modo Caminata y capsulas nitidas)
