@@ -238,9 +238,7 @@ namespace UNAB.Transporte3D
 
         private void OnGUI()
         {
-            try
-            {
-                InitStyles();
+            InitStyles();
             var ctrl = UNABSceneController.Instance ?? GetComponent<UNABSceneController>() ?? UnityEngine.Object.FindFirstObjectByType<UNABSceneController>();
             var sim = UNABNetworkSimulator.Instance ?? GetComponent<UNABNetworkSimulator>() ?? UnityEngine.Object.FindFirstObjectByType<UNABNetworkSimulator>();
             if (ctrl == null || sim == null) return;
@@ -449,21 +447,6 @@ namespace UNAB.Transporte3D
             }
 
             GUI.matrix = oldMatrix;
-            }
-            catch (System.Exception)
-            {
-                // Reset cached styles to cleanly recover on the next frame
-                btnLabelStyle = null;
-                brandTitleStyle = null;
-                floatingTextStyle = null;
-                badgeTextStyle = null;
-                specLabelStyle = null;
-                specValueStyle = null;
-                titleWhiteStyle = null;
-                descMutedStyle = null;
-                terminalTextStyle = null;
-                textFieldStyle = null;
-            }
         }
 
         private void DrawFloatingLabels(UNABSceneController ctrl)
