@@ -28,7 +28,7 @@ namespace UNAB.Transporte3D.EditorTools
         private static void TryAutoUpgradeScene()
         {
             if (EditorApplication.isPlayingOrWillChangePlaymode) return;
-            if (GameObject.Find("UNAB_Transporte_Root") != null && GameObject.Find("UNAB_HD_V10_GoogleMapsReplica") == null)
+            if (GameObject.Find("UNAB_Transporte_Root") != null && GameObject.Find("UNAB_HD_V11_PabloScientistAndGrandCampus") == null)
             {
                 BuildCompleteSceneInternal(false);
             }
@@ -55,7 +55,7 @@ namespace UNAB.Transporte3D.EditorTools
             GameObject root = new GameObject("UNAB_Transporte_Root");
             Undo.RegisterCreatedObjectUndo(root, "Build UNAB Transporte 3D Scene");
 
-            GameObject marker = new GameObject("UNAB_HD_V10_GoogleMapsReplica");
+            GameObject marker = new GameObject("UNAB_HD_V11_PabloScientistAndGrandCampus");
             marker.transform.SetParent(root.transform);
 
             var sim = root.AddComponent<UNABNetworkSimulator>();
@@ -610,13 +610,62 @@ namespace UNAB.Transporte3D.EditorTools
             AddBox(entranceCanopy.transform, "Sign_CyanStrip", new Vector3(0.175f, -0.02f, 0f), new Vector3(0.02f, 0.08f, 5.0f), cyanAccentMat, false);
             AddLabel(ctrl, "Pabellon Central (1er Piso): Area de Transporte y Data Center", new Vector3(8.45f, 3.55f, 0f));
 
-            // La iconica Torre Azul Real Vertical "U N A B" a escala monumental (16.5m de alto x 3.6m de ancho)
+            // Columnas cilindricas plateadas de acero inoxidable en el corredor abierto del 1er piso (Foto 1)
+            float[] breezeZ = { -2.6f, 0f, 2.6f, 5.2f };
+            foreach (float bz in breezeZ)
+            {
+                AddCylinder(campus.transform, "SteelColumn_Walkway", new Vector3(8.35f, 1.55f, bz), new Vector3(0.36f, 1.55f, 0.36f), silverMat, false);
+            }
+
+            // Circulo amarillo concentrico pintado en el piso de la plazuela central (Foto 1)
+            for (int a = 0; a < 36; a++)
+            {
+                float rad = a * 10f * Mathf.Deg2Rad;
+                Vector3 arcP = new Vector3(17.5f + Mathf.Cos(rad) * 6.5f, 0.015f, 1.0f + Mathf.Sin(rad) * 6.5f);
+                GameObject arcSeg = AddBox(campus.transform, "YellowCircleArc", arcP, new Vector3(0.18f, 0.005f, 1.15f), yellowCurbMat, false);
+                arcSeg.transform.localEulerAngles = new Vector3(0f, -a * 10f, 0f);
+            }
+
+            // La iconica Torre Azul Real Vertical "U N A B" con remate triangular en punta (Wedge Peak) (Foto 1)
             GameObject blueTower = new GameObject("Torre_Azul_UNAB");
             blueTower.transform.SetParent(campus.transform, false);
             blueTower.transform.localPosition = new Vector3(6.8f, 0f, -7.4f);
-            AddBox(blueTower.transform, "Tower_Core", new Vector3(0f, 8.25f, 0f), new Vector3(3.6f, 16.5f, 3.2f), towerBlueMat, false);
+            AddBox(blueTower.transform, "Tower_Core", new Vector3(0f, 7.0f, 0f), new Vector3(3.6f, 14.0f, 3.2f), towerBlueMat, false);
+            // Remate triangular en diagonal hacia la punta frontal (Foto 1)
+            GameObject towerPeak = AddBox(blueTower.transform, "Tower_WedgePeak", new Vector3(0f, 15.2f, 0.3f), new Vector3(3.62f, 3.8f, 3.2f), towerBlueMat, false);
+            towerPeak.transform.localEulerAngles = new Vector3(-26f, 0f, 0f);
+            AddBox(blueTower.transform, "PlanterCurb_Base", new Vector3(0f, 0.22f, 0f), new Vector3(4.1f, 0.44f, 3.8f), yellowCurbMat, false);
             AddQuad(blueTower.transform, "UNAB_Vertical_Front", new Vector3(1.82f, 8.6f, 0f), new Vector3(3.0f, 14.2f, 1f), new Vector3(0f, -90f, 0f), towerSignMat);
             AddQuad(blueTower.transform, "UNAB_Vertical_Side", new Vector3(0f, 8.6f, 1.62f), new Vector3(3.3f, 14.2f, 1f), new Vector3(0f, 180f, 0f), towerSignMat);
+
+            // Portico de Piedra Travertino / Ocre Dorado con Mampara de Vidrio de Doble Altura (Foto 1)
+            GameObject travPortal = new GameObject("Portico_Travertino_DobleAltura");
+            travPortal.transform.SetParent(campus.transform, false);
+            travPortal.transform.localPosition = new Vector3(8.3f, 0f, 10.5f);
+            AddBox(travPortal.transform, "Travertine_TopBeam", new Vector3(0f, 8.6f, 0f), new Vector3(1.6f, 1.2f, 10.8f), ochreWallMat, false);
+            AddBox(travPortal.transform, "Travertine_Pillar_L", new Vector3(0f, 4.3f, -5.0f), new Vector3(1.6f, 8.6f, 1.2f), ochreWallMat, false);
+            AddBox(travPortal.transform, "Travertine_Pillar_R", new Vector3(0f, 4.3f, 5.0f), new Vector3(1.6f, 8.6f, 1.2f), ochreWallMat, false);
+            AddBox(travPortal.transform, "DoubleHeight_Glass", new Vector3(-0.35f, 4.3f, 0f), new Vector3(0.12f, 7.8f, 9.4f), glassReflectMat, false);
+            AddBox(travPortal.transform, "Lobby_Canopy", new Vector3(0.85f, 3.4f, 0f), new Vector3(1.6f, 0.14f, 4.5f), whiteConcreteMat, false);
+            AddBox(travPortal.transform, "EntranceRamp_Rail_L", new Vector3(0.85f, 0.9f, -2.1f), new Vector3(1.6f, 0.05f, 0.05f), silverMat, false);
+            AddBox(travPortal.transform, "EntranceRamp_Rail_R", new Vector3(0.85f, 0.9f, 2.1f), new Vector3(1.6f, 0.05f, 0.05f), silverMat, false);
+
+            // Escalera Exterior Abierta Monumental de 3 Pisos con Barandas de Vidrio y Nucleo de Ascensor con logo UNAB (Foto 2)
+            GameObject openStairs = new GameObject("Escalera_Exterior_Abierta_UNAB");
+            openStairs.transform.SetParent(campus.transform, false);
+            openStairs.transform.localPosition = new Vector3(0.5f, 0f, -16.5f);
+            AddBox(openStairs.transform, "Elevator_Core", new Vector3(-4.0f, 8.0f, 0f), new Vector3(4.2f, 16.0f, 4.2f), whiteConcreteMat, false);
+            AddQuad(openStairs.transform, "Logo_UNAB_Elevator", new Vector3(-1.88f, 5.5f, 0f), new Vector3(1.8f, 2.4f, 1f), new Vector3(0f, -90f, 0f), towerSignMat);
+            // 3 tramos de escalera en zigzag con descansos y barandas de vidrio templado
+            for (int f = 0; f < 3; f++)
+            {
+                float fy = f * 3.6f;
+                AddBox(openStairs.transform, $"Landing_Floor_{f + 1}", new Vector3(0f, fy + 3.6f, 0f), new Vector3(3.8f, 0.22f, 2.8f), whiteConcreteMat, false);
+                GameObject flight = AddBox(openStairs.transform, $"Flight_{f}", new Vector3(0f, fy + 1.8f, 0f), new Vector3(1.8f, 0.18f, 4.2f), whiteConcreteMat, false);
+                flight.transform.localEulerAngles = new Vector3((f % 2 == 0 ? 32f : -32f), 0f, 0f);
+                AddBox(openStairs.transform, $"GlassRailing_{f}", new Vector3(0.92f, fy + 2.3f, 0f), new Vector3(0.06f, 1.0f, 4.0f), glassReflectMat, false);
+                AddCylinder(openStairs.transform, $"ChromeHandrail_{f}", new Vector3(0.92f, fy + 2.82f, 0f), new Vector3(0.045f, 2.0f, 0.045f), silverMat, false);
+            }
 
             // Alas laterales del Pabellon Central con balcones blancos escalonados (tal como en Foto 5 "UNAB MODERNA")
             AddBox(campus.transform, "CentralPavilion_LeftWing", new Vector3(0f, 7.2f, -12.5f), new Vector3(16.2f, 14.4f, 7.2f), whiteConcreteMat, false);
@@ -711,7 +760,7 @@ namespace UNAB.Transporte3D.EditorTools
             AddBox(rightAudit.transform, "Corner5Story_GlassNorth", new Vector3(-3.5f, 8.8f, 44.58f), new Vector3(14.0f, 14.8f, 0.16f), glassReflectMat, false);
             AddLabel(ctrl, "Pabellon de Aulas y Laboratorios (5 Pisos - Esquina Av. Luzuriaga)", new Vector3(-3.5f, 18.5f, 33.5f));
 
-            // 4F. Los 3 Pabellones Paralelos de Techos Rojos + Losa Deportiva Multiusos sobre Av. Toribio de Luzuriaga (Mapa Satelital Google Maps)
+            // 4F. Los 3 Pabellones Paralelos de Techos Rojos + Losa Deportiva Multiusos sobre Av. Toribio de Luzuriaga (Fotos 2 y 5)
             GameObject northSector = new GameObject("Sector_AvLuzuriaga_Pabellones_Y_LosaDeportiva");
             northSector.transform.SetParent(campus.transform, false);
             float[] redPavX = { -19.0f, -31.5f, -44.0f };
@@ -720,7 +769,53 @@ namespace UNAB.Transporte3D.EditorTools
                 float px = redPavX[rp];
                 AddBox(northSector.transform, $"RedPavilion_{rp}_Body", new Vector3(px, 4.2f, 14.0f), new Vector3(8.2f, 8.4f, 24.0f), whiteConcreteMat, false);
                 AddBox(northSector.transform, $"RedPavilion_{rp}_Roof", new Vector3(px, 8.65f, 14.0f), new Vector3(8.8f, 0.55f, 24.6f), terracottaRoofMat, false);
+
+                // El pabellon frontal hacia la plazuela tiene las columnas con base amarilla, jardineras y quiebrasoles (Fotos 2 y 5)
+                if (rp == 0)
+                {
+                    for (float cz = 4.0f; cz <= 24.0f; cz += 4.2f)
+                    {
+                        // Columna blanca vertical
+                        AddBox(northSector.transform, $"WhiteCol_{cz}", new Vector3(px + 4.2f, 4.5f, cz), new Vector3(0.42f, 9.0f, 0.42f), whiteConcreteMat, false);
+                        // Base pintada de amarillo de 0.6m (Fotos 2 y 5)
+                        AddBox(northSector.transform, $"YellowBase_{cz}", new Vector3(px + 4.22f, 0.32f, cz), new Vector3(0.46f, 0.64f, 0.46f), yellowCurbMat, false);
+
+                        // Jardinera baja de piedra laja con borde amarillo entre columnas (Foto 5)
+                        if (cz < 22.0f)
+                        {
+                            AddBox(northSector.transform, $"StonePlanter_{cz}", new Vector3(px + 4.45f, 0.24f, cz + 2.1f), new Vector3(0.65f, 0.48f, 3.6f), slateMat, false);
+                            AddBox(northSector.transform, $"PlanterCurb_{cz}", new Vector3(px + 4.78f, 0.25f, cz + 2.1f), new Vector3(0.08f, 0.50f, 3.62f), yellowCurbMat, false);
+                            AddSphere(northSector.transform, $"PlanterBush_{cz}", new Vector3(px + 4.45f, 0.62f, cz + 2.1f), new Vector3(0.55f, 0.42f, 2.8f), foliageMat);
+                        }
+
+                        // Aleros quiebrasoles horizontales (louvers) en cada piso (Foto 5)
+                        for (int fl = 1; fl <= 3; fl++)
+                        {
+                            AddBox(northSector.transform, $"Sunshade_F{fl}_{cz}", new Vector3(px + 4.55f, fl * 2.8f + 0.1f, cz + 2.1f), new Vector3(0.72f, 0.05f, 3.6f), whiteConcreteMat, false);
+                        }
+                    }
+
+                    // Pergola blanca en la azotea con celosia (Foto 5)
+                    for (float pz = 3.0f; pz <= 25.0f; pz += 3.6f)
+                    {
+                        AddBox(northSector.transform, $"RooftopPergolaCol_{pz}", new Vector3(px + 4.15f, 9.45f, pz), new Vector3(0.24f, 1.6f, 0.24f), whiteConcreteMat, false);
+                    }
+                    AddBox(northSector.transform, "RooftopPergolaBeam", new Vector3(px + 4.15f, 10.25f, 14.0f), new Vector3(0.32f, 0.22f, 23.0f), whiteConcreteMat, false);
+                }
             }
+
+            // Farolas negras de patio con base piramidal amarilla (Foto 2)
+            float[] lampZ = { -2.0f, 12.0f, 24.0f };
+            foreach (float lz in lampZ)
+            {
+                GameObject cl = new GameObject($"Courtyard_Lamp_{lz}");
+                cl.transform.SetParent(campus.transform, false);
+                cl.transform.localPosition = new Vector3(-12.5f, 0f, lz);
+                AddBox(cl.transform, "YellowBasePyramid", new Vector3(0f, 0.24f, 0f), new Vector3(0.55f, 0.48f, 0.55f), yellowCurbMat, false);
+                AddCylinder(cl.transform, "BlackPost", new Vector3(0f, 2.1f, 0f), new Vector3(0.09f, 2.1f, 0.09f), darkMullionMat, false);
+                AddSphere(cl.transform, "GlobeLamp", new Vector3(0f, 4.25f, 0f), new Vector3(0.42f, 0.42f, 0.42f), warmLightMat);
+            }
+
             // Losa Deportiva Multiusos (Cancha verde/azul con lineas blancas en la esquina Norte de Av. Luzuriaga - Vista Satelite)
             AddBox(northSector.transform, "SportsCourt_OuterGreen", new Vector3(-31.5f, 0.03f, 36.5f), new Vector3(32.0f, 0.06f, 17.5f), courtGreenMat, false);
             AddBox(northSector.transform, "SportsCourt_InnerBlue", new Vector3(-31.5f, 0.05f, 36.5f), new Vector3(26.0f, 0.06f, 13.5f), courtBlueMat, false);
@@ -1357,13 +1452,44 @@ namespace UNAB.Transporte3D.EditorTools
             TagInteractable(prn, "printer_net");
             AddLabel(ctrl, "Impresora Epson EcoTank en Red", new Vector3(-1.75f, 1.55f, -0.65f));
 
-            // PANTALLA SMART TV 65" EN PARED (VIDEO WALL DE MONITOREO DE FLOTA UNAB)
-            GameObject wallTv = new GameObject("SmartTV_65_VideoWall");
+            // VIDEOWALL INSTITUCIONAL 85" EN PARED (MONITOREO GPS GENERAL DE BUSES UNAB)
+            GameObject wallTv = new GameObject("SmartTV_85_VideoWall");
             wallTv.transform.SetParent(office.transform, false);
             wallTv.transform.localPosition = new Vector3(-1.15f, 2.05f, 5.34f);
-            AddBox(wallTv.transform, "TV_Bezel", Vector3.zero, new Vector3(1.56f, 0.92f, 0.04f), darkMat, false);
-            AddBox(wallTv.transform, "TV_Screen", new Vector3(0f, 0f, -0.022f), new Vector3(1.50f, 0.86f, 0.008f), screenMat1, false);
-            AddBox(wallTv.transform, "TV_WallMount", new Vector3(0f, 0f, 0.025f), new Vector3(0.65f, 0.35f, 0.03f), legMat, false);
+            AddBox(wallTv.transform, "TV_Bezel", Vector3.zero, new Vector3(2.05f, 1.18f, 0.04f), darkMat, false);
+            AddBox(wallTv.transform, "TV_Screen", new Vector3(0f, 0f, -0.022f), new Vector3(1.98f, 1.12f, 0.008f), screenMat1, false);
+            AddBox(wallTv.transform, "TV_WallMount", new Vector3(0f, 0f, 0.025f), new Vector3(0.85f, 0.45f, 0.03f), legMat, false);
+
+            // Reloj Digital LED de Sincronizacion NTP Stratum 1 (Hora Oficial Red UNAB) sobre el Videowall
+            GameObject ntpClock = new GameObject("NTP_DigitalClock");
+            ntpClock.transform.SetParent(office.transform, false);
+            ntpClock.transform.localPosition = new Vector3(-1.15f, 2.80f, 5.34f);
+            AddBox(ntpClock.transform, "Clock_Bezel", Vector3.zero, new Vector3(0.72f, 0.20f, 0.035f), darkMat, false);
+            AddBox(ntpClock.transform, "Clock_LED", new Vector3(0f, 0f, -0.019f), new Vector3(0.68f, 0.16f, 0.006f), rgbCyanMat, false);
+
+            // Pizarra Acrilica Magnetica de Rutas y Horarios de Flota UNAB
+            GameObject whiteboard = new GameObject("Fleet_Scheduling_Whiteboard");
+            whiteboard.transform.SetParent(office.transform, false);
+            whiteboard.transform.localPosition = new Vector3(3.85f, 1.95f, 5.34f);
+            AddBox(whiteboard.transform, "Frame", Vector3.zero, new Vector3(1.85f, 1.10f, 0.03f), silverMat, false);
+            AddBox(whiteboard.transform, "Board", new Vector3(0f, 0f, -0.016f), new Vector3(1.78f, 1.02f, 0.006f), whiteShelfMat, false);
+            AddBox(whiteboard.transform, "MarkerTray", new Vector3(0f, -0.54f, -0.035f), new Vector3(0.95f, 0.02f, 0.06f), silverMat, false);
+
+            // Dispensador de Agua Fria / Caliente de Oficina con Botellon Azul y Cafetera
+            GameObject waterDisp = new GameObject("Office_WaterDispenser");
+            waterDisp.transform.SetParent(office.transform, false);
+            waterDisp.transform.localPosition = new Vector3(7.15f, 0.12f, 3.45f);
+            AddBox(waterDisp.transform, "Dispenser_Cabinet", new Vector3(0f, 0.52f, 0f), new Vector3(0.38f, 1.04f, 0.38f), whiteShelfMat);
+            AddBox(waterDisp.transform, "TapNiche", new Vector3(0f, 0.76f, -0.12f), new Vector3(0.26f, 0.28f, 0.16f), darkMat, false);
+            AddCylinder(waterDisp.transform, "BlueWaterBottle", new Vector3(0f, 1.30f, 0f), new Vector3(0.32f, 0.24f, 0.32f), glassCaseMat);
+            AddCylinder(waterDisp.transform, "BottleCap", new Vector3(0f, 1.06f, 0f), new Vector3(0.08f, 0.04f, 0.08f), rgbCyanMat);
+
+            // Camara de Seguridad Domo IP PoE en el Techo de la Oficina
+            GameObject cctv = new GameObject("CCTV_CeilingDome");
+            cctv.transform.SetParent(office.transform, false);
+            cctv.transform.localPosition = new Vector3(2.5f, 3.05f, 0f);
+            AddCylinder(cctv.transform, "DomeBase", Vector3.zero, new Vector3(0.20f, 0.03f, 0.20f), whiteShelfMat);
+            AddSphere(cctv.transform, "DomeLens", new Vector3(0f, -0.04f, 0f), new Vector3(0.14f, 0.10f, 0.14f), darkMat);
 
             // Estante Ejecutivo de 5 Niveles con respaldo de madera, archivadores, libros y jarrones
             GameObject shelf = new GameObject("White_5Tier_Bookcase");
@@ -1865,10 +1991,12 @@ namespace UNAB.Transporte3D.EditorTools
             return t;
         }
 
-        // Construye el personaje 3D articulado (Ingeniero de Red UNAB) con formas redondeadas, espalda limpia y frente en +Z
+        // ==========================================================================================================
+        // PERSONAJE 3D CAMINANTE: PABLO CIENTIFICO DE LOS BACKYARDIGANS CON BATA BLANCA, LENTES Y HELICE GIRATORIA
+        // ==========================================================================================================
         private static void BuildPlayerAvatar(Transform root, UNABSceneController ctrl)
         {
-            GameObject playerRoot = new GameObject("PlayerAvatar_UNAB");
+            GameObject playerRoot = new GameObject("PlayerAvatar_PabloCientifico");
             playerRoot.transform.SetParent(root);
             // Inicia en la avenida exterior frente al Portico Principal de la UNAB mirando hacia el campus (-X)
             playerRoot.transform.localPosition = new Vector3(36.5f, 0f, 3.5f);
@@ -1878,68 +2006,115 @@ namespace UNAB.Transporte3D.EditorTools
             visuals.transform.localPosition = Vector3.zero;
             visuals.transform.localEulerAngles = new Vector3(0f, -90f, 0f);
 
-            Material skinMat = CreatePbrMat("AvatarSkin", new Color(0.92f, 0.76f, 0.64f), 0.02f, 0.35f);
-            Material hairMat = CreatePbrMat("AvatarHair", new Color(0.10f, 0.08f, 0.07f), 0.05f, 0.4f);
-            Material jacketMat = CreatePbrMat("AvatarJacketUNAB", new Color(0.08f, 0.16f, 0.32f), 0.08f, 0.45f);
-            Material shirtMat = CreatePbrMat("AvatarShirt", new Color(0.95f, 0.96f, 0.98f), 0.02f, 0.3f);
-            Material pantsMat = CreatePbrMat("AvatarPants", new Color(0.14f, 0.16f, 0.20f), 0.05f, 0.35f);
-            Material shoeMat = CreatePbrMat("AvatarShoes", new Color(0.07f, 0.07f, 0.09f), 0.15f, 0.6f);
-            Material lanyardMat = CreatePbrMat("AvatarLanyard", new Color(0.02f, 0.65f, 0.92f), 0.1f, 0.6f, emission: new Color(0.01f, 0.18f, 0.28f));
+            // Materiales PBR oficiales de Pablo Cientifico (The Backyardigans)
+            Material pabloBlueMat = CreatePbrMat("PabloBlueSkin", new Color(0.18f, 0.44f, 0.94f), 0.02f, 0.38f);
+            Material pabloYellowMat = CreatePbrMat("PabloBeakYellow", new Color(0.98f, 0.80f, 0.12f), 0.05f, 0.45f);
+            Material labCoatWhiteMat = CreatePbrMat("LabCoatWhite", new Color(0.97f, 0.98f, 0.99f), 0.02f, 0.40f);
+            Material vestBrownMat = CreatePbrMat("ScientistVest", new Color(0.50f, 0.44f, 0.30f), 0.04f, 0.32f);
+            Material shirtWhiteMat = CreatePbrMat("ShirtWhite", new Color(0.98f, 0.98f, 0.99f), 0.01f, 0.30f);
+            Material bowtieRedMat = CreatePbrMat("BowtieRed", new Color(0.88f, 0.16f, 0.14f), 0.05f, 0.45f);
+            Material pantsBrownMat = CreatePbrMat("ScientistPants", new Color(0.32f, 0.22f, 0.15f), 0.04f, 0.35f);
+            Material glassesFrameMat = CreatePbrMat("GlassesTortoise", new Color(0.24f, 0.14f, 0.08f), 0.18f, 0.70f);
+            Material eyeWhiteMat = CreatePbrMat("EyeWhite", Color.white, 0.02f, 0.65f);
+            Material eyePupilMat = CreatePbrMat("EyePupil", new Color(0.06f, 0.06f, 0.08f), 0.1f, 0.75f);
+            Material propellerRedMat = CreatePbrMat("PropellerRed", new Color(0.92f, 0.18f, 0.14f), 0.12f, 0.65f);
+            Material penBlueMat = CreatePbrMat("PenBlue", new Color(0.04f, 0.42f, 0.88f), 0.2f, 0.7f);
+            Material penYellowMat = CreatePbrMat("PenYellow", new Color(0.98f, 0.82f, 0.10f), 0.2f, 0.7f);
+            Material goldBuckleMat = CreatePbrMat("GoldBuckle", new Color(0.92f, 0.75f, 0.15f), 0.65f, 0.75f);
 
-            // Torso redondeado (Espalda 100% azul marino en -Z; camisa blanca y fotocheck UNICAMENTE en el frente +Z)
-            AddBox(visuals.transform, "Torso_Jacket", new Vector3(0f, 1.07f, 0f), new Vector3(0.34f, 0.48f, 0.19f), jacketMat, false);
-            AddSphere(visuals.transform, "Shoulder_L", new Vector3(-0.18f, 1.26f, 0f), new Vector3(0.13f, 0.13f, 0.14f), jacketMat);
-            AddSphere(visuals.transform, "Shoulder_R", new Vector3(0.18f, 1.26f, 0f), new Vector3(0.13f, 0.13f, 0.14f), jacketMat);
-            AddBox(visuals.transform, "Shirt_FrontOnly", new Vector3(0f, 1.08f, 0.088f), new Vector3(0.11f, 0.44f, 0.02f), shirtMat, false);
-            AddBox(visuals.transform, "Belt_Waist", new Vector3(0f, 0.81f, 0f), new Vector3(0.33f, 0.05f, 0.195f), shoeMat, false);
-
-            // Cordon y Fotocheck UNAB unicamente en el pecho frontal (+Z)
-            AddBox(visuals.transform, "Lanyard_L", new Vector3(-0.038f, 1.20f, 0.10f), new Vector3(0.016f, 0.20f, 0.008f), lanyardMat, false)
-                .transform.localEulerAngles = new Vector3(0f, 0f, -12f);
-            AddBox(visuals.transform, "Lanyard_R", new Vector3(0.038f, 1.20f, 0.10f), new Vector3(0.016f, 0.20f, 0.008f), lanyardMat, false)
-                .transform.localEulerAngles = new Vector3(0f, 0f, 12f);
-            AddBox(visuals.transform, "ID_Badge_Holder", new Vector3(0f, 1.05f, 0.102f), new Vector3(0.062f, 0.085f, 0.008f), shirtMat, false);
-            AddBox(visuals.transform, "ID_Badge_Header", new Vector3(0f, 1.08f, 0.104f), new Vector3(0.056f, 0.02f, 0.009f), lanyardMat, false);
-
-            // Cuello y Cabeza redondeada (Cabello cubre toda la nuca -Z y parte superior; rostro y lentes en +Z)
-            AddCylinder(visuals.transform, "Neck", new Vector3(0f, 1.35f, 0f), new Vector3(0.10f, 0.05f, 0.10f), skinMat, false);
-            GameObject headPivot = new GameObject("HeadPivot");
-            headPivot.transform.SetParent(visuals.transform);
-            headPivot.transform.localPosition = new Vector3(0f, 1.50f, 0f);
-
-            AddSphere(headPivot.transform, "Head", Vector3.zero, new Vector3(0.22f, 0.25f, 0.23f), skinMat);
-            AddSphere(headPivot.transform, "Hair_TopCap", new Vector3(0f, 0.045f, -0.015f), new Vector3(0.235f, 0.21f, 0.24f), hairMat);
-            AddBox(headPivot.transform, "Hair_BackNape", new Vector3(0f, -0.02f, -0.065f), new Vector3(0.20f, 0.16f, 0.11f), hairMat, false);
-            // Lentes en el frente (+Z)
-            AddBox(headPivot.transform, "Glasses_Front", new Vector3(0f, 0.015f, 0.11f), new Vector3(0.15f, 0.032f, 0.018f), shoeMat, false);
-
-            // Brazo Izquierdo Articulado
-            GameObject leftArmPivot = new GameObject("LeftArmPivot");
-            leftArmPivot.transform.SetParent(visuals.transform);
-            leftArmPivot.transform.localPosition = new Vector3(-0.22f, 1.26f, 0f);
-            AddCylinder(leftArmPivot.transform, "UpperArm_L", new Vector3(0f, -0.20f, 0f), new Vector3(0.095f, 0.21f, 0.095f), jacketMat, false);
-            AddSphere(leftArmPivot.transform, "Hand_L", new Vector3(0f, -0.44f, 0f), new Vector3(0.085f, 0.095f, 0.085f), skinMat);
-
-            // Brazo Derecho Articulado
-            GameObject rightArmPivot = new GameObject("RightArmPivot");
-            rightArmPivot.transform.SetParent(visuals.transform);
-            rightArmPivot.transform.localPosition = new Vector3(0.22f, 1.26f, 0f);
-            AddCylinder(rightArmPivot.transform, "UpperArm_R", new Vector3(0f, -0.20f, 0f), new Vector3(0.095f, 0.21f, 0.095f), jacketMat, false);
-            AddSphere(rightArmPivot.transform, "Hand_R", new Vector3(0f, -0.44f, 0f), new Vector3(0.085f, 0.095f, 0.085f), skinMat);
-
-            // Pierna Izquierda Articulada
+            // 1. PIERNAS Y PATITAS DE PINGUINO (Tobillos amarillos con 3 deditos azules cada uno)
             GameObject leftLegPivot = new GameObject("LeftLegPivot");
             leftLegPivot.transform.SetParent(visuals.transform);
-            leftLegPivot.transform.localPosition = new Vector3(-0.09f, 0.78f, 0f);
-            AddCylinder(leftLegPivot.transform, "Leg_L", new Vector3(0f, -0.35f, 0f), new Vector3(0.125f, 0.35f, 0.125f), pantsMat, false);
-            AddBox(leftLegPivot.transform, "Shoe_L", new Vector3(0f, -0.74f, 0.03f), new Vector3(0.12f, 0.075f, 0.20f), shoeMat, false);
+            leftLegPivot.transform.localPosition = new Vector3(-0.13f, 0.26f, 0f);
+            AddCylinder(leftLegPivot.transform, "Ankle_L", new Vector3(0f, -0.06f, 0f), new Vector3(0.10f, 0.08f, 0.10f), pabloYellowMat, false);
+            AddBox(leftLegPivot.transform, "FootBase_L", new Vector3(0f, -0.15f, 0.035f), new Vector3(0.15f, 0.042f, 0.16f), pabloYellowMat, false);
+            AddSphere(leftLegPivot.transform, "Toe1_L", new Vector3(-0.048f, -0.15f, 0.12f), new Vector3(0.052f, 0.040f, 0.068f), pabloBlueMat);
+            AddSphere(leftLegPivot.transform, "Toe2_L", new Vector3(0f, -0.15f, 0.135f), new Vector3(0.055f, 0.042f, 0.072f), pabloBlueMat);
+            AddSphere(leftLegPivot.transform, "Toe3_L", new Vector3(0.048f, -0.15f, 0.12f), new Vector3(0.052f, 0.040f, 0.068f), pabloBlueMat);
 
-            // Pierna Derecha Articulada
             GameObject rightLegPivot = new GameObject("RightLegPivot");
             rightLegPivot.transform.SetParent(visuals.transform);
-            rightLegPivot.transform.localPosition = new Vector3(0.09f, 0.78f, 0f);
-            AddCylinder(rightLegPivot.transform, "Leg_R", new Vector3(0f, -0.35f, 0f), new Vector3(0.125f, 0.35f, 0.125f), pantsMat, false);
-            AddBox(rightLegPivot.transform, "Shoe_R", new Vector3(0f, -0.74f, 0.03f), new Vector3(0.12f, 0.075f, 0.20f), shoeMat, false);
+            rightLegPivot.transform.localPosition = new Vector3(0.13f, 0.26f, 0f);
+            AddCylinder(rightLegPivot.transform, "Ankle_R", new Vector3(0f, -0.06f, 0f), new Vector3(0.10f, 0.08f, 0.10f), pabloYellowMat, false);
+            AddBox(rightLegPivot.transform, "FootBase_R", new Vector3(0f, -0.15f, 0.035f), new Vector3(0.15f, 0.042f, 0.16f), pabloYellowMat, false);
+            AddSphere(rightLegPivot.transform, "Toe1_R", new Vector3(-0.048f, -0.15f, 0.12f), new Vector3(0.052f, 0.040f, 0.068f), pabloBlueMat);
+            AddSphere(rightLegPivot.transform, "Toe2_R", new Vector3(0f, -0.15f, 0.135f), new Vector3(0.055f, 0.042f, 0.072f), pabloBlueMat);
+            AddSphere(rightLegPivot.transform, "Toe3_R", new Vector3(0.048f, -0.15f, 0.12f), new Vector3(0.052f, 0.040f, 0.068f), pabloBlueMat);
+
+            // 2. PANTALON MARRON CORTO Y CINTURON
+            AddBox(visuals.transform, "ScientistPants", new Vector3(0f, 0.34f, 0f), new Vector3(0.38f, 0.16f, 0.32f), pantsBrownMat, false);
+            AddBox(visuals.transform, "Belt", new Vector3(0f, 0.42f, 0f), new Vector3(0.39f, 0.04f, 0.33f), glassesFrameMat, false);
+            AddBox(visuals.transform, "Buckle", new Vector3(0f, 0.42f, 0.17f), new Vector3(0.07f, 0.05f, 0.02f), goldBuckleMat, false);
+
+            // 3. TORSO: CUERPO REDONDO + BATA BLANCA DE LABORATORIO + CHALECO + CORBATITA MICHI ROJA
+            AddSphere(visuals.transform, "LabCoat_Body", new Vector3(0f, 0.58f, 0f), new Vector3(0.48f, 0.44f, 0.42f), labCoatWhiteMat);
+            AddBox(visuals.transform, "LabCoat_Skirt", new Vector3(0f, 0.42f, 0f), new Vector3(0.46f, 0.20f, 0.40f), labCoatWhiteMat, false);
+            // Chaleco beige y camisa blanca visibles por la apertura de la bata
+            AddBox(visuals.transform, "Vest_Inside", new Vector3(0f, 0.58f, 0.18f), new Vector3(0.24f, 0.32f, 0.05f), vestBrownMat, false);
+            AddBox(visuals.transform, "Shirt_Chest", new Vector3(0f, 0.65f, 0.19f), new Vector3(0.12f, 0.18f, 0.05f), shirtWhiteMat, false);
+            // Solapas anchas de la bata blanca
+            AddBox(visuals.transform, "Lapel_L", new Vector3(-0.14f, 0.62f, 0.20f), new Vector3(0.08f, 0.26f, 0.04f), labCoatWhiteMat, false).transform.localEulerAngles = new Vector3(0f, 0f, -12f);
+            AddBox(visuals.transform, "Lapel_R", new Vector3(0.14f, 0.62f, 0.20f), new Vector3(0.08f, 0.26f, 0.04f), labCoatWhiteMat, false).transform.localEulerAngles = new Vector3(0f, 0f, 12f);
+            // Bolsillos delanteros de la bata
+            AddBox(visuals.transform, "Pocket_L", new Vector3(-0.15f, 0.44f, 0.19f), new Vector3(0.10f, 0.08f, 0.02f), labCoatWhiteMat, false);
+            AddBox(visuals.transform, "Pocket_R", new Vector3(0.15f, 0.44f, 0.19f), new Vector3(0.10f, 0.08f, 0.02f), labCoatWhiteMat, false);
+            // Bolsillo del pecho con 2 lapiceros (amarillo y azul) asomando (tal como en la foto)
+            AddBox(visuals.transform, "Pocket_Chest", new Vector3(-0.13f, 0.62f, 0.21f), new Vector3(0.08f, 0.07f, 0.02f), labCoatWhiteMat, false);
+            AddCylinder(visuals.transform, "Pen_Yellow", new Vector3(-0.145f, 0.68f, 0.215f), new Vector3(0.015f, 0.06f, 0.015f), penYellowMat);
+            AddCylinder(visuals.transform, "Pen_Blue", new Vector3(-0.115f, 0.69f, 0.215f), new Vector3(0.015f, 0.07f, 0.015f), penBlueMat);
+            // Corbatita michi roja de cientifico
+            AddSphere(visuals.transform, "Bowtie_Knot", new Vector3(0f, 0.74f, 0.205f), new Vector3(0.045f, 0.045f, 0.04f), bowtieRedMat);
+            AddBox(visuals.transform, "Bowtie_WingL", new Vector3(-0.06f, 0.74f, 0.20f), new Vector3(0.08f, 0.055f, 0.02f), bowtieRedMat, false).transform.localEulerAngles = new Vector3(0f, 0f, 14f);
+            AddBox(visuals.transform, "Bowtie_WingR", new Vector3(0.06f, 0.74f, 0.20f), new Vector3(0.08f, 0.055f, 0.02f), bowtieRedMat, false).transform.localEulerAngles = new Vector3(0f, 0f, -14f);
+
+            // 4. BRAZOS / ALITAS DE PINGUINO (Mangas blancas + alitas azules)
+            GameObject leftArmPivot = new GameObject("LeftArmPivot");
+            leftArmPivot.transform.SetParent(visuals.transform);
+            leftArmPivot.transform.localPosition = new Vector3(-0.27f, 0.68f, 0f);
+            AddCylinder(leftArmPivot.transform, "Sleeve_L", new Vector3(0f, -0.09f, 0f), new Vector3(0.12f, 0.10f, 0.12f), labCoatWhiteMat, false);
+            AddBox(leftArmPivot.transform, "Flipper_Hand_L", new Vector3(0f, -0.22f, 0.02f), new Vector3(0.08f, 0.18f, 0.13f), pabloBlueMat, false);
+
+            GameObject rightArmPivot = new GameObject("RightArmPivot");
+            rightArmPivot.transform.SetParent(visuals.transform);
+            rightArmPivot.transform.localPosition = new Vector3(0.27f, 0.68f, 0f);
+            AddCylinder(rightArmPivot.transform, "Sleeve_R", new Vector3(0f, -0.09f, 0f), new Vector3(0.12f, 0.10f, 0.12f), labCoatWhiteMat, false);
+            AddBox(rightArmPivot.transform, "Flipper_Hand_R", new Vector3(0f, -0.22f, 0.02f), new Vector3(0.08f, 0.18f, 0.13f), pabloBlueMat, false);
+
+            // 5. CABEZA DE PINGUINO AZUL + PICO AMARILLO + OJOS SALTONES + LENTES DE CAREY + GORRITO CON HELICE
+            GameObject headPivot = new GameObject("HeadPivot");
+            headPivot.transform.SetParent(visuals.transform);
+            headPivot.transform.localPosition = new Vector3(0f, 0.80f, 0f);
+
+            // Cabeza esferica azul
+            AddSphere(headPivot.transform, "Head_Blue", new Vector3(0f, 0.22f, 0f), new Vector3(0.50f, 0.46f, 0.48f), pabloBlueMat);
+            // Pico amarillo conico/redondeado
+            AddBox(headPivot.transform, "Beak_Base", new Vector3(0f, 0.17f, 0.26f), new Vector3(0.18f, 0.075f, 0.16f), pabloYellowMat, false);
+            AddSphere(headPivot.transform, "Beak_Tip", new Vector3(0f, 0.165f, 0.33f), new Vector3(0.12f, 0.06f, 0.08f), pabloYellowMat);
+
+            // Ojos saltones blancos y pupilas negras mirando al frente
+            AddSphere(headPivot.transform, "Eye_L", new Vector3(-0.10f, 0.28f, 0.21f), new Vector3(0.12f, 0.13f, 0.06f), eyeWhiteMat);
+            AddSphere(headPivot.transform, "Eye_R", new Vector3(0.10f, 0.28f, 0.21f), new Vector3(0.12f, 0.13f, 0.06f), eyeWhiteMat);
+            AddSphere(headPivot.transform, "Pupil_L", new Vector3(-0.095f, 0.28f, 0.235f), new Vector3(0.052f, 0.052f, 0.025f), eyePupilMat);
+            AddSphere(headPivot.transform, "Pupil_R", new Vector3(0.095f, 0.28f, 0.235f), new Vector3(0.052f, 0.052f, 0.025f), eyePupilMat);
+
+            // Lentes gruesos de pasta carey de cientifico (Marcos, puente y patillas)
+            AddBox(headPivot.transform, "Glasses_RimL", new Vector3(-0.10f, 0.28f, 0.245f), new Vector3(0.17f, 0.15f, 0.035f), glassesFrameMat, false);
+            AddBox(headPivot.transform, "Glasses_RimR", new Vector3(0.10f, 0.28f, 0.245f), new Vector3(0.17f, 0.15f, 0.035f), glassesFrameMat, false);
+            AddBox(headPivot.transform, "Glasses_Bridge", new Vector3(0f, 0.28f, 0.25f), new Vector3(0.06f, 0.025f, 0.035f), glassesFrameMat, false);
+            AddBox(headPivot.transform, "Glasses_ArmL", new Vector3(-0.19f, 0.28f, 0.12f), new Vector3(0.025f, 0.025f, 0.24f), glassesFrameMat, false);
+            AddBox(headPivot.transform, "Glasses_ArmR", new Vector3(0.19f, 0.28f, 0.12f), new Vector3(0.025f, 0.025f, 0.24f), glassesFrameMat, false);
+
+            // Gorrito amarillo con helice giratoria en la coronilla
+            AddSphere(headPivot.transform, "Cap_Yellow", new Vector3(0f, 0.44f, -0.05f), new Vector3(0.24f, 0.12f, 0.24f), pabloYellowMat);
+            AddCylinder(headPivot.transform, "Propeller_Pin", new Vector3(0f, 0.51f, -0.05f), new Vector3(0.018f, 0.05f, 0.018f), propellerRedMat);
+
+            // Helice roja giratoria animada en tiempo real
+            GameObject propObj = new GameObject("Pablo_Propeller");
+            propObj.transform.SetParent(headPivot.transform, false);
+            propObj.transform.localPosition = new Vector3(0f, 0.54f, -0.05f);
+            AddSphere(propObj.transform, "CenterCap", Vector3.zero, new Vector3(0.045f, 0.035f, 0.045f), propellerRedMat);
+            AddBox(propObj.transform, "Blade_1", new Vector3(0.10f, 0f, 0f), new Vector3(0.18f, 0.012f, 0.042f), propellerRedMat, false);
+            AddBox(propObj.transform, "Blade_2", new Vector3(-0.10f, 0f, 0f), new Vector3(0.18f, 0.012f, 0.042f), propellerRedMat, false);
 
             ctrl.playerRoot = playerRoot.transform;
             ctrl.playerVisuals = visuals.transform;
@@ -1948,6 +2123,7 @@ namespace UNAB.Transporte3D.EditorTools
             ctrl.playerRightArmPivot = rightArmPivot.transform;
             ctrl.playerLeftLegPivot = leftLegPivot.transform;
             ctrl.playerRightLegPivot = rightLegPivot.transform;
+            ctrl.propellerTransform = propObj.transform;
             ctrl.isThirdPerson = true;
         }
 

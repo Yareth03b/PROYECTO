@@ -52,6 +52,7 @@ namespace UNAB.Transporte3D
         public Transform playerRightArmPivot;
         public Transform playerLeftLegPivot;
         public Transform playerRightLegPivot;
+        public Transform propellerTransform;
         public bool isThirdPerson = true;
 
         [Header("Interactive State")]
@@ -451,11 +452,11 @@ namespace UNAB.Transporte3D
             float planarSpeed = new Vector2(playerVelocity.x, playerVelocity.z).magnitude;
             AnimatePlayerAvatar(dt, planarSpeed, playerVelocity);
 
-            // Posicionar camara en 3ra Persona o 1ra Persona
+            // Posicionar camara en 3ra Persona o 1ra Persona ajustada a Pablo Cientifico
             if (isThirdPerson && playerRoot != null)
             {
                 Quaternion camRot = Quaternion.Euler(pitch, yaw, 0f);
-                Vector3 pivotPos = nextPos + new Vector3(0f, 1.54f, 0f) + (camRot * Vector3.right) * 0.20f;
+                Vector3 pivotPos = nextPos + new Vector3(0f, 1.05f, 0f) + (camRot * Vector3.right) * 0.16f;
                 Vector3 camDir = camRot * Vector3.back;
 
                 mainCamera.transform.position = pivotPos + camDir * thirdPersonDist;
@@ -463,7 +464,7 @@ namespace UNAB.Transporte3D
             }
             else
             {
-                mainCamera.transform.position = nextPos + new Vector3(0f, 1.66f, 0f);
+                mainCamera.transform.position = nextPos + new Vector3(0f, 1.18f, 0f);
                 mainCamera.transform.rotation = Quaternion.Euler(pitch, yaw, 0f);
             }
         }
@@ -472,37 +473,45 @@ namespace UNAB.Transporte3D
         {
             if (playerVisuals == null) return;
 
+            // Giro continuo de la helice del gorrito de Pablo (gira mas rapido al caminar)
+            if (propellerTransform != null)
+            {
+                float spinRate = (speed > 0.12f) ? 1440f : 380f;
+                propellerTransform.Rotate(Vector3.up, spinRate * dt, Space.Self);
+            }
+
             if (speed > 0.12f)
             {
-                // Al caminar: el personaje mira hacia donde avanza
+                // Al caminar: balanceo adorable de pinguino (waddle) y aleteo de alitas
                 float moveYaw = Mathf.Atan2(velocity.x, velocity.z) * Mathf.Rad2Deg;
                 Quaternion targetRot = Quaternion.Euler(0f, moveYaw, 0f);
-                playerVisuals.rotation = Quaternion.Slerp(playerVisuals.rotation, targetRot, dt * 14f);
 
-                walkCycle += dt * speed * 3.2f;
+                walkCycle += dt * speed * 4.2f;
                 float swing = Mathf.Sin(walkCycle);
-                float bob = Mathf.Abs(Mathf.Cos(walkCycle)) * 0.03f;
+                float waddleRoll = Mathf.Sin(walkCycle) * 6.5f;
+                float bob = Mathf.Abs(Mathf.Cos(walkCycle)) * 0.035f;
 
+                playerVisuals.rotation = Quaternion.Slerp(playerVisuals.rotation, targetRot * Quaternion.Euler(0f, 0f, waddleRoll), dt * 14f);
                 playerVisuals.localPosition = new Vector3(0f, bob, 0f);
 
-                if (playerLeftLegPivot != null) playerLeftLegPivot.localRotation = Quaternion.Euler(swing * 34f, 0f, 0f);
-                if (playerRightLegPivot != null) playerRightLegPivot.localRotation = Quaternion.Euler(-swing * 34f, 0f, 0f);
-                if (playerLeftArmPivot != null) playerLeftArmPivot.localRotation = Quaternion.Euler(-swing * 26f, 0f, 0f);
-                if (playerRightArmPivot != null) playerRightArmPivot.localRotation = Quaternion.Euler(swing * 26f, 0f, 0f);
+                if (playerLeftLegPivot != null) playerLeftLegPivot.localRotation = Quaternion.Euler(swing * 32f, 0f, 0f);
+                if (playerRightLegPivot != null) playerRightLegPivot.localRotation = Quaternion.Euler(-swing * 32f, 0f, 0f);
+                if (playerLeftArmPivot != null) playerLeftArmPivot.localRotation = Quaternion.Euler(swing * 22f, 0f, -14f - Mathf.Abs(swing) * 12f);
+                if (playerRightArmPivot != null) playerRightArmPivot.localRotation = Quaternion.Euler(-swing * 22f, 0f, 14f + Mathf.Abs(swing) * 12f);
             }
             else
             {
-                // Al estar detenido: el personaje gira suavemente mirando hacia donde apunta la camara (de espaldas a la camara)
+                // Al estar detenido: mira hacia donde apunta la camara
                 Quaternion lookRot = Quaternion.Euler(0f, yaw, 0f);
                 playerVisuals.rotation = Quaternion.Slerp(playerVisuals.rotation, lookRot, dt * 8f);
 
-                float idleBreath = Mathf.Sin(Time.time * 2.2f) * 0.007f;
+                float idleBreath = Mathf.Sin(Time.time * 2.2f) * 0.006f;
                 playerVisuals.localPosition = Vector3.Lerp(playerVisuals.localPosition, new Vector3(0f, idleBreath, 0f), dt * 8f);
 
                 if (playerLeftLegPivot != null) playerLeftLegPivot.localRotation = Quaternion.Slerp(playerLeftLegPivot.localRotation, Quaternion.identity, dt * 10f);
                 if (playerRightLegPivot != null) playerRightLegPivot.localRotation = Quaternion.Slerp(playerRightLegPivot.localRotation, Quaternion.identity, dt * 10f);
-                if (playerLeftArmPivot != null) playerLeftArmPivot.localRotation = Quaternion.Slerp(playerLeftArmPivot.localRotation, Quaternion.Euler(0f, 0f, 3f), dt * 10f);
-                if (playerRightArmPivot != null) playerRightArmPivot.localRotation = Quaternion.Slerp(playerRightArmPivot.localRotation, Quaternion.Euler(0f, 0f, -3f), dt * 10f);
+                if (playerLeftArmPivot != null) playerLeftArmPivot.localRotation = Quaternion.Slerp(playerLeftArmPivot.localRotation, Quaternion.Euler(0f, 0f, -8f), dt * 10f);
+                if (playerRightArmPivot != null) playerRightArmPivot.localRotation = Quaternion.Slerp(playerRightArmPivot.localRotation, Quaternion.Euler(0f, 0f, 8f), dt * 10f);
             }
 
             Animator customAnim = playerVisuals.GetComponentInChildren<Animator>();
