@@ -2142,9 +2142,155 @@ namespace UNAB.Transporte3D.EditorTools
             ctrl.isThirdPerson = true;
         }
 
-        [MenuItem("UNAB Transporte/Reemplazar Avatar con Modelo 3D Seleccionado (FBX o Prefab)", false, 2)]
+        [MenuItem("UNAB Transporte/Activar a Captain Tsubasa (Oliver Atom) como Avatar 3D", false, 2)]
+        public static void SetupCaptainTsubasaAvatar()
+        {
+            var ctrl = Object.FindAnyObjectByType<UNABSceneController>();
+            if (ctrl == null || ctrl.playerVisuals == null)
+            {
+                EditorUtility.DisplayDialog("Escena no encontrada",
+                    "Primero genera el escenario con 'UNAB Transporte -> Generar Escenario 3D Completo'.",
+                    "OK");
+                return;
+            }
+
+            string[] guids = AssetDatabase.FindAssets("Animación_Pateando t:Model");
+            if (guids == null || guids.Length == 0)
+            {
+                guids = AssetDatabase.FindAssets("t:Model", new[] { "Assets/captain-tsubasa" });
+            }
+
+            if (guids == null || guids.Length == 0)
+            {
+                EditorUtility.DisplayDialog("Modelo no encontrado",
+                    "No se encontro el archivo .fbx en Assets/captain-tsubasa/source/. Verifica que la carpeta este dentro de Assets.",
+                    "Entendido");
+                return;
+            }
+
+            string fbxPath = AssetDatabase.GUIDToAssetPath(guids[0]);
+            GameObject fbxPrefab = AssetDatabase.LoadAssetAtPath<GameObject>(fbxPath);
+            if (fbxPrefab == null)
+            {
+                EditorUtility.DisplayDialog("Error", "No se pudo cargar el prefab del FBX.", "OK");
+                return;
+            }
+
+            for (int i = ctrl.playerVisuals.childCount - 1; i >= 0; i--)
+            {
+                Object.DestroyImmediate(ctrl.playerVisuals.GetChild(i).gameObject);
+            }
+
+            GameObject instance = (GameObject)PrefabUtility.InstantiatePrefab(fbxPrefab, ctrl.playerVisuals);
+            instance.name = "OliverAtom_Character";
+            instance.transform.localPosition = Vector3.zero;
+            instance.transform.localRotation = Quaternion.identity;
+
+            // Cargar texturas originales de captain-tsubasa
+            Texture2D texCuerpo = AssetDatabase.LoadAssetAtPath<Texture2D>("Assets/captain-tsubasa/textures/Cuerpo_PolypaintMap.png");
+            Texture2D texPelo = AssetDatabase.LoadAssetAtPath<Texture2D>("Assets/captain-tsubasa/textures/Pelo_Polypaint.png");
+            Texture2D texRopa = AssetDatabase.LoadAssetAtPath<Texture2D>("Assets/captain-tsubasa/textures/Ropa_Polypaint.png");
+            Texture2D texNormal = AssetDatabase.LoadAssetAtPath<Texture2D>("Assets/captain-tsubasa/textures/Ropa_Normales2.png");
+
+            Shader litShader = Shader.Find("Universal Render Pipeline/Lit") ?? Shader.Find("Standard");
+
+            Material matCuerpo = new Material(litShader) { name = "Mat_Oliver_Cuerpo" };
+            if (texCuerpo != null)
+            {
+                if (matCuerpo.HasProperty("_BaseMap")) matCuerpo.SetTexture("_BaseMap", texCuerpo);
+                if (matCuerpo.HasProperty("_MainTex")) matCuerpo.SetTexture("_MainTex", texCuerpo);
+            }
+            if (matCuerpo.HasProperty("_Smoothness")) matCuerpo.SetFloat("_Smoothness", 0.35f);
+
+            Material matRopa = new Material(litShader) { name = "Mat_Oliver_Ropa" };
+            if (texRopa != null)
+            {
+                if (matRopa.HasProperty("_BaseMap")) matRopa.SetTexture("_BaseMap", texRopa);
+                if (matRopa.HasProperty("_MainTex")) matRopa.SetTexture("_MainTex", texRopa);
+            }
+            if (texNormal != null)
+            {
+                if (matRopa.HasProperty("_BumpMap"))
+                {
+                    matRopa.SetTexture("_BumpMap", texNormal);
+                    matRopa.EnableKeyword("_NORMALMAP");
+                }
+            }
+            if (matRopa.HasProperty("_Smoothness")) matRopa.SetFloat("_Smoothness", 0.4f);
+
+            Material matPelo = new Material(litShader) { name = "Mat_Oliver_Pelo" };
+            if (texPelo != null)
+            {
+                if (matPelo.HasProperty("_BaseMap")) matPelo.SetTexture("_BaseMap", texPelo);
+                if (matPelo.HasProperty("_MainTex")) matPelo.SetTexture("_MainTex", texPelo);
+            }
+            if (matPelo.HasProperty("_Smoothness")) matPelo.SetFloat("_Smoothness", 0.25f);
+
+            // Asignar materiales correspondientes a los SkinnedMeshRenderers
+            foreach (var smr in instance.GetComponentsInChildren<SkinnedMeshRenderer>(true))
+            {
+                string n = smr.name.ToLower();
+                if (n.Contains("pelo") || n.Contains("hair"))
+                {
+                    smr.sharedMaterial = matPelo;
+                }
+                else if (n.Contains("cuerpo") || n.Contains("body") || n.Contains("skin") || n.Contains("head") || n.Contains("cabeza"))
+                {
+                    smr.sharedMaterial = matCuerpo;
+                }
+                else if (n.Contains("ropa") || n.Contains("cloth") || n.Contains("camisa") || n.Contains("pantalon") || n.Contains("medias"))
+                {
+                    smr.sharedMaterial = matRopa;
+                }
+                else if (smr.sharedMaterial != null)
+                {
+                    string mn = smr.sharedMaterial.name.ToLower();
+                    if (mn.Contains("pelo")) smr.sharedMaterial = matPelo;
+                    else if (mn.Contains("cuerpo")) smr.sharedMaterial = matCuerpo;
+                    else if (mn.Contains("ropa")) smr.sharedMaterial = matRopa;
+                    else smr.sharedMaterial = matCuerpo;
+                }
+                else
+                {
+                    smr.sharedMaterial = matCuerpo;
+                }
+            }
+
+            // Normalizar escala a altura humana (~1.72m)
+            Bounds b = new Bounds(instance.transform.position, Vector3.zero);
+            var renderers = instance.GetComponentsInChildren<Renderer>();
+            foreach (var r in renderers) b.Encapsulate(r.bounds);
+
+            float currentHeight = b.size.y;
+            if (currentHeight > 0.05f)
+            {
+                float targetHeight = 1.72f;
+                float scaleFactor = targetHeight / currentHeight;
+                instance.transform.localScale = Vector3.one * scaleFactor;
+            }
+
+            ctrl.playerLeftArmPivot = null;
+            ctrl.playerRightArmPivot = null;
+            ctrl.playerLeftLegPivot = null;
+            ctrl.playerRightLegPivot = null;
+            ctrl.propellerTransform = null;
+
+            EditorUtility.SetDirty(ctrl.gameObject);
+            EditorUtility.DisplayDialog("¡Oliver Atom Activado!",
+                "¡Captain Tsubasa (Oliver Atom) ya es tu personaje 3D oficial en la UNAB con todas sus texturas originales de anime!\n\nPresiona Play (▶) y camina con él usando WASD.",
+                "¡Excelente!");
+        }
+
+        [MenuItem("UNAB Transporte/Reemplazar Avatar con Modelo 3D Seleccionado (FBX o Prefab)", false, 3)]
         public static void ReplaceAvatarWithSelectedModel()
         {
+            Object activeObj = Selection.activeObject;
+            if (activeObj != null && activeObj.name.ToLower().Contains("captain-tsubasa"))
+            {
+                SetupCaptainTsubasaAvatar();
+                return;
+            }
+
             GameObject selected = Selection.activeGameObject;
             if (selected == null)
             {
