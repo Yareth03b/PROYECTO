@@ -240,10 +240,16 @@ namespace UNAB.Transporte3D.EditorTools
             GameObject lightGroup = new GameObject("Lighting_And_Probes");
             lightGroup.transform.SetParent(root, false);
 
+            // Iluminacion y atmosfera calida y vibrante estilo Genshin Impact / Anime
             RenderSettings.ambientMode = AmbientMode.Trilight;
-            RenderSettings.ambientSkyColor = new Color(0.84f, 0.89f, 0.96f);
-            RenderSettings.ambientEquatorColor = new Color(0.64f, 0.70f, 0.78f);
-            RenderSettings.ambientGroundColor = new Color(0.35f, 0.38f, 0.44f);
+            RenderSettings.ambientSkyColor = new Color(0.58f, 0.82f, 1.0f);     // Cielo celeste anime vibrante
+            RenderSettings.ambientEquatorColor = new Color(0.96f, 0.90f, 0.80f); // Luz calida de horizonte Teyvat
+            RenderSettings.ambientGroundColor = new Color(0.42f, 0.58f, 0.32f);  // Reflejo esmeralda de vegetacion
+
+            RenderSettings.fog = true;
+            RenderSettings.fogMode = FogMode.Exponential;
+            RenderSettings.fogDensity = 0.0032f;
+            RenderSettings.fogColor = new Color(0.74f, 0.88f, 1.0f);             // Niebla suave de distancia anime
 
             Light dirLight = Object.FindAnyObjectByType<Light>();
             if (dirLight == null || dirLight.type != LightType.Directional)
@@ -253,10 +259,13 @@ namespace UNAB.Transporte3D.EditorTools
                 dirLight = dlObj.AddComponent<Light>();
                 dirLight.type = LightType.Directional;
             }
-            dirLight.transform.rotation = Quaternion.Euler(48f, -38f, 0f);
-            dirLight.intensity = 1.45f;
-            dirLight.color = new Color(1f, 0.98f, 0.94f);
+            dirLight.transform.rotation = Quaternion.Euler(46f, -38f, 0f);
+            dirLight.intensity = 1.55f;
+            dirLight.color = new Color(1.0f, 0.96f, 0.88f);                     // Sol dorado calido anime
             dirLight.shadows = LightShadows.Soft;
+            dirLight.shadowResolution = LightShadowResolution.VeryHigh;
+            dirLight.shadowNormalBias = 0.25f;
+            dirLight.shadowBias = 0.035f;
 
             // Luminarias interiores de techo para dar volumen, brillos especulares (PBR) y sombras suaves a los objetos
             void AddInteriorCeilingLight(string name, Vector3 pos, Color col, float intensity, float range, bool castShadows = false)
@@ -1560,7 +1569,7 @@ namespace UNAB.Transporte3D.EditorTools
             Material cat6CyanMat = CreatePbrMat("Cat6A_LightBlue", new Color(0.10f, 0.58f, 0.90f), 0.12f, 0.62f);
             Material fiberYellowMat = CreatePbrMat("FiberOS2_Yellow", new Color(0.96f, 0.78f, 0.08f), 0.15f, 0.68f);
             Material rj45PlugMat = CreatePbrMat("RJ45_Polycarbonate", new Color(0.85f, 0.92f, 0.98f, 0.85f), 0.2f, 0.9f, null, null, true);
-            Material packetMat = CreatePbrMat("DataPacket", new Color(0.22f, 0.78f, 0.99f), 0f, 0.95f, null, null, false, new Color(0.22f, 0.78f, 0.99f) * 2.6f);
+            Material packetMat = CreatePbrMat("DataPacket", new Color(0.15f, 0.88f, 1.0f), 0f, 0.98f, null, null, false, new Color(0.15f, 0.88f, 1.0f) * 4.2f);
 
             // Helper para crear un cilindro entre dos puntos 3D exactos (para cables redondos Cat6A y patch cords curvados)
             void AddCylBetween(Transform parent, string name, Vector3 a, Vector3 b, float diameter, Material mat)
@@ -2008,18 +2017,19 @@ namespace UNAB.Transporte3D.EditorTools
             visuals.transform.localPosition = Vector3.zero;
             visuals.transform.localEulerAngles = new Vector3(0f, -90f, 0f);
 
-            // Materiales PBR oficiales de Pablo Cientifico (The Backyardigans)
-            Material pabloBlueMat = CreatePbrMat("PabloBlueSkin", new Color(0.18f, 0.44f, 0.94f), 0.02f, 0.38f);
-            Material pabloYellowMat = CreatePbrMat("PabloBeakYellow", new Color(0.98f, 0.80f, 0.12f), 0.05f, 0.45f);
-            Material labCoatWhiteMat = CreatePbrMat("LabCoatWhite", new Color(0.97f, 0.98f, 0.99f), 0.02f, 0.40f);
-            Material vestBrownMat = CreatePbrMat("ScientistVest", new Color(0.50f, 0.44f, 0.30f), 0.04f, 0.32f);
-            Material shirtWhiteMat = CreatePbrMat("ShirtWhite", new Color(0.98f, 0.98f, 0.99f), 0.01f, 0.30f);
-            Material bowtieRedMat = CreatePbrMat("BowtieRed", new Color(0.88f, 0.16f, 0.14f), 0.05f, 0.45f);
+            // Materiales PBR estilo Genshin / Anime de Pablo Cientifico
+            Material pabloBlueMat = CreatePbrMat("PabloBlueSkin", new Color(0.18f, 0.48f, 0.98f), 0.01f, 0.50f);
+            Material pabloYellowMat = CreatePbrMat("PabloBeakYellow", new Color(1.0f, 0.82f, 0.12f), 0.02f, 0.55f);
+            Material labCoatWhiteMat = CreatePbrMat("LabCoatWhite", new Color(0.98f, 0.99f, 1.0f), 0.01f, 0.45f);
+            Material vestBrownMat = CreatePbrMat("ScientistVest", new Color(0.52f, 0.45f, 0.32f), 0.02f, 0.35f);
+            Material shirtWhiteMat = CreatePbrMat("ShirtWhite", new Color(0.99f, 0.99f, 1.0f), 0.01f, 0.35f);
+            Material bowtieRedMat = CreatePbrMat("BowtieRed", new Color(0.96f, 0.16f, 0.18f), 0.02f, 0.55f);
             Material pantsBrownMat = CreatePbrMat("ScientistPants", new Color(0.32f, 0.22f, 0.15f), 0.04f, 0.35f);
             Material glassesFrameMat = CreatePbrMat("GlassesTortoise", new Color(0.24f, 0.14f, 0.08f), 0.18f, 0.70f);
             Material eyeWhiteMat = CreatePbrMat("EyeWhite", Color.white, 0.02f, 0.65f);
             Material eyePupilMat = CreatePbrMat("EyePupil", new Color(0.06f, 0.06f, 0.08f), 0.1f, 0.75f);
-            Material propellerRedMat = CreatePbrMat("PropellerRed", new Color(0.92f, 0.18f, 0.14f), 0.12f, 0.65f);
+            Material eyeHighlightMat = CreatePbrMat("EyeAnimeCatchlight", Color.white, 0f, 0.95f, null, null, false, Color.white * 1.8f);
+            Material propellerRedMat = CreatePbrMat("PropellerRed", new Color(0.94f, 0.18f, 0.14f), 0.12f, 0.65f);
             Material penBlueMat = CreatePbrMat("PenBlue", new Color(0.04f, 0.42f, 0.88f), 0.2f, 0.7f);
             Material penYellowMat = CreatePbrMat("PenYellow", new Color(0.98f, 0.82f, 0.10f), 0.2f, 0.7f);
             Material goldBuckleMat = CreatePbrMat("GoldBuckle", new Color(0.92f, 0.75f, 0.15f), 0.65f, 0.75f);
@@ -2093,11 +2103,13 @@ namespace UNAB.Transporte3D.EditorTools
             AddBox(headPivot.transform, "Beak_Base", new Vector3(0f, 0.17f, 0.26f), new Vector3(0.18f, 0.075f, 0.16f), pabloYellowMat, false);
             AddSphere(headPivot.transform, "Beak_Tip", new Vector3(0f, 0.165f, 0.33f), new Vector3(0.12f, 0.06f, 0.08f), pabloYellowMat);
 
-            // Ojos saltones blancos y pupilas negras mirando al frente
+            // Ojos saltones blancos y pupilas negras con destellos brillantes estilo anime
             AddSphere(headPivot.transform, "Eye_L", new Vector3(-0.10f, 0.28f, 0.21f), new Vector3(0.12f, 0.13f, 0.06f), eyeWhiteMat);
             AddSphere(headPivot.transform, "Eye_R", new Vector3(0.10f, 0.28f, 0.21f), new Vector3(0.12f, 0.13f, 0.06f), eyeWhiteMat);
             AddSphere(headPivot.transform, "Pupil_L", new Vector3(-0.095f, 0.28f, 0.235f), new Vector3(0.052f, 0.052f, 0.025f), eyePupilMat);
             AddSphere(headPivot.transform, "Pupil_R", new Vector3(0.095f, 0.28f, 0.235f), new Vector3(0.052f, 0.052f, 0.025f), eyePupilMat);
+            AddSphere(headPivot.transform, "Catchlight_L", new Vector3(-0.082f, 0.30f, 0.245f), new Vector3(0.022f, 0.022f, 0.015f), eyeHighlightMat);
+            AddSphere(headPivot.transform, "Catchlight_R", new Vector3(0.108f, 0.30f, 0.245f), new Vector3(0.022f, 0.022f, 0.015f), eyeHighlightMat);
 
             // Lentes gruesos de pasta carey de cientifico (Marcos, puente y patillas)
             AddBox(headPivot.transform, "Glasses_RimL", new Vector3(-0.10f, 0.28f, 0.245f), new Vector3(0.17f, 0.15f, 0.035f), glassesFrameMat, false);
