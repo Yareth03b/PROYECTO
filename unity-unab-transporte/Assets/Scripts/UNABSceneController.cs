@@ -31,19 +31,9 @@ namespace UNAB.Transporte3D
         public Vector3 worldPosition;
     }
 
-    [ExecuteAlways]
     public class UNABSceneController : MonoBehaviour
     {
-        private static UNABSceneController _instance;
-        public static UNABSceneController Instance
-        {
-            get
-            {
-                if (_instance == null) _instance = UnityEngine.Object.FindFirstObjectByType<UNABSceneController>();
-                return _instance;
-            }
-            set => _instance = value;
-        }
+        public static UNABSceneController Instance { get; private set; }
 
         [Header("Scene References")]
         public Camera mainCamera;
@@ -100,15 +90,9 @@ namespace UNAB.Transporte3D
         private Vector3 transEndLook;
         private float transAlpha = 0f;
 
-        private void OnEnable()
-        {
-            _instance = this;
-            if (mainCamera == null) mainCamera = Camera.main;
-        }
-
         private void Awake()
         {
-            _instance = this;
+            Instance = this;
             if (mainCamera == null) mainCamera = Camera.main;
         }
 
@@ -314,8 +298,6 @@ namespace UNAB.Transporte3D
 
         private void Update()
         {
-            if (!Application.isPlaying) return;
-
             float dt = Mathf.Min(Time.deltaTime, 0.1f);
 
             HandleKeyboardShortcuts();

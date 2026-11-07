@@ -4,19 +4,9 @@ using UnityEngine;
 
 namespace UNAB.Transporte3D
 {
-    [ExecuteAlways]
     public class UNABHudAndConsoleUI : MonoBehaviour
     {
-        private static UNABHudAndConsoleUI _instance;
-        public static UNABHudAndConsoleUI Instance
-        {
-            get
-            {
-                if (_instance == null) _instance = UnityEngine.Object.FindFirstObjectByType<UNABHudAndConsoleUI>();
-                return _instance;
-            }
-            private set => _instance = value;
-        }
+        public static UNABHudAndConsoleUI Instance { get; private set; }
 
         private Texture2D logoTex;
 
@@ -55,16 +45,9 @@ namespace UNAB.Transporte3D
         private static readonly Color ColCardBorder = new Color(1f, 1f, 1f, 0.14f);
         private static readonly Color ColTermBg = new Color(0.045f, 0.045f, 0.06f, 1f);
 
-        private void OnEnable()
-        {
-            _instance = this;
-            stylesInitialized = false;
-            if (logoTex == null) logoTex = Resources.Load<Texture2D>("logo-unab");
-        }
-
         private void Awake()
         {
-            _instance = this;
+            Instance = this;
         }
 
         private void Start()
@@ -222,8 +205,8 @@ namespace UNAB.Transporte3D
         private void OnGUI()
         {
             InitStyles();
-            var ctrl = UNABSceneController.Instance ?? GetComponent<UNABSceneController>() ?? UnityEngine.Object.FindFirstObjectByType<UNABSceneController>();
-            var sim = UNABNetworkSimulator.Instance ?? GetComponent<UNABNetworkSimulator>() ?? UnityEngine.Object.FindFirstObjectByType<UNABNetworkSimulator>();
+            var ctrl = UNABSceneController.Instance;
+            var sim = UNABNetworkSimulator.Instance;
             if (ctrl == null || sim == null) return;
 
             // 1. ETIQUETAS FLOTANTES 3D (Con filtro de pared en Modo Caminata y capsulas nitidas)
@@ -237,7 +220,7 @@ namespace UNAB.Transporte3D
             string lblFps = ctrl.isFpsMode
                 ? (ctrl.isThirdPerson ? "Caminata: 3ra Persona (V)" : "Caminata: 1ra Persona (V)")
                 : "Modo Caminata (WASD)";
-            string lblViews = "Vistas Rapidas";
+            string lblViews = "Vistas Rápidas ▾";
             string lblCeil = $"Techo: {(ctrl.ceilingVisible ? "ON" : "OFF")}";
             string lblPack = $"Flujo de Datos: {(ctrl.packetsEnabled ? "ON" : "OFF")}";
             string lblWall = $"Vista Muros: {(ctrl.wallsLowered ? "Bajos" : "Normal")}";
@@ -274,7 +257,7 @@ namespace UNAB.Transporte3D
                 GUI.DrawTexture(new Rect(lx + 2f, navRect.y + 10f, 28f, 28f), logoTex, ScaleMode.ScaleToFit);
                 lx += 40f;
             }
-            GUI.Label(new Rect(lx, navRect.y + 8f, 165f, 32f), "AREA DE TRANSPORTE", brandTitleStyle);
+            GUI.Label(new Rect(lx, navRect.y + 8f, 165f, 32f), "ÁREA DE TRANSPORTE", brandTitleStyle);
             lx += 168f;
             DrawSolidLine(new Rect(lx, navRect.y + 13f, 1f, 22f), new Color(1f, 1f, 1f, 0.16f));
 

@@ -97,19 +97,9 @@ namespace UNAB.Transporte3D
         public string dataKey;
     }
 
-    [ExecuteAlways]
     public class UNABNetworkSimulator : MonoBehaviour
     {
-        private static UNABNetworkSimulator _instance;
-        public static UNABNetworkSimulator Instance
-        {
-            get
-            {
-                if (_instance == null) _instance = UnityEngine.Object.FindFirstObjectByType<UNABNetworkSimulator>();
-                return _instance;
-            }
-            private set => _instance = value;
-        }
+        public static UNABNetworkSimulator Instance { get; private set; }
 
         public Dictionary<string, EquipmentInfo> EquipmentDB = new Dictionary<string, EquipmentInfo>();
 
@@ -169,15 +159,9 @@ namespace UNAB.Transporte3D
         public float cracCurrentTemp = 20.2f;
         public int cracHumidity = 46;
 
-        private void OnEnable()
-        {
-            _instance = this;
-            if (EquipmentDB == null || EquipmentDB.Count == 0) InitializeDatabase();
-        }
-
         private void Awake()
         {
-            _instance = this;
+            Instance = this;
             InitializeDatabase();
         }
 
